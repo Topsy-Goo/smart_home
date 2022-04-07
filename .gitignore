@@ -1,0 +1,42 @@
+HELP.md
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+/src/main/java/ru/gb/smarthome/SmarthomeSimulatorApplication.java
+/src/test/java/ru/gb/smarthome/SmarthomeSimulatorApplicationTests.java
+/src/main/resources/application.properties
+/home-keeper/backup.files/
+/smart-fridge/backup.files/
+/smart-sequrity-controller/backup.files/
+/smart-empty/backup.files/
+/home-keeper/src/main/java/ru/gb/smarthome/homekeeper/draft/SmartHome.java
+/описание.txt
