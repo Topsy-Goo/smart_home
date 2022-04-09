@@ -18,4 +18,14 @@
 		<maven.compiler.target>15</maven.compiler.target>
 	</properties>
 
+	<dependencies>
+		<dependency>
+			<groupId>ru.gb.smarthome</groupId>
+			<artifactId>home-keeper</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+			<scope>compile</scope>
+		</dependency><!-- ru.gb.smarthome : home-keeper : compile -->
+	</dependencies>
+
 </project>
+<!--  :  :  -->
