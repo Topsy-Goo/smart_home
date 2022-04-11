@@ -40,3 +40,4 @@ public class Message implements Serializable {
         return format ("Message[uuid: %s, data: %s]", deviceUUID/*getUUID()*/, data);
     }
 }
+//Если при сериализации А таже сериализуются подтипы несериализуемых классов, то такие подтипы нужно снабжать умолчальными конструкторами, доступными из А.

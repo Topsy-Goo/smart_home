@@ -1,5 +1,6 @@
 package ru.gb.smarthome.homekeeper;
 
+import org.flywaydb.core.Flyway;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import ru.gb.smarthome.common.PropertyManager;
@@ -8,32 +9,36 @@ import ru.gb.smarthome.common.smart.structures.Port;
 import java.util.ArrayList;
 import java.util.List;
 
-import static ru.gb.smarthome.homekeeper.FactoryHome.SMART_PORTS_COUNT;
+import static ru.gb.smarthome.common.FactoryCommon.SMART_PORTS_COUNT;
 
 @SpringBootApplication (scanBasePackages = "ru.gb.smarthome.homekeeper")
 public class HomeKeeperApp
 {
     static final boolean         DEBUG = true;
-    static       PropertyManager propMan;
+    //static       PropertyManager propMan;
     static final List<Port>      ports = new ArrayList<>(SMART_PORTS_COUNT);
 
     public static void main (String[] args)
     {
         if (init ()) {
             SpringApplication.run (HomeKeeperApp.class, args);
-            FactoryHome.startDeviceServer ();
+            //FactoryHome.startDeviceServer ();
         }
     }
 
-    public static PropertyManager getPropManager () { return propMan; }
+    //public static PropertyManager getPropManager () { return propMan; }
 
     private static boolean init () {
         boolean ok = false;
+
         for (int i=0;  i < SMART_PORTS_COUNT;  i++) {
             ports.add (new Port());
         }
-        propMan = FactoryHome.getPropertyManager();
-        ok = propMan.readAllProperties("propertyFile");
+        if (initFlyway()) {
+            //propMan = FactoryHome.getPropertyManager();
+            //if (propMan.readAllProperties ("propertyFile"))
+                ok = true;
+        }
         return ok;
     }
 
@@ -43,6 +48,14 @@ public class HomeKeeperApp
             if (p.isFree())
                 return p;
         return null;
+    }
+
+    private static boolean initFlyway () {
+/*        Flyway flyway = Flyway.configure()
+                              .dataSource ("jdbc:h2://localhost:3306./target/foobar", "root", null)
+                              .load();
+        flyway.migrate();*/
+        return true;
     }
 
     //public static Port f () {}

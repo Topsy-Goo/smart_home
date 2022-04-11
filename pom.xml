@@ -31,19 +31,22 @@
 	</properties>
 
 	<dependencies>
+		<!--
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-maven-plugin</artifactId>
+			<version>2.5.5</version>
+		</dependency> &lt;!&ndash; spring-boot-maven-plugin 2.5.5 &ndash;&gt;
+
+		<dependency> &lt;!&ndash; Позволяет упростить работу с хибер-том на уровне Спринга. См.также YAML-файл. &ndash;&gt;
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+		</dependency> &lt;!&ndash; spring-boot-starter-data-jpa &ndash;&gt;
+		-->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency><!-- org.springframework.boot : spring-boot-starter-web :  -->
-		<dependency>
-			<groupId>org.flywaydb</groupId>
-			<artifactId>flyway-core</artifactId>
-		</dependency><!-- org.flywaydb : flyway-core :  -->
-		<dependency>
-			<groupId>com.h2database</groupId>
-			<artifactId>h2</artifactId>
-			<scope>runtime</scope>
-		</dependency><!-- com.h2database : h2 : runtime -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
@@ -55,25 +58,49 @@
 			</exclusions>-->
 			<scope>test</scope>
 		</dependency><!-- org.springframework.boot : spring-boot-starter-test : test -->
+		<!--
+		<dependency>	&lt;!&ndash; для организации авторизации при пом.(чего?) &ndash;&gt;
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
+			&lt;!&ndash; Также автоматически конфигурирет умолчального пользователя user; его (одноразовый?) пароль создаётся генериться при старте приложения.  &ndash;&gt;
+		</dependency> &lt;!&ndash; spring-boot-starter-security &ndash;&gt;
+
+		<dependency>	&lt;!&ndash; для тестирования безопасности &ndash;&gt;
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-test</artifactId>
+		</dependency> &lt;!&ndash; spring-security-test &ndash;&gt;
+
+		<dependency>
+			<groupId>org.hibernate.validator</groupId>
+			<artifactId>hibernate-validator</artifactId>
+			<version>6.1.5.Final</version>
+		</dependency>&lt;!&ndash; org.hibernate.validator : hibernate-validator : 6.1.5.Final &ndash;&gt;
+		-->
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<scope>runtime</scope>
+		</dependency><!-- com.h2database : h2 : runtime -->
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<optional>true</optional>
+		</dependency><!-- org.projectlombok : lombok : true -->
+		<dependency>	<!-- Помогает собирать и парсить JWT. -->
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt</artifactId>
+			<version>0.9.1</version>
+		</dependency> <!-- jjwt 0.9.1 -->
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-core</artifactId>
+		</dependency><!-- org.flywaydb : flyway-core :  -->
 		<dependency>
 			<groupId>org.jetbrains</groupId>
 			<artifactId>annotations</artifactId>
 			<version>22.0.0</version><!-- LATEST or RELEASE are being deprecated -->
 			<scope>compile</scope>
 		</dependency><!-- org.jetbrains : annotations : 22.0.0 : compile -->
-
-		<!--
-		<dependency>	&lt;!&ndash; для организации автоматических проверок параметров методов &ndash;&gt;
-			<groupId>org.hibernate.validator</groupId>
-			<artifactId>hibernate-validator</artifactId>
-			<version>6.1.5.Final</version>
-		</dependency>&lt;!&ndash; org.hibernate.validator : hibernate-validator : 6.1.5.Final &ndash;&gt;
-		<dependency>
-			<groupId>org.projectlombok</groupId>
-			<artifactId>lombok</artifactId>
-			<optional>true</optional>
-		</dependency>&lt;!&ndash; org.projectlombok : lombok : true &ndash;&gt;
-		-->
 	</dependencies>
 
 	<build>

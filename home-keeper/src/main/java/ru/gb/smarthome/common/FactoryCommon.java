@@ -1,16 +1,26 @@
 package ru.gb.smarthome.common;
 
+import ru.gb.smarthome.common.smart.enums.OperationCodes;
 import ru.gb.smarthome.common.smart.structures.Message;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
-final public class FactoryCommon {
+import static ru.gb.smarthome.common.smart.enums.OperationCodes.CMD_BUSY;
+
+final public class FactoryCommon
+{
+    public static final int SMART_PORTS_COUNT  = 2;
+    public static final int BUSY_SLEEP_SECONDS = 5;
+    public static final int    SERVER_PORT_DEFAULT    = 7777;
+    public static final String SERVER_ADDRESS_DEFAULT = "localhost";
+    public static final boolean ON = true, OFF = false;
+    public static final OperationCodes OPCODE_INITIAL = CMD_BUSY; //< состояние, в котором оказывается УУ при запуске его модуля.
 
 /** Проверяет строку на пригодность.
 @return true, если ни одна из строк не равна null, не является пустой и не состоит только из пробельных сиволов. */
-    static boolean isStringValid (String... lines) {
+    public static boolean isStringsValid (String... lines) {
         boolean result = lines != null;
         if (result) {
             for (String s : lines) {

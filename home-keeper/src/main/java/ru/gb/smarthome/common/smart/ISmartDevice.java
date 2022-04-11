@@ -10,14 +10,16 @@ import java.util.UUID;
 /** Основной интерфейс для всех умных устройств. */
 public interface ISmartDevice  extends ITaskProvider, IModesProvider, Runnable
 {
-    DeviceTypes deviceClass(); //< тип УУ.
     UUID uuid ();  //уникальный UUID умного устройства
+
+//---------- ещё не сделано ------------------------
+    DeviceTypes deviceType (); //< тип УУ.
     DeviceStatus status ();
 
     /** Состояние УУ для печати в web-интерфейсе. Если on==true, то нужно заполнить и statistics.<p>
      statistics — это пары строк в формате Название_параметра: значение. */
-    class DeviceStatus {
-        final boolean             on; //< true == устройство включено
+    static class DeviceStatus {
+        final boolean on; //< true == устройство включено
         final Map<String, String> statistics;
         public DeviceStatus (boolean on, Map<String, String> stat) {
             this.on = on;
@@ -26,11 +28,9 @@ public interface ISmartDevice  extends ITaskProvider, IModesProvider, Runnable
     }
 
     //void setPort (Port port); < не нужно уже
-    void setName (String name);  //< юзер может присвоить устройству название
-    void turnOn ();  //< перевод УУ в активное состояние
-    void turnOff (); //< перевод УУ в НЕактивное состояние
-    void sleep ();   //< перевод УУ в режим минимального энергопотребления
-    void wakeUp ();  //< вывод УУ из режима минимального энергопотребления
+    void setFriendlyName (String name);  //< юзер может присвоить устройству название
+    void activate (boolean on);  //< переключение активного состояния в УУ
+    void sleepSwitch (boolean sleep);   //< перевод УУ в режим минимального энергопотребления
 
     /** запрос на отключение устройства, которое, возможно, занято какой-то операцией. */
     boolean isItSafeTurnOff ();

@@ -7,7 +7,11 @@ import ru.gb.smarthome.common.smart.structures.Port;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.PriorityQueue;
 import java.util.UUID;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.TransferQueue;
 
 import static ru.gb.smarthome.common.smart.enums.OperationCodes.*;
 import static ru.gb.smarthome.homekeeper.HomeKeeperApp.DEBUG;
@@ -15,14 +19,18 @@ import static ru.gb.smarthome.common.FactoryCommon.*;
 
 public class ClientHandler extends SmartDevice
 {
-    private final Message deviceRequestMonitor = new Message();
-    private       Port port;
+    private final Message messagingMonitor = new Message();
+    private       Port    port;
     private       Socket socket;
 
-    public ClientHandler (Socket s, Port p) {
+    public ClientHandler (Socket s, Port p)
+    {
+        if (DEBUG && (s == null || p == null))
+            throw new IllegalArgumentException();
         port = p;
         socket = s;
         p.occupy (socket, this);
+        //TODO:здесь мы должны поставить в очередь запросы CMD_UUID и CMD_TYPE
     }
 
 /** Конструктор используется для создания временного хэндлера, назначение которого только
@@ -34,8 +42,9 @@ public class ClientHandler extends SmartDevice
             oos = new ObjectOutputStream (socket.getOutputStream());
             ois = new ObjectInputStream (socket.getInputStream());
 
-            String codeName = CMD_BUSY.name();
-            writeMessage (oos, new Message().setOpCode (CMD_BUSY));
+            OperationCodes opCode = CMD_NOPORTS;
+            String codeName = opCode.name();
+            writeMessage (oos, new Message().setOpCode (opCode));
 
             printf ("\nотправлено соощение: %s.", codeName);
             if (DEBUG) println ("\nКлиенту отказано в подключении, — нет свободных портов.");
@@ -48,23 +57,18 @@ public class ClientHandler extends SmartDevice
         threadRun = Thread.currentThread();
         String code = "OK";
         try {
-            //Совершенно неожиданно оказалось, что одинаковые операции — две ObjectOutputStream или две ObjectInputStream — блокируют друг друга, кода вызываются на обоих концах канала. Поэтому, если на одном конце канала вызывается, например, new ObjectInputStream(…), то на другом нужно обязательно вызвать new ObjectOutputStream(…), чтобы не случилась взаимная блокировка.
-
             oos = new ObjectOutputStream (socket.getOutputStream());
             ois = new ObjectInputStream (socket.getInputStream());
+            //Совершенно неожиданно оказалось, что одинаковые операции — две ObjectOutputStream или две ObjectInputStream — блокируют друг друга, кода вызываются на обоих концах канала. Поэтому, если на одном конце канала вызывается, например, new ObjectInputStream(…), то на другом нужно обязательно вызвать new ObjectOutputStream(…), чтобы не случилась взаимная блокировка.
             printf ("\nСоединение с клиентом установлено: "+
                     "\nsocket : %s (opend: %b)"+
                     "\nois : %s"+
                     "\noos : %s\n", socket, !socket.isClosed(), ois, oos);
             mainLoop();
         }
-        catch (IOException e) {
-            if (DEBUG) e.printStackTrace();
-            code = "IOError";
-        }
         catch (Exception e) {
+            code = e.getMessage();
             if (DEBUG) e.printStackTrace();
-            code = "Error";
         }
         finally {
             disconnect();
@@ -126,21 +130,41 @@ public class ClientHandler extends SmartDevice
 /** Очистка в конце работы метода mainLoop(). */
     private void cleanup () {}
 
-//-------------------------------------------------------------------------------
-
+//---------------------- Реализации методов: -------------------------------
+//TODO:неправильная обработка запроса. Будет переделана позже.
     @Override public UUID uuid () {
-        UUID result = null;
-        synchronized (deviceRequestMonitor) {
-            if (writeMessage(oos, deviceRequestMonitor
-                               .setOpCode (CMD_UUID)
-                               .setData (null)
-                               .setDeviceUUID (null)))
-            {
-                Message m = readMessage(ois); //< блокирующая операция
-                if (m != null)
-                    result = m.getDeviceUUID();
+        if (uuid == null)
+            synchronized (messagingMonitor) {
+                if (writeMessage(oos, messagingMonitor
+                                       .setOpCode (CMD_UUID)
+                                       .setData (null)
+                                       .setDeviceUUID (null)))
+                {
+                    Message m = readMessage(ois); //< блокирующая операция
+                    if (m != null)
+                        uuid = m.getDeviceUUID();
+                }
             }
-        }
-        return result;
+        return uuid;
+    }
+
+    void f () {
+        ;
+        //* Поток УД помещает сюда команды к нашему УУ.
+        //* Команды выполняются в порядке добавления (FIFO).
+        //* ?Если команда не может быть выполнена из-за того, что УУ занят более важным делом,
+        //  то ищем в очереди команду с подходящим приоритетом?
+
+        //TransferQueue
+
+        LinkedBlockingQueue<Message> queue = new LinkedBlockingQueue<>();
+        //* FIFO
+
+        PriorityBlockingQueue<Message> pbq;
+        //* предоставляет блокирующие операции извлечения
+        //* не допускает пустых элементов
+        //* iterator и spliterator не гарантируют обход элементов в каком-либо конкретном порядке. Если нужен упорядоченный обход, рассмотрите Arrays.sort(pq.toArray()).
+        //* drainTo() — для переноса элементов в другую коллекцию в порядке приоритета.
+        //* никаких гарантий относительно упорядочения элементов с равным приоритетом.
     }
 }

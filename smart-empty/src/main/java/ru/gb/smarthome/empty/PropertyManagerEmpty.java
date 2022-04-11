@@ -9,7 +9,6 @@ public class PropertyManagerEmpty extends PropertyManager
     private static       PropertyManager instance;
     private static final Object          monitor = new Object();
 
-
     private PropertyManagerEmpty () {}
 
     public static PropertyManager getInstance() {

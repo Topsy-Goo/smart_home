@@ -3,4 +3,5 @@
 
 #application:
 #  homekeeper:
-#    port: 15550
+#    port: 7777
+#    address: 'localhost'

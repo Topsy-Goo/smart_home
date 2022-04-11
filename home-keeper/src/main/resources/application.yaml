@@ -1,2 +1,25 @@
 server:
   port: 15550
+  servlet:
+    context-path: /home
+
+spring: # < конфигурируем спринг-окружение
+  datasource: # < спринговый стандартный бин для подключения к базе данных
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:mydatabase;MODE=PostgreSQL
+    username: sa
+    password:
+  jpa: # < указываем реализацию JPA (по умолчанию будет подключен хибер-т)
+    show-sql: true # < показывать сгенерированные запросы хибер-та
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect # < диалект
+  h2: # < необязательная настройка БД (Спринг дружит с h2 и позволяет делать такую настройку)
+    console:
+      enabled: true # < поддержка H2-консоли
+      settings:
+        web-allow-others: false # < закрыть доступ к этой консоли из других WEB-приложений
+        #(только из браузера можно)
+jwt:
+  secret: $2a$12$c4HYjryn7vo1bYQfSzkUDe8jPhYIpInbUKZmv5lGnmcyrQPLIWnVu
+  lifetime: 36000000 #10ч

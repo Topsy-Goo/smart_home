@@ -1,0 +1,154 @@
+<div style="margin: 10px;">
+	<h5>Список устройств, подключеных к Умному дому.</h5>
+	<p>&nbsp;</p>
+<!-- Начало экспериментальной части. -->
+
+<br>
+	<div><!-- HTML-контейнер для одного устройства --><!-- погода -->
+			<table class="table table-striped">
+				<tr><td class="col-3">
+						Погода
+					</td>
+					<td class="col-2">
+						(состояние)
+					</td>
+					<td class="col-5">
+						(краткие показания)
+					</td>
+					<td class="col-2">
+						<button class="btn btn-outline-primary btn-sm justify-end"
+								ng-model="checked1" ng-init="checked1=false" ng-click="checked1=!checked1">
+							Показать-Скрыть
+						</button>
+					</td>
+				</tr>
+			</table>
+			<div class="almost_windows" ng-if="checked1" class="animate-if"><!-- Источник: https://docs.angularjs.org/api/ng/directive/ngIf -->
+<!--				<img src="img/Steampunk.jpg" alt="JPG">-->
+				<table class="table table-success table-striped">
+					<thead class="table-dark">
+						<tr>
+							<th>
+								(заголовок к рабочей области устройства)
+							</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td>
+								(рабочая область)
+							</td>
+						</tr>
+					</tbody>
+					<tfoot class="table-primary">
+						<tr>
+							<td>
+								(футер к рабочей области устройства)
+							</td>
+						</tr>
+					</tfoot>
+				</table>
+			</div>
+	</div>
+	<br><br>
+	<div><!-- HTML-контейнер для одного устройства --><!-- камера видеонаблюдения -->
+			<table class="table table-striped">
+				<tr><td class="col-3">
+						Камера видеонаблюдения
+					</td>
+					<td class="col-2">
+						(состояние)
+					</td>
+					<td class="col-5">
+						(краткие показания)
+					</td>
+					<td class="col-2">
+						<button class="btn btn-outline-primary btn-sm justify-end"
+								ng-model="checked2" ng-init="checked2=false" ng-click="checked2=!checked2">
+							Показать-Скрыть
+						</button>
+					</td>
+				</tr>
+			</table>
+			<div class="almost_windows" ng-if="checked2" class="animate-if"><!-- Источник: https://docs.angularjs.org/api/ng/directive/ngIf -->
+<!--				<img src="img/NTSC-PAL-SECAM global map.svg.png" alt="PNG">-->
+				<table class="table table-success table-striped">
+					<thead class="table-dark">
+						<tr>
+							<th>
+								(заголовок к рабочей области устройства)
+							</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td>
+								(рабочая область)
+							</td>
+						</tr>
+					</tbody>
+					<tfoot class="table-primary">
+						<tr>
+							<td>
+								(футер к рабочей области устройства)
+							</td>
+						</tr>
+					</tfoot>
+				</table>
+			</div>
+	</div>
+	<br><br>
+	<div><!-- HTML-контейнер для одного устройства --><!--  -->
+			<table class="table table-striped">
+				<tr><td class="col-3">
+						(Название устройства)
+					</td>
+					<td class="col-2">
+						(состояние)
+					</td>
+					<td class="col-5">
+						(краткие показания)
+					</td>
+					<td class="col-2">
+						<button class="btn btn-outline-primary btn-sm justify-end"
+								ng-model="checked3" ng-init="checked3=false" ng-click="checked3=!checked3">
+							Показать-Скрыть
+						</button>
+					</td>
+				</tr>
+			</table>
+			<div class="almost_windows" ng-if="checked3" class="animate-if"><!-- Источник: https://docs.angularjs.org/api/ng/directive/ngIf -->
+<!--				<img src="img/001.jpeg" alt="JPEG">-->
+<!--				<img src="img/ase3.gif" alt="GIF">-->
+<!--				<img src="img/BIG.BMP" alt="BMP">-->
+				<table class="table table-success table-striped">
+					<thead class="table-dark">
+						<tr>
+							<th>
+								(заголовок к рабочей области устройства)
+							</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td>
+								(рабочая область)
+							</td>
+						</tr>
+					</tbody>
+					<tfoot class="table-primary">
+						<tr>
+							<td>
+								(футер к рабочей области устройства)
+							</td>
+						</tr>
+					</tfoot>
+				</table>
+			</div>
+	</div>
+	<br><br>
+
+<!--	<button class="btn btn-primary btn-sm" >Управление устройствами</button>-->
+
+<!-- Конец экспериментальной части. -->
+</div>

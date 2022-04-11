@@ -1,29 +1,32 @@
 package ru.gb.smarthome.empty;
 
-import org.springframework.context.annotation.Configuration;
 import ru.gb.smarthome.common.PropertyManager;
+import ru.gb.smarthome.common.smart.ISmartDevice;
 
+import static ru.gb.smarthome.common.smart.SmartDevice.runConsole;
 
 //@SpringBootApplication (scanBasePackages = "ru.gb.smarthome.empty")
-//@ComponentScan (basePackages = "ru.gb.smarthome.empty")
-//@Configuration
 public class EmptyApp {
 
-    //@Value("${application.homekeeper.port}")  <<< J9,lesson7
     static final boolean   DEBUG = true;
     static PropertyManager propMan;
 
     public static void main (String[] args)
     {
-        //SpringApplication.run (EmptyApp.class, args);
-        if (init ())
-            new Thread (new DeviceClientEmpty (propMan), "Running Empty Device").start();
+        if (init ()) {
+            //SpringApplication.run (EmptyApp.class, args);
+
+            ISmartDevice device = new DeviceClientEmpty (propMan);
+            new Thread (device, "Running Empty Device").start();
+            if (DEBUG)
+                runConsole (device);
+        }
     }
 
     static boolean init () {
         boolean ok = false;
         propMan = FactoryEmpty.getPropertyManager();
-        ok = propMan.readAllProperties("propertyFile");
+        ok = /*propMan.readAllProperties("propertyFile")*/true;
         return ok;
     }
 

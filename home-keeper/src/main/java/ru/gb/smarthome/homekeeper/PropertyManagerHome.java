@@ -1,12 +1,14 @@
 package ru.gb.smarthome.homekeeper;
 
+import org.springframework.stereotype.Component;
 import ru.gb.smarthome.common.PropertyManager;
 
 //import static ru.gb.smarthome.homekeeper.HomeKeeperApp.DEBUG;
 
+@Component
 public class PropertyManagerHome extends PropertyManager
 {
-    private static       PropertyManager instance;
+/*    private static       PropertyManager instance;
     private static final Object          monitor = new Object();
 
 
@@ -19,7 +21,7 @@ public class PropertyManagerHome extends PropertyManager
                     instance = new PropertyManagerHome();
             }
         return instance;
-    }
+    }*/
 
     //@Override public boolean readFile (String fileName) {    return super.readFile (fileName);    }
 

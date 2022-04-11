@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Умный дом</title>
+
+<!-- Эти ссылки подключают библиотеку стилей из https://getbootstrap.com/docs. -->
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css"/>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"></script>
+
+	<!-- Урезанная версия ангулара — то что нужно (это его база, но есть и дополнения): -->
+	<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.0/angular.min.js"></script>
+	<!-- Дополнение первое: роутер фронта. -->
+	<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.0/angular-route.min.js"></script>
+	<!-- Дополнение второе: поддержка использования локального хранилища браузера. -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/ngStorage/0.3.11/ngStorage.min.js"></script>
+
+	<style>
+		/*	Содержимое будет убрано в вот такой отдельный блок фиксированного размера:	*/
+		.almost_windows
+		{	overflow: auto;	/* полосы прокрутки появятся только при необходимости	*/
+			width: 100%;				/* Ширина блока			*/
+			max-height: 800px;			/* макс. Высота блока	*/
+			padding: 5px;				/* Поля вокруг текста	*/
+			border: dotted 2px silver;	/* Параметры рамки		*/
+		}
+	/*--------------------------------------------------- стили элементов футера	*/
+		.page_footer
+		{	width: 100%;
+			color: #ffffff;			background-color: #316099;			font-size: 14px;
+			border: none;/*	7px solid #a00;	*/
+			box-sizing: border-box;
+		}
+		.footer_above_line
+		{	margin: 0px 60px 0px 60px;
+			border: none;/*	5px solid #f5f8d4;	*/
+			box-sizing: border-box;
+		}
+		.hr_class
+		{	height: 3px;
+			margin: 13px 60px 10px 60px;
+			border: none;
+			background-color: #83a0c2;
+		}
+		.footer_below_line
+		{	margin: 0px 60px 0px 60px;
+			border: none;/*	5px solid #caffbd;	*/
+			box-sizing: border-box;
+		}
+		.a_footer		{	color: #ffff80; text-decoration: none;	}
+		.a_footer:hover	{	color: orange;	text-decoration: none;	}
+		.ul_footer	{	list-style-type: none;	}
+		.li_footer	{	height: 25px;	line-height: 20px;	margin: 0px 0px 0px -40px;	}
+		.copyright	{	height: 40px;	line-height: 20px;	margin: 0px 0px 30px 0px;	/* top,rig,bot,lef */
+						box-sizing: border-box;		border: none;/*	3px solid #d8deff;	*/
+		}
+	</style>
+
+</head>
+<body ng-app="smarthome-front">
+<div class="container">
+
+	<div ng-controller="indexController">
+		<nav class="navbar navbar-expand-lg navbar-link bg-light"><!--  -->
+			<div class="collapse navbar-collapse" id="navbarNav">
+				<ul class="navbar-nav" style="font-weight: 700;">
+					<li class="nav-item" style="background-color: #E0F8C3; margin: 1px;">
+						<a class="nav-link" href="#!/main">🌞&nbsp;{{mainPageTitle}}</a>
+					</li>
+					<li class="nav-item" style="background-color: #E0F8C3; margin: 1px;"><!--  ng-show="isUserLoggedIn()" -->
+						<a class="nav-link" href="#!/schedule">📚&nbsp;{{schedulePageTitle}}</a>
+					</li>
+<!--					<li class="nav-item"  style="background-color: #E0F8C3; margin: 1px;" ng-show="canEditProducts">&lt;!&ndash;isUserLoggedIn() Если вместо isUserLoggedIn() поставить canEditProducts(), то этот запрос начинает выполняться бесконечно. &ndash;&gt;
+						&lt;!&ndash; ng-show="isUserAdmin()" &ndash;&gt;
+						<a class="nav-link" href="#!/edit_product">🎁&nbsp;{{edit_productPageTitle}}</a>
+					</li>-->
+<!--					<li class="nav-item" style="background-color: #E0F8C3; margin: 1px;">&lt;!&ndash;  ng-show="isUserLoggedIn()" !!!!!!!!!!!!!!!!!!!!!!!!!!! &ndash;&gt;
+						<a class="nav-link" href="#!/cart">🛒&nbsp;{{cartPageTitle}}</a>
+					</li>-->
+<!--					<li class="nav-item">-->
+<!--						<a class="nav-link" href="#!">{{}}</a>-->
+<!--					</li>-->
+
+					<li class="nav-item" style="background-color: #E0F8C3; margin: 1px;" ng-show="!isUserLoggedIn()">
+                        <form class="align-middle" ng-submit="tryToLogin()">
+                            <div class="input-group input-group-sm" style="padding: 4px;">
+                                <input	id="navLoginField"
+                                		class="form-control"
+                                		style="margin-left: 10px;"
+                                		type="text"
+										aria-describedby="inputGroup-sizing-sm"
+										ng-model="user.login"
+										>
+                                <input	id="navPasswordField"
+                                		class="form-control"
+                                		style="margin-left: 10px;"
+                                		type="password"
+										aria-describedby="inputGroup-sizing-sm"
+										ng-model="user.password"
+										>
+                                <button	id="navLoginSubmit"
+                                		class="btn btn-outline-warning btn-sm"
+                                		style="margin-left: 10px;"
+                                		type="submit"
+                                		>🔔&nbsp;Войти</button>
+                                <button	id="navRegistration"
+                                		class="btn btn-outline-warning btn-sm"
+                                		style="margin-left: 10px;"
+                                		type="button"
+                                		ng-click="tryToRegister()"
+                                		>👤&nbsp;Регистрация</button><!-- disabled -->
+                            </div>
+                        </form>
+                    </li>
+
+<!--                    <li class="nav-item" ng-show="isUserLoggedIn()" style="background-color: #E0F8C3; margin: 1px;">
+                        <button	class="btn btn-outline-secondary btn-sm"></button>
+					</li>-->
+<!--                    <li class="nav-item" style="background-color: #E0F8C3; margin: 1px;" ng-show="isUserLoggedIn()">
+                        <a	class="nav-link" href="#!/user_profile">👤&nbsp;Профиль</a>
+					</li>-->
+					<li class="nav-item" style="background-color: #E0F8C3; margin: 1px;" ng-show="isUserLoggedIn()"><!-- "padding: 4px;" -->
+						<a class="nav-link" ng-click="tryToLogout()">🚪&nbsp;Выход</a>
+					</li>
+				</ul><!-- 🎀 📎 🔔 👤 🚪 🔕 🔒   -->
+			</div>
+		</nav>
+		<h1>{{appTitle}}</h1>
+		<p>&nbsp;</p>
+	</div>
+
+<!-- Сюда, в блок ng-view, будут помещаться страницы. Переключение между страницами фактически
+	 будет сменой содержимого этого блока: -->
+	<ng-view>
+	</ng-view>
+
+<!-- footer start -->
+	<div class="page_footer">
+		<p>&nbsp;</p>
+		<div class="footer_above_line">
+			<ul class="ul_footer">
+<!--				<li class="li_footer">Оставьте <a class="a_footer" href="contacts.html#aform" target="_blank">сообщение</a> на нашем сайте.</li>-->
+				<li class="li_footer">Телефон техподдержки : 8 (800) 700-68-41.</li>
+				<li class="li_footer">Адрес техподдержки : support@geekbrains.ru.</li>
+			</ul>
+		</div>
+		<hr class="hr_class"><!--  ------------------------------------------------------  -->
+		<div class="footer_below_line">
+			<div class="copyright">
+				2022&nbsp;&copy;&nbsp;Все права защищены.
+			</div>
+		</div>
+	</div>
+<!-- footer end -->
+
+	<script src="index.js"></script>
+	<script src="main/main.js"></script>
+	<script src="schedule/schedule.js"></script>
+	<script src="registration/registration.js"></script>
+<!--	<script src="store/store.js"></script>
+	<script src="cart/cart.js"></script>
+	<script src="order/order.js"></script>
+	<script src="user_profile/user_profile.js"></script>
+	<script src="edit_product/edit_product.js"></script>
+	<script src="product_page/product_page.js"></script>-->
+
+</div>
+</body>
+</html>

@@ -5,7 +5,6 @@ import ru.gb.smarthome.common.exceptions.OutOfService;
 import ru.gb.smarthome.common.smart.SmartDevice;
 import ru.gb.smarthome.common.smart.enums.OperationCodes;
 import ru.gb.smarthome.common.smart.structures.Message;
-import ru.gb.smarthome.homekeeper.HomeKeeperApp;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -14,15 +13,18 @@ import java.net.Socket;
 import java.util.UUID;
 
 import static ru.gb.smarthome.common.FactoryCommon.*;
+import static ru.gb.smarthome.common.smart.enums.DeviceTypes.SMART;
 import static ru.gb.smarthome.empty.EmptyApp.DEBUG;
 
 public class DeviceClientEmpty extends SmartDevice
 {
     private final PropertyManager propMan;
-    private final UUID            uuid = UUID.randomUUID();
+    private       OperationCodes mode = OPCODE_INITIAL;   //< временно будет изображать состояние УУ
 
     public DeviceClientEmpty (PropertyManager pm) {
         propMan = pm;
+        deviceType = SMART;
+        uuid = UUID.randomUUID();
     }
 
     @Override public void run ()
@@ -31,23 +33,18 @@ public class DeviceClientEmpty extends SmartDevice
         String code = "OK";
         try (Socket socket = connect())
         {
-            //Совершенно неожиданно оказалось, что одинаковые операции — две ObjectOutputStream или две ObjectInputStream — блокируют друг друга, кода вызываются на обоих концах канала. Поэтому, если на одном конце канала вызывается, например, new ObjectInputStream(…), то на другом нужно обязательно вызвать new ObjectOutputStream(…), чтобы не случилась взаимная блокировка.
-
             ois = new ObjectInputStream (socket.getInputStream());
             oos = new ObjectOutputStream (socket.getOutputStream());
+            //Совершенно неожиданно оказалось, что одинаковые операции — две ObjectOutputStream или две ObjectInputStream — блокируют друг друга, кода вызываются на обоих концах канала. Поэтому, если на одном конце канала вызывается, например, new ObjectInputStream(…), то на другом нужно обязательно вызвать new ObjectOutputStream(…), чтобы не случилась взаимная блокировка.
             printf ("\nСоединение с сервером установлено: "+
                     "\nsocket : %s (opend: %b)"+
                     "\nois : %s"+
                     "\noos : %s\n", socket, !socket.isClosed(), ois, oos);
             mainLoop();
         }
-        catch (IOException e) {
-            if (DEBUG) e.printStackTrace();
-            code = "IOError";
-        }
         catch (Exception e) {
+            code = e.getMessage();
             if (DEBUG) e.printStackTrace();
-            code = "Error";
         }
         finally {
             disconnect();
@@ -84,15 +81,10 @@ public class DeviceClientEmpty extends SmartDevice
                 //if (opCode != null)
                 switch (opCode = m.getOpCode())
                 {
-                    case CMD_EXIT:
-                        cleanup();
-                        threadRun.interrupt();
-                        break;
-
                     case CMD_CONNECTED: println ("\nПодключен.");
                         break;
 
-                    case CMD_BUSY:
+                    case CMD_NOPORTS:
                         throw new OutOfService ("!!! Отказано в подключении, — нет свободных портов. !!!");
 
                     default: if (DEBUG)
@@ -116,5 +108,6 @@ public class DeviceClientEmpty extends SmartDevice
 
 //---------------------------------------------------------------------------
 
+//TODO: тоже неправильная реализация. Позже будет переделана.
     @Override public UUID uuid () { return uuid; }
 }
