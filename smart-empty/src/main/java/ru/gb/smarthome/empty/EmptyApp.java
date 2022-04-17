@@ -3,7 +3,7 @@ package ru.gb.smarthome.empty;
 import ru.gb.smarthome.common.PropertyManager;
 import ru.gb.smarthome.common.smart.ISmartDevice;
 
-import static ru.gb.smarthome.common.smart.SmartDevice.runConsole;
+//import static ru.gb.smarthome.common.smart.SmartDevice.runConsole;
 
 //@SpringBootApplication (scanBasePackages = "ru.gb.smarthome.empty")
 public class EmptyApp {
@@ -15,18 +15,15 @@ public class EmptyApp {
     {
         if (init ()) {
             //SpringApplication.run (EmptyApp.class, args);
-
             ISmartDevice device = new DeviceClientEmpty (propMan);
-            new Thread (device, "Running Empty Device").start();
-            if (DEBUG)
-                runConsole (device);
+            new Thread (device).start();
         }
     }
 
     static boolean init () {
         boolean ok = false;
         propMan = FactoryEmpty.getPropertyManager();
-        ok = /*propMan.readAllProperties("propertyFile")*/true;
+        ok = /*propMan.readAllProperties("propertyFile")*/propMan != null;
         return ok;
     }
 

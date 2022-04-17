@@ -4,15 +4,17 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import ru.gb.smarthome.common.IDeviceServer;
 import ru.gb.smarthome.common.PropertyManager;
+import ru.gb.smarthome.common.smart.ISmartHandler;
+import ru.gb.smarthome.common.smart.enums.OperationCodes;
+import ru.gb.smarthome.common.smart.structures.Message;
 import ru.gb.smarthome.common.smart.structures.Port;
+import ru.gb.smarthome.homekeeper.services.HomeService;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 import static ru.gb.smarthome.common.FactoryCommon.*;
 import static ru.gb.smarthome.homekeeper.HomeKeeperApp.DEBUG;
@@ -22,11 +24,11 @@ import static ru.gb.smarthome.homekeeper.HomeKeeperApp.getFreePort;
 @RequiredArgsConstructor
 public class DeviceServerHome implements IDeviceServer
 {
-    private final HomeService homeService;
+    private final HomeService     homeService;
     private final PropertyManager propMan;
-
-    private  Thread treadRun;
-    private  int    serverSocketPort;
+    private       Thread treadRun;
+    private       int    serverSocketPort;
+    private       SynchronousQueue<Boolean> synQue = new SynchronousQueue<>(/*FAIR*/);
 
 
     @PostConstruct private void init ()
@@ -55,8 +57,12 @@ public class DeviceServerHome implements IDeviceServer
                 if (treadRun.isInterrupted())
                     break;
                 //Если есть свободный Port, то мы подключим клиента. Иначе, создадим временный хэндлер, только чтобы отправить клиенту отказ.
-                if ((port = getFreePort()) != null) {
-                    exeService.execute (FactoryHome.createClientHandler (socket, port));
+                if ((port = getFreePort()) != null)
+                {
+                    ISmartHandler device = FactoryHome.createClientHandler (socket, port, synQue, this);
+                    exeService.execute (device);
+                    if (synQue.take())
+                        homeService.smartDeviceDetected (device);
                 }
                 else {
                     FactoryHome.temporaryClientHandler (socket);
@@ -72,4 +78,20 @@ public class DeviceServerHome implements IDeviceServer
             /*...*/
         }
     }
+
+/** Вызывается хэндлером, когда он завершает работу. */
+    @Override public void goodBy (ISmartHandler device) {
+        homeService.smartDeviceIsOff (device);
+    }
+
+    @Override public void requestCompleted (ISmartHandler device, Message message, Object result) {
+        //TODO: передаём это в HomeService.
+        //homeService.requestPerformed (opCode, device);
+    }
+
+    @Override public void requestError (ISmartHandler device, Message message) {
+        //TODO: передаём это в HomeService.
+        //homeService.requestPerformed (opCode, device);
+    }
+
 }

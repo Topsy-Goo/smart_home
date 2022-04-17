@@ -3,24 +3,20 @@ package ru.gb.smarthome.homekeeper;
 import ru.gb.smarthome.common.IDeviceServer;
 import ru.gb.smarthome.common.PropertyManager;
 import ru.gb.smarthome.common.smart.ISmartDevice;
+import ru.gb.smarthome.common.smart.ISmartHandler;
 import ru.gb.smarthome.common.smart.structures.Port;
 
 import java.net.Socket;
+import java.util.concurrent.SynchronousQueue;
 
 //import static ru.gb.smarthome.homekeeper.HomeKeeperApp.DEBUG;
 
 final public class FactoryHome {
 
-/*    static public PropertyManager getPropertyManager () {
-        return PropertyManagerHome.getInstance();
-    }*/
-
-/*    static IDeviceServer startDeviceServer () {
-        return DeviceServerHome.startServer();
-    }*/
-
-    static ISmartDevice createClientHandler (Socket socket, Port port)/* throws IOException*/ {
-        return new ClientHandler (socket, port);
+    static ISmartHandler createClientHandler (Socket socket, Port port,
+                                              SynchronousQueue<Boolean> synQue, IDeviceServer srv)
+    {
+        return new ClientHandler (socket, port, synQue, srv);
     }
 
 /** Конструктор используется для создания временного хэндлера, назначение которого только
@@ -29,6 +25,9 @@ final public class FactoryHome {
     static void temporaryClientHandler (Socket socket) /*throws IOException*/ {
         new ClientHandler (socket);
     }
+
+/*    static public PropertyManager getPropertyManager () {        return PropertyManagerHome.getInstance();    }*/
+/*    static IDeviceServer startDeviceServer () {        return DeviceServerHome.startServer();    }*/
 
 /*    static class DemonThreadFactory implements ThreadFactory
     {

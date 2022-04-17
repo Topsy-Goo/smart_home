@@ -14,9 +14,8 @@ import static ru.gb.smarthome.common.FactoryCommon.SMART_PORTS_COUNT;
 @SpringBootApplication (scanBasePackages = "ru.gb.smarthome.homekeeper")
 public class HomeKeeperApp
 {
-    static final boolean         DEBUG = true;
-    //static       PropertyManager propMan;
-    static final List<Port>      ports = new ArrayList<>(SMART_PORTS_COUNT);
+    public static final boolean DEBUG = true;
+    public static final List<Port> ports = new ArrayList<>(SMART_PORTS_COUNT);
 
     public static void main (String[] args)
     {
@@ -26,8 +25,6 @@ public class HomeKeeperApp
         }
     }
 
-    //public static PropertyManager getPropManager () { return propMan; }
-
     private static boolean init () {
         boolean ok = false;
 
@@ -35,7 +32,6 @@ public class HomeKeeperApp
             ports.add (new Port());
         }
         if (initFlyway()) {
-            //propMan = FactoryHome.getPropertyManager();
             //if (propMan.readAllProperties ("propertyFile"))
                 ok = true;
         }

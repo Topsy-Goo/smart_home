@@ -1,11 +1,8 @@
 package ru.gb.smarthome.common;
 
 import ru.gb.smarthome.common.smart.enums.OperationCodes;
-import ru.gb.smarthome.common.smart.structures.Message;
 
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.lang.reflect.Constructor;
 
 import static ru.gb.smarthome.common.smart.enums.OperationCodes.CMD_BUSY;
 
@@ -15,7 +12,13 @@ final public class FactoryCommon
     public static final int BUSY_SLEEP_SECONDS = 5;
     public static final int    SERVER_PORT_DEFAULT    = 7777;
     public static final String SERVER_ADDRESS_DEFAULT = "localhost";
-    public static final boolean ON = true, OFF = false;
+    public static final boolean ON        = true, OFF           = false;
+    public static final boolean ACTIVE    = true, NOT_ACTIVE    = false;
+    public static final boolean CAN_SLEEP = true, CANNOT_SLEEP  = false;
+    public static final boolean AUTONOMIC = true, NOT_AUTONOMIC = false;
+    public static final boolean OK        = true, ERROR         = false;
+    public static final boolean INTERRUPTIBLE = true, NON_INTERRUPTIBLE = false;
+
     public static final OperationCodes OPCODE_INITIAL = CMD_BUSY; //< состояние, в котором оказывается УУ при запуске его модуля.
 
 /** Проверяет строку на пригодность.
@@ -41,36 +44,32 @@ final public class FactoryCommon
     public static void errprint (String s) { System.err.print(s); }
     public static void errprintf (String s, Object... args) { System.err.printf(s, args); }
 
-/** Считываем Message из подключенного устройства. Блокирующая операция.
-@param ois Для общения устройства с сервером создаются две реализации SamrtDevice:
-хэндлер (на стороне сервера) и клиент (на стороне устройства).
-ois — это экземпляр ObjectInputStream, предоставленный одной из этих реализаций.  */
-    public static Message readMessage (ObjectInputStream ois) {
-        try {
-            if (ois != null) {
-                Object o = ois.readObject();
-                return (o instanceof Message) ? (Message) o : null;
-            }
-            else throw new IOException ("bad ObjectInputStream passed in.");
-        }
-        catch (Exception e) { e.printStackTrace();   return null; }
+/** Проверка условия с выбрасыванием указанного исключения. Вынесена в отдельный метод, чтобы не загромождать
+код проверочными конструкциями.
+@param condition условие, проверка выполнения которого выполняется.
+@param exclass класс исключения, которое нужно бросить при невыполнении условия condition.
+*/
+    public static void check (boolean condition,
+                              Class<? extends Exception> exclass)
+                       throws Exception
+    {
+        check (condition, exclass, "Не выполнено необходимое условие.");
     }
 
-/** Отправляем сообщение подключенному устройству.
-@param oos Для общения устройства с сервером создаются две реализации SamrtDevice:
-хэндлер (на стороне сервера) и клиент (на стороне устройства).
-oos — это экземпляр ObjectOutputStream, предоставленный одной из этих реализаций.
-@param m Отправляемое сообщение.  */
-    public static boolean writeMessage (ObjectOutputStream oos, Message m) {
-        try {
-            if (oos != null) {
-                oos.writeObject (m);
-                return true;
-            }
-            throw new IOException ("bad ObjectOutputStream passed in.");
+/** Проверка условия с выбрасыванием указанного исключения. Вынесена в отдельный метод, чтобы не загромождать
+код проверочными конструкциями.
+@param condition условие, проверка выполнения которого выполняется.
+@param exclass класс исключения, которое нужно бросить при невыполнении условия condition.
+@param msg строка сообщения.
+*/
+    public static void check (boolean condition,
+                              Class<? extends Exception> exclass,
+                              String msg)
+                       throws Exception
+    {
+        if (!condition) {
+            Constructor<? extends Exception> constructor = exclass.getConstructor(String.class);
+            throw constructor.newInstance(msg);
         }
-        catch (IOException e) { e.printStackTrace();   return false; }
     }
-
-
 }
