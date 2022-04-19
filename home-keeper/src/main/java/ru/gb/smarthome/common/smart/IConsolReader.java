@@ -55,7 +55,7 @@ public interface IConsolReader extends ISmartDevice {
                 //case CMD_SLEEP:
                 //    break;
                 case CMD_READY:
-                    device.getState().setCode (CMD_READY)
+                    device.getState().setOpCode(CMD_READY)
                                      .setErrCode(null); //< пока считаем, что переход в этот режим сбрасывае ошибку (также см.case CMD_ERROR).
                 case CMD_STATE:
                     println (device.getState().toString());
@@ -67,7 +67,7 @@ public interface IConsolReader extends ISmartDevice {
                 case CMD_ABILITIES: println (device.getAbilities().toString());
                     break;
                 case CMD_ERROR:
-                    device.getState().setCode((param != null) ? CMD_ERROR : CMD_READY)
+                    device.getState().setOpCode((param != null) ? CMD_ERROR : CMD_READY)
                                      .setErrCode(param); //< отсутствие параметра сбрасывет ошибку (также см.case CMD_READY).
                     println (device.getState().toString());
                     break;

@@ -5,7 +5,6 @@ import org.springframework.stereotype.Component;
 import ru.gb.smarthome.common.IDeviceServer;
 import ru.gb.smarthome.common.PropertyManager;
 import ru.gb.smarthome.common.smart.ISmartHandler;
-import ru.gb.smarthome.common.smart.enums.OperationCodes;
 import ru.gb.smarthome.common.smart.structures.Message;
 import ru.gb.smarthome.common.smart.structures.Port;
 import ru.gb.smarthome.homekeeper.services.HomeService;
@@ -27,8 +26,7 @@ public class DeviceServerHome implements IDeviceServer
     private final HomeService     homeService;
     private final PropertyManager propMan;
     private       Thread treadRun;
-    private       int    serverSocketPort;
-    private       SynchronousQueue<Boolean> synQue = new SynchronousQueue<>(/*FAIR*/);
+    private       int serverSocketPort;
 
 
     @PostConstruct private void init ()
@@ -59,9 +57,10 @@ public class DeviceServerHome implements IDeviceServer
                 //Если есть свободный Port, то мы подключим клиента. Иначе, создадим временный хэндлер, только чтобы отправить клиенту отказ.
                 if ((port = getFreePort()) != null)
                 {
-                    ISmartHandler device = FactoryHome.createClientHandler (socket, port, synQue, this);
+                    SynchronousQueue<Boolean> helloSynQue = new SynchronousQueue<>();
+                    ISmartHandler device = FactoryHome.createClientHandler (socket, port, helloSynQue, this);
                     exeService.execute (device);
-                    if (synQue.take())
+                    if (helloSynQue.take())
                         homeService.smartDeviceDetected (device);
                 }
                 else {
@@ -79,7 +78,6 @@ public class DeviceServerHome implements IDeviceServer
         }
     }
 
-/** Вызывается хэндлером, когда он завершает работу. */
     @Override public void goodBy (ISmartHandler device) {
         homeService.smartDeviceIsOff (device);
     }

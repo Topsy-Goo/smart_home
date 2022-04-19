@@ -22,7 +22,7 @@ public class DeviceState implements Serializable
     /** Указывает, активно ли в данный момент УУ. Варианты значений: ACTIVE и NOT_ACTIVE. */
     @Getter private boolean active;
     /** Код текущего состояния УУ. */
-    @Getter private OperationCodes code;
+    @Getter private OperationCodes opCode;
     /** Код ошибки. Используется только при code == CMD_ERROR. */
     @Getter private String errCode;
     /** Текущая операция. Может быть null. */
@@ -39,20 +39,24 @@ public class DeviceState implements Serializable
  */
     public DeviceState (boolean activ, @NotNull OperationCodes cod, String errCod) {
         active = activ;
-        code = cod;
+        opCode = cod;
         setErrCode (errCod);
     }
     public DeviceState () {} //< требование сериализации. Также используется в «билдерах».
 
-    public DeviceState copy () {
-        return new DeviceState (active, code, errCode).setCurrentTask (currentTask);
+/** Делаем максимально полную копию экземпляра, чтобы владелец копии мог работать с ней, не боясь повредить
+ данные в оригинале. */
+    public DeviceState safeCopy () {
+        Task t = currentTask;
+        if (t != null) t = currentTask.safeCopy();
+        return new DeviceState (active, opCode, errCode).setCurrentTask (t);
     }
 
 /*  public String getErrCode ()      { return errCode; }
     public OperationCodes getCode () { return code; }
     public boolean isActive ()       { return active; }*/
 
-    public DeviceState setCode    (@NotNull OperationCodes val) { code = val;    return this; }
+    public DeviceState setOpCode (@NotNull OperationCodes val) { opCode = val;    return this; }
     public DeviceState setErrCode (String val)
     {
         errCode = val == null ? "" : val.trim();
@@ -64,10 +68,10 @@ public class DeviceState implements Serializable
     @Override public String toString ()
     {
         return format ("%s%s, %s, %s"
-                      ,code.name()
+                      ,opCode.name()
                       ,errCode == null || errCode.isBlank() ? "" : format("(%s)", errCode)
                       ,active ? "Активно" : "Неактивно"
-                      ,code.equals(CMD_SLEEP) ? "Спит" : "Не спит"
+                      ,opCode.equals(CMD_SLEEP) ? "Спит" : "Не спит"
                       );
     }
 }

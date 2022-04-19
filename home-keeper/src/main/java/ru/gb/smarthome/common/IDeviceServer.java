@@ -7,6 +7,7 @@ import ru.gb.smarthome.common.smart.structures.Message;
 
 public interface IDeviceServer extends Runnable {
 
+/** Вызывается хэндлером, когда он завершает работу. */
     void goodBy (ISmartHandler device);
 
 /** Хэндлер отчитывается о выполнении какого-то запроса. Этот метод хэндлер вызывает, если ему

@@ -1,10 +1,15 @@
 package ru.gb.smarthome.common;
 
+import ru.gb.smarthome.common.smart.enums.DeviceTypes;
 import ru.gb.smarthome.common.smart.enums.OperationCodes;
+import ru.gb.smarthome.common.smart.enums.TaskStates;
 
 import java.lang.reflect.Constructor;
+import java.util.List;
 
+import static ru.gb.smarthome.common.smart.enums.DeviceTypes.SMART;
 import static ru.gb.smarthome.common.smart.enums.OperationCodes.CMD_BUSY;
+import static ru.gb.smarthome.common.smart.enums.TaskStates.TS_IDLE;
 
 final public class FactoryCommon
 {
@@ -18,6 +23,21 @@ final public class FactoryCommon
     public static final boolean AUTONOMIC = true, NOT_AUTONOMIC = false;
     public static final boolean OK        = true, ERROR         = false;
     public static final boolean INTERRUPTIBLE = true, NON_INTERRUPTIBLE = false;
+
+    public static final TaskStates DEF_TASK_STATE   = TS_IDLE;
+    public static final DeviceTypes DEF_DEVICETYPES = SMART;
+    public static final String DEF_TASK_NAME    = "";
+    public static final String DEF_TASK_MESSAGE = "";
+    public static final String DEF_STATE_DTO_ERRCODE = "";
+    public static final String DEF_STATE_DTO_OPCODE  = "";
+    public static final String DEF_DEV_DTO_FRIENDLYNAME = "";
+    public static final String DEF_ABILITIES_DTO_DEVICETYPE = "";
+    public static final String DEF_ABILITIES_DTO_VENDORNAME = "";
+    public static final String DEF_ABILITIES_DTO_UUID       = "";
+    public static final String DEF_TYPEGROUP_DTO_DEVICETYPE = "";
+    //public static final String  = "";
+    //public static final   = ;
+    //public static final   = ;
 
     public static final OperationCodes OPCODE_INITIAL = CMD_BUSY; //< состояние, в котором оказывается УУ при запуске его модуля.
 
@@ -72,4 +92,14 @@ final public class FactoryCommon
             throw constructor.newInstance(msg);
         }
     }
+
+/** Добавляем элемент в список, если он там отсутствует. */
+    public static <T> void addIfAbsent (List<T> list, T t)
+    {
+        int index = list.indexOf(t);
+        if (index < 0)
+            list.add(t);
+    }
+
+
 }

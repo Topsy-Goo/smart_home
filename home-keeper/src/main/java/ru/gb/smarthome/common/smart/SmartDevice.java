@@ -6,6 +6,7 @@ import ru.gb.smarthome.common.smart.structures.Message;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static ru.gb.smarthome.common.FactoryCommon.printf;
 
@@ -17,6 +18,8 @@ public abstract class SmartDevice implements ISmartDevice
     protected Thread      threadRun;
     protected Abilities   abilities;
     protected DeviceState state;
+    protected AtomicLong  rwCounter = new AtomicLong(0); //счётчик количества чтений из ObjectInputStream и записей в ObjectOutputStream.
+
 
     //protected SmartDevice () {}
 
@@ -48,8 +51,9 @@ ois — это экземпляр ObjectInputStream, предоставленн�
         try {
             if (ois != null) {
                 Object o = ois.readObject();
+                rwCounter.incrementAndGet();
                 Message mCIn = (o instanceof Message) ? (Message) o : null;
-                printf("\nПолучили: %s.", mCIn);
+                printf("\nПолучили: %s.\n", mCIn);
                 return mCIn;
             }
             else throw new IOException ("bad ObjectInputStream passed in.");
@@ -67,6 +71,7 @@ oos — это экземпляр ObjectOutputStream, предоставленн
         try {
             if (oos != null) {
                 oos.writeObject (mOut); //TODO: Если клиент упал, то мы продолжаем его опрашивать!!!
+                rwCounter.decrementAndGet();
                 printf ("\nОтправили: %s\n", mOut);
                 return true;
             }

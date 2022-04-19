@@ -14,9 +14,9 @@ import java.util.concurrent.SynchronousQueue;
 final public class FactoryHome {
 
     static ISmartHandler createClientHandler (Socket socket, Port port,
-                                              SynchronousQueue<Boolean> synQue, IDeviceServer srv)
+                                              SynchronousQueue<Boolean> helloSynQue, IDeviceServer srv)
     {
-        return new ClientHandler (socket, port, synQue, srv);
+        return new ClientHandler (socket, port, helloSynQue, srv);
     }
 
 /** Конструктор используется для создания временного хэндлера, назначение которого только

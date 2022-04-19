@@ -1,74 +1,32 @@
 package ru.gb.smarthome.homekeeper.dtos;
 
 import lombok.Data;
+import org.jetbrains.annotations.NotNull;
 import ru.gb.smarthome.common.smart.ISmartHandler;
+
+import static ru.gb.smarthome.common.FactoryCommon.*;
 
 @Data
 public class DeviceDto {
 
-    String type;         //Например, "холодильник"  (задаётся производтелем в соотв.со стандартом)
-    String vendorName;   //Например, "Atlant RC-422d-CMCL" (задаётся производителем)
-    //String friendlyName; //Например, "наш Атлант"   (задаётся юзером)
-    String uuid;         //Например, "72eca27e-aada-48ac-9509-ddbaee5218df" или ""
-    String state;   //Примеры значений: подключено/отключено,
-                    //                  или описание текущего режима/состояния/задачи/состояния_задачи,
-                    //                  или работает/отключен/СИГНАЛ!
-    //DeviceDto[] embededDevices; //Ведомые у-ва (умные и не очень, но имеющие описание)
+    public  static final StateDto     nullStateDto     = StateDto.deviceStateToDto (null);
+    public  static final AbilitiesDto nullAbilitiesDto = AbilitiesDto.abilitiesToDto(null);
+    private              AbilitiesDto abilities    = nullAbilitiesDto;
+    private              StateDto     state        = nullStateDto;
+    private              String       friendlyName = DEF_DEV_DTO_FRIENDLYNAME;
 
-    public DeviceDto (){} //< для спринговой сериализации
+    public DeviceDto (){}
 
-    public DeviceDto (ISmartHandler device) {
-        type = device.getAbilities().getType().typeName;
-        vendorName = device.getAbilities().getVendorName();
-        uuid = device.getAbilities().getUuid().toString();
-        state = device.getState().toString();
-        //friendlyName = devise.
+    public static @NotNull DeviceDto smartDeviceToDto (ISmartHandler device)
+    {
+        DeviceDto dto = new DeviceDto();
+        String s;
+        if (device != null) {
+            dto.abilities = AbilitiesDto.abilitiesToDto (device.getAbilities());
+            dto.state     = StateDto.deviceStateToDto (device.getState());
+            if ((s = device.getDeviceFriendlyName()) != null)
+                dto.friendlyName = s;
+        }
+        return dto;
     }
 }
-/*
-На странице мы увидим для НЕактивного УУ:
-    * холодильник  «наш Атлант»  72eca27e-aada-48ac-9509-ddbaee5218df   отключено
-    * метеостанция «Vitek»       fcd8276c-37ed-479a-94e3-981855c44067   отключено
-
-На странице мы увидим для   активного УУ:
-
-    * холодильник  «Атлант»   72eca27e-aada-48ac-9509-ddbaee5218df   подключено
-      [Холод. +4°C, Мороз.-18°C]
-      или
-      [Выполняет: Разморозка]
-
-    * метеостанция «Vitek»    fcd8276c-37ed-479a-94e3-981855c44067   подключено
-      [Темп.+12°C, Влаж.55%, Давл.755 мм рт.ст., Ветер СЗ 2м/с]
-
-    Комментарий:
-        - к некоторым УУ могут быть подключены ведомые УУ.
-        - глупое уст-во (ГУ) вроде датчика, встроеное или подключеное, всегда явл-ся ведомым.
-        - ?встроенное УУ всегда явл-ся ведомым?
-        - подключенные УУ показываются в одной панели с ведущим УУ.
-    * видеокамера  «Камера в гостиной»     fcd8276c-37ed-479a-94e3-981855c44067   подключено
-      [Режим Регистратор - всё споконо]
-      или
-      [Стримит]
-      или
-      [Тревожный режим - сработал датчик ?какой?]
-        ** датчик движения  «Датчик камеры»
-        [На страже]
-        или
-        [Тревожный режим - сработал датчик ?какой?]
-        ** контроллер датчиков  «Контоллер гостиной»  72eca27e-37ed-479a-94e3-981855c44067   подключено
-            *** датчик движения   «Гостиная1»       работает
-            *** датчик движения   «Гостиная2»       отключен
-            *** датчик открывания «Окно гостиной»   работает
-            *** датчик открывания «Дверь гостиной»  СИГНАЛ!
-            *** датчик пожарный   «Гостиная1»       работает
-            *** датчик пожарный   «Гостиная2»       работает
-       [
-       ]
-
-
-*/
-
-/*class StateDto {
-    String active;  //Значения: подключен / отключен
-
-}*/
