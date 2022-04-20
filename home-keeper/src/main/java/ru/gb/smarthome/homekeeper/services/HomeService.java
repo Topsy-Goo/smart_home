@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import ru.gb.smarthome.common.smart.ISmartHandler;
 import ru.gb.smarthome.common.smart.enums.DeviceTypes;
 import ru.gb.smarthome.common.smart.structures.Abilities;
+import ru.gb.smarthome.common.smart.structures.DeviceInfo;
 import ru.gb.smarthome.homekeeper.dtos.HomeDto;
 import ru.gb.smarthome.homekeeper.dtos.TypeGroupDto;
 
@@ -20,7 +21,7 @@ public class HomeService
     private final Map<UUID, ISmartHandler> handlers = new HashMap<>(SMART_PORTS_COUNT);
     private final Map<DeviceTypes, LinkedList<ISmartHandler>> handlerGroups = new TreeMap<>();
     //private final Map<DeviceTypes, LinkedList<UUID>> uuidGroups = new TreeMap<>();
-
+    private final Map<ISmartHandler, DeviceInfo> handlersInfo = new HashMap<>(SMART_PORTS_COUNT);
 
     {
 /*        for (DeviceTypes t : DeviceTypes.values())
@@ -45,6 +46,8 @@ public class HomeService
             List<ISmartHandler> hanGroup = handlerGroups.get (abilities.getType());
             addIfAbsent (hanGroup, device);
 
+            handlersInfo.put(device, new DeviceInfo(device));
+
             printf ("\nHomeService: обнаружено УУ: %s.\n", device.toString());
         }
     }
@@ -65,6 +68,8 @@ public class HomeService
             List<ISmartHandler> hanGroup = handlerGroups.get (abilities.getType());
             while (hanGroup.remove(device));
 
+            handlersInfo.remove(device);
+
             printf ("\nУдалено УУ: %s.\n", device);
             if (DEBUG)
                 printf("\nHomeService: оставшиеся устройства: \n%s\n", handlers);
@@ -73,7 +78,61 @@ public class HomeService
 
 /** Отдаём контроллеру список обнаруженых УУ. */
     public HomeDto getHomeDto () {
-        return new HomeDto (TypeGroupDto.getTypeGroupDtos (handlerGroups));
+        return new HomeDto (TypeGroupDto.getTypeGroupDtos (handlerGroups, handlersInfo));
     }
 
+/** Меняем строковое представление UUID на хэндлер УУ, которму этот UUID соответствует.
+@param uuidStr строковое представление UUID.
+@return ISmartHandler устройства, ассоциированного с указаным UUID. */
+    private ISmartHandler deviceByUuidString (String uuidStr)
+    {
+        ISmartHandler device = null;
+        try {
+            UUID uuid = UUID.fromString (uuidStr);
+            device = handlers.get(uuid);
+        }
+        catch (IllegalArgumentException e) { e.printStackTrace(); }
+        return device;
+    }
+
+/** Переключаем состояние DeviceState.active по команде из фронта.
+ @param uuidStr — строковое представление UUID устрйоства, активное состояние которого нужно изменить.
+ @return новое состояние DeviceState.active указанного устройства. */
+    public boolean toggleActiveState (String uuidStr)
+    {
+        boolean result = false;
+        ISmartHandler device = deviceByUuidString (uuidStr);
+        if (device != null) {
+            boolean active = device.getState().isActive();
+            if (device.activate (!active))
+                result = !active;
+        }
+        return result;
+    }
+
+/** Переключаем состояние DeviceInfo.htmlPanelOpend по команде из фронта.
+ @param uuidStr строковое представление UUID устрйоства, панель которого на фронте открылась или закрылась. */
+    public void toggleHtmlPanelState (String uuidStr, boolean isopened)
+    {
+        ISmartHandler device = deviceByUuidString (uuidStr);
+        DeviceInfo info;
+        if (device != null  &&  (info = handlersInfo.get(device)) != null) {
+            info.htmlPanelOpened = isopened == OPENED;
+        }
+    }
+
+/** Меняем значение ISmartHandler.deviceFriendlyName на значение, присланое юзером с фронта.
+@param uuidStr строковое представление UUID устрйоства.
+@param newFriendlyName новое значение для ISmartHandler.deviceFriendlyName.
+@return обновлённое значение ISmartHandler.deviceFriendlyName, или NULL в случае неудачи. */
+    public String changeFriendlyName (String uuidStr, String newFriendlyName)
+    {
+        ISmartHandler device = deviceByUuidString(uuidStr);
+        if (device != null
+        &&  device.setDeviceFriendlyName (newFriendlyName))
+        {
+            return device.getDeviceFriendlyName();
+        }
+        return null;
+    }
 }

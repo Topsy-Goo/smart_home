@@ -4,6 +4,7 @@ import lombok.Data;
 import org.jetbrains.annotations.NotNull;
 import ru.gb.smarthome.common.smart.ISmartHandler;
 import ru.gb.smarthome.common.smart.enums.DeviceTypes;
+import ru.gb.smarthome.common.smart.structures.DeviceInfo;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -29,7 +30,9 @@ public class TypeGroupDto {
  (см. {@link DeviceTypes DeviceTypes}).
  @return TypeGroupDto это — список списков. Он содержащий DeviceDto, рассортированные по типам.
 */
-    public static @NotNull List<TypeGroupDto> getTypeGroupDtos (Map<DeviceTypes, LinkedList<ISmartHandler>> mapHandlers)
+    public static @NotNull List<TypeGroupDto> getTypeGroupDtos (
+                                Map<DeviceTypes, LinkedList<ISmartHandler>> mapHandlers,
+                                Map<ISmartHandler, DeviceInfo> handlersInfo)
     {
         List<TypeGroupDto> list = new ArrayList<> (DeviceTypes.length);
         for (DeviceTypes type : DeviceTypes.values())
@@ -37,10 +40,12 @@ public class TypeGroupDto {
             LinkedList<ISmartHandler> typeHandlers = mapHandlers.get(type);
             if (typeHandlers.isEmpty())
                 continue;
-            List<DeviceDto> ldto = typeHandlers.stream().map(DeviceDto::smartDeviceToDto).collect (Collectors.toList());
+            List<DeviceDto> ldto = typeHandlers.stream().map(h->DeviceDto.smartDeviceToDto(handlersInfo.get(h))).collect (Collectors.toList());
             TypeGroupDto dto = new TypeGroupDto (type.typeName, ldto);
             list.add(dto);
         }
         return list;
     }
+
+    //public int getCount() { ; }
 }

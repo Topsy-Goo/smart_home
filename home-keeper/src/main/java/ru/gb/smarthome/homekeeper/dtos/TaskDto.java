@@ -35,6 +35,8 @@ public class TaskDto {
             if ((s = t.getMessage().get()) != null)
                 dto.message = s;
         }
+        //else {
+        //}
         return dto;
     }
 }

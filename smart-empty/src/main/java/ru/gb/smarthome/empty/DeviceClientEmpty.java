@@ -300,7 +300,8 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
                                  .setData (abilities.copy()) //< см.комментарий в sendState().
                                  .setDeviceUUID (abilities.getUuid());
         boolean ok = writeMessage (oos, m);
-        //if (DEBUG && ok) printf ("\nОтправили %s\n", m);
+print("_wMa ");
+//if (DEBUG && ok) printf ("\nОтправили %s\n", m);
         if (!ok)
             throw new OutOfServiceException (format ("\nНе удалось отправить сообщение : %s.\n", m));
     }
@@ -322,7 +323,8 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
                                  .setData (state.safeCopy())
                                  .setDeviceUUID (abilities.getUuid());
         boolean ok = writeMessage (oos, mS);
-        //if (DEBUG && ok) printf ("\nОтправили %s\n", mS);
+print("_wMs ");
+//if (DEBUG && ok) printf ("\nОтправили %s\n", mS);
         if (!ok)
             throw new OutOfServiceException (format ("\nНе удалось отправить сообщение : %s.\n", mS));
         clearTemporaryStates();
@@ -335,7 +337,8 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
     {
         Message mS = new Message().setOpCode (opCode);
         boolean ok = writeMessage (oos, mS);
-        //if (DEBUG && ok) printf ("\nОтправили %s\n", mS);
+print("_wMc ");
+//if (DEBUG && ok) printf ("\nОтправили %s\n", mS);
         if (!ok)
             throw new OutOfServiceException (format ("\nНе удалось отправить код : %s.\n", opCode.name()));
     }

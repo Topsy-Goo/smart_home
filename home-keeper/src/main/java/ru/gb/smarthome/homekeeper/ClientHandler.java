@@ -28,7 +28,7 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
     private       String  deviceFriendlyName;
     private       SynchronousQueue<Boolean> helloSynQue;
     private       IDeviceServer server;
-    private       int pollInterval = 5;
+    private       int pollInterval = DEF_POLL_INTERVAL;
 
     private final PriorityBlockingQueue<Message> priorityQueue =
         new PriorityBlockingQueue<> (10
@@ -65,6 +65,7 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
             oos = new ObjectOutputStream (socket.getOutputStream());
             ois = new ObjectInputStream (socket.getInputStream());
             writeMessage (oos, new Message().setOpCode (CMD_NOPORTS));
+print(" wMnp_");
             if (DEBUG) {
                 printf ("\nClientHandler: отправлено соощение: %s.", CMD_NOPORTS.name());
                 println ("\nClientHandler: клиенту отказано в подключении, — нет свободных портов.");
@@ -321,24 +322,27 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
             priorityQueue.offer(mRequest);
     }
 
-    @Override public boolean activate (boolean value)
+    @Override public boolean activate (final boolean value)
     {
         if (state.isActive() == value)
             return true;
 
         updateState();
-        if (!state.getOpCode().equals (CMD_ERROR)) {
+        if (state.getOpCode().equals (CMD_ERROR)) {
             state.setActive (NOT_ACTIVE);
         }
         else if (state.isActive() == ACTIVE) {
 //TODO: нужно проверить, можно ли УУ деактивировать прямо сейчас.
-            if (state.getCurrentTask().isAutonomic())
+            Task t = state.getCurrentTask();
+            if (t == null  ||  t.isAutonomic())
                 state.setActive (NOT_ACTIVE);
         }
         else {
             /*state = requestClientState (NOT_ACTIVE)*/
             state.setActive (ACTIVE);
         }
+//printf ("\n%s->%s\n", value ? "acitivate":"deactivate", state.isActive() ? "acitive":"notActive");
+printf("\n%s : %s\n", deviceFriendlyName, state);
         return state.isActive() == value;
     }
 
@@ -382,9 +386,10 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
         Object data = null;
         //synchronized (messagingMonitor)
         {
-            if (writeMessage (oos, mA.setData(null)))
-            {
+            if (writeMessage (oos, mA.setData(null))) {
+print(" wMa_");
                 m = readMessage(ois); //< блокирующая операция
+
                 if (m != null
                 &&  m.getOpCode() == CMD_ABILITIES
                 &&  (data = m.getData()) instanceof Abilities)
@@ -448,9 +453,10 @@ state.active в значение NOT_ACTIVE. (Неисправное УУ не �
         Object data = null;
         //synchronized (messagingMonitor)
         {
-            if (writeMessage (oos, mW.setData(null)))
-            {
+            if (writeMessage (oos, mW.setData(null))) {
+print(" wMs_");
                 mR = readMessage(ois); //< блокирующая операция
+
                 if (mR != null
                 &&  mR.getOpCode() == CMD_STATE
                 &&  (data = mR.getData()) instanceof DeviceState)
@@ -483,7 +489,7 @@ state.active в значение NOT_ACTIVE. (Неисправное УУ не �
         Message mQ = new Message().setDeviceUUID (null);
         Message mA = null;
         boolean sent = writeMessage (oos, mQ.setOpCode (opCodeQ).setData (dataQ));
-
+print(" wMr_");
         if (sent)
             mA = readMessage(ois); //< блокирующая операция
 

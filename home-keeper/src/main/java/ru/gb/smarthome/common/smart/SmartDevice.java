@@ -8,7 +8,7 @@ import java.io.*;
 import java.net.Socket;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static ru.gb.smarthome.common.FactoryCommon.printf;
+import static ru.gb.smarthome.common.FactoryCommon.*;
 
 public abstract class SmartDevice implements ISmartDevice
 {
@@ -53,7 +53,8 @@ ois — это экземпляр ObjectInputStream, предоставленн�
                 Object o = ois.readObject();
                 rwCounter.incrementAndGet();
                 Message mCIn = (o instanceof Message) ? (Message) o : null;
-                printf("\nПолучили: %s.\n", mCIn);
+//printf("\nПолучили: %s.\n", mCIn);
+print ("rM");
                 return mCIn;
             }
             else throw new IOException ("bad ObjectInputStream passed in.");
@@ -72,7 +73,8 @@ oos — это экземпляр ObjectOutputStream, предоставленн
             if (oos != null) {
                 oos.writeObject (mOut); //TODO: Если клиент упал, то мы продолжаем его опрашивать!!!
                 rwCounter.decrementAndGet();
-                printf ("\nОтправили: %s\n", mOut);
+//printf ("\nОтправили: %s\n", mOut);
+//print ("wM ");
                 return true;
             }
             throw new IOException ("bad ObjectOutputStream passed in.");

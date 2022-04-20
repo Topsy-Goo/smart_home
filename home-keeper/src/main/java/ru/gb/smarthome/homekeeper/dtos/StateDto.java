@@ -24,7 +24,7 @@ public class StateDto {
         String s;
         Task t;
         if (ds != null) {
-            dto.active = ds.isActive();
+            dto.active = ds.isActive()/* ? "Активно" : "Неактивно"*/;
             dto.opCode = ds.getOpCode().name();
             if ((s = ds.getErrCode()) != null)
                 dto.errCode = s;

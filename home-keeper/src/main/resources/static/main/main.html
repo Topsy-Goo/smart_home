@@ -3,31 +3,46 @@
 	<p>&nbsp;</p>
 <!-- Начало экспериментальной части. -->
 
-	{{device_list}}
+	{{home_dto.string}}
+
+<!--	<div>-->
+<!--	</div>-->
 
 <br>
-	<div><!-- HTML-контейнер для одного устройства --><!-- погода -->
-			<table class="table table-striped">
+	<div ng-repeat="type_group in home_dto.groups"><!-- HTML-контейнер для устройств одного типа -->
+		<p><h4 align="center">{{type_group.typeName}}</h4></p>
+		<div ng-repeat="device in type_group.devices" class="device_panel"><!-- ng-repeat работатет в <div>, но не работает в <table> -->
+			<table class="table table-striped margin_bottom_0">
 				<tr><td class="col-3">
-						Погода
+						{{device.friendlyName}}
 					</td>
 					<td class="col-2">
-						(состояние)
+						{{device.state.opCode}}
 					</td>
 					<td class="col-5">
-						(краткие показания)
+						{{getActiveString(device.state.active)}}
+						<br>
+						{{device.state.currentTask.name}}&nbsp;({{device.state.currentTask.tstate}})
 					</td>
 					<td class="col-2">
-						<button class="btn btn-outline-primary btn-sm justify-end"
-								ng-model="checked1" ng-init="checked1=false" ng-click="checked1=!checked1">
-							Показать-Скрыть
+						<!-- Кнопка Активировать/Деактивировать устройство. -->
+						<button class="btn btn-outline-primary btn-sm justify-end" title="Активировать/Деактивировать устройство"
+								ng-click="toggleDeviceActiveState(device)">
+							{{getActiveButtonName(device.state.active)}}
 						</button>
+						<br>
+						<!-- Кнопка Показать/Скрыть панель устройства. -->
+						<button class="btn btn-outline-primary btn-sm justify-end" title="Показать/Скрыть панель устройства"
+
+								ng-click="togglePanel(device, device.htmlPanelOpened)">
+							{{getShowOrHideButtonName(device.htmlPanelOpened)}}
+						</button><!-- ng-model="panel_opened" ng-init="panel_opened=device.htmlPanelOpened"   panel_opened=!panel_opened;  panel_opened -->
 					</td>
 				</tr>
 			</table>
-			<div class="almost_windows" ng-if="checked1" class="animate-if"><!-- Источник: https://docs.angularjs.org/api/ng/directive/ngIf -->
-<!--				<img src="img/Steampunk.jpg" alt="JPG">-->
-				<table class="table table-success table-striped">
+			<div class="almost_windows animate-if" ng-if="device.htmlPanelOpened"><!-- Источник: https://docs.angularjs.org/api/ng/directive/ngIf -->
+<!--			<img src="img/Steampunk.jpg" alt="JPG">-->
+				<table class="table table-success table-striped margin_bottom_0">
 					<thead class="table-dark">
 						<tr>
 							<th>
@@ -36,8 +51,7 @@
 						</tr>
 					</thead>
 					<tbody>
-						<tr>
-							<td>
+						<tr><td>
 								(рабочая область)
 							</td>
 						</tr>
@@ -50,10 +64,65 @@
 						</tr>
 					</tfoot>
 				</table>
+				<ul>
+					<li>device.abilities.deviceType : {{device.abilities.deviceType}}</li>
+					<li>device.abilities.vendorName : {{device.abilities.vendorName}}</li>
+					<li>device.abilities.uuid : 	  {{device.abilities.uuid}}</li><!--  ng-model="device_change.uuid" -->
+					<li>device.abilities.canSleep :   {{device.abilities.canSleep}}</li>
+					<li>device.abilities.tasks :
+						<ul ng-repeat="task in device.abilities.tasks">
+							<li>device.abilities.tasks.name : 		   {{task.name}}</li>
+							<li>device.abilities.tasks.tstate : 	   {{task.tstate}}</li>
+							<li>device.abilities.tasks.autonomic : 	   {{task.autonomic}}</li>
+							<li>device.abilities.tasks.interruptible : {{task.interruptible}}</li>
+							<li>device.abilities.tasks.duration : 	   {{task.duration}}</li>
+							<li>device.abilities.tasks.remained : 	   {{task.remained}}</li>
+							<li>device.abilities.tasks.elapsed : 	   {{task.elapsed}}</li>
+							<li>device.abilities.tasks.message : 	   {{task.message}}</li>
+						</ul>
+					</li><!-- <<<< Список задач (device.abilities.tasks) с описаниями. -->
+					<li>device.state.active :  {{device.state.active}}</li>
+					<li>device.state.opCode :  {{device.state.opCode}}</li>
+					<li>device.state.errCode : {{device.state.errCode}}</li>
+					<li>device.state.currentTask : <!--{{device.state.currentTask}}-->
+						<ul>
+							<li>device.abilities.tasks.name : 			{{device.abilities.tasks.name}}</li>
+							<li>device.abilities.tasks.tstate : 		{{device.abilities.tasks.tstate}}</li>
+							<li>device.abilities.tasks.autonomic : 		{{device.abilities.tasks.autonomic}}</li>
+							<li>device.abilities.tasks.interruptible :	{{device.abilities.tasks.interruptible}}</li>
+							<li>device.abilities.tasks.duration : 		{{device.abilities.tasks.duration}}</li>
+							<li>device.abilities.tasks.remained : 		{{device.abilities.tasks.remained}}</li>
+							<li>device.abilities.tasks.elapsed : 		{{device.abilities.tasks.elapsed}}</li>
+							<li>device.abilities.tasks.message : 		{{device.abilities.tasks.message}}</li>
+						</ul>
+					</li><!-- Текущая задача. -->
+					<li><form class="align-middle col-12" ng-submit="tryNewFriendlyName(device, newFriendlyName)">
+							<div class="input-group input-group-sm" style="margin-left: -15px;">
+								device.friendlyName&nbsp;:&nbsp;{{device.friendlyName}}&nbsp;
+								<input	id="friendlyNameInput"
+                                		class="form-control"
+                                		style="margin-left: 10px;"
+                                		type="text"
+                                		value="{{device.friendlyName}}"
+										aria-describedby="inputGroup-sizing-sm"
+										ng-model="newFriendlyName"
+										required="required"
+										><!--       -->
+								<button	id="friendlyNameSubmit"
+                                		class="btn btn-outline-warning btn-sm"
+                                		style="margin-left: 10px;"
+                                		type="submit"
+                                		>Запомнить</button>
+							</div>
+						</form><!-- Форма для изменения device.friendlyName. -->
+					</li>
+					<li>device.htmlPanelOpened&nbsp;:&nbsp;{{device.htmlPanelOpened}}</li>
+				</ul>
 			</div>
+		</div>
 	</div>
 	<br><br>
-	<div><!-- HTML-контейнер для одного устройства --><!-- камера видеонаблюдения -->
+<!--	<div>&lt;!&ndash; HTML-контейнер для одного устройства &ndash;&gt;&lt;!&ndash; камера видеонаблюдения &ndash;&gt;
 			<table class="table table-striped">
 				<tr><td class="col-3">
 						Камера видеонаблюдения
@@ -72,8 +141,8 @@
 					</td>
 				</tr>
 			</table>
-			<div class="almost_windows" ng-if="checked2" class="animate-if"><!-- Источник: https://docs.angularjs.org/api/ng/directive/ngIf -->
-<!--				<img src="img/NTSC-PAL-SECAM global map.svg.png" alt="PNG">-->
+			<div class="almost_windows" ng-if="checked2" class="animate-if">&lt;!&ndash; Источник: https://docs.angularjs.org/api/ng/directive/ngIf &ndash;&gt;
+&lt;!&ndash;				<img src="img/NTSC-PAL-SECAM global map.svg.png" alt="PNG">&ndash;&gt;
 				<table class="table table-success table-striped">
 					<thead class="table-dark">
 						<tr>
@@ -100,7 +169,7 @@
 			</div>
 	</div>
 	<br><br>
-	<div><!-- HTML-контейнер для одного устройства --><!--  -->
+	<div>&lt;!&ndash; HTML-контейнер для одного устройства &ndash;&gt;&lt;!&ndash;  &ndash;&gt;
 			<table class="table table-striped">
 				<tr><td class="col-3">
 						(Название устройства)
@@ -119,10 +188,10 @@
 					</td>
 				</tr>
 			</table>
-			<div class="almost_windows" ng-if="checked3" class="animate-if"><!-- Источник: https://docs.angularjs.org/api/ng/directive/ngIf -->
-<!--				<img src="img/001.jpeg" alt="JPEG">-->
-<!--				<img src="img/ase3.gif" alt="GIF">-->
-<!--				<img src="img/BIG.BMP" alt="BMP">-->
+			<div class="almost_windows" ng-if="checked3" class="animate-if">&lt;!&ndash; Источник: https://docs.angularjs.org/api/ng/directive/ngIf &ndash;&gt;
+&lt;!&ndash;				<img src="img/001.jpeg" alt="JPEG">&ndash;&gt;
+&lt;!&ndash;				<img src="img/ase3.gif" alt="GIF">&ndash;&gt;
+&lt;!&ndash;				<img src="img/BIG.BMP" alt="BMP">&ndash;&gt;
 				<table class="table table-success table-striped">
 					<thead class="table-dark">
 						<tr>
@@ -148,7 +217,7 @@
 				</table>
 			</div>
 	</div>
-	<br><br>
+	<br><br>-->
 
 <!--	<button class="btn btn-primary btn-sm" >Управление устройствами</button>-->
 
