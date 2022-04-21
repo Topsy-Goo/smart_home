@@ -3,8 +3,6 @@ package ru.gb.smarthome.empty;
 import ru.gb.smarthome.common.PropertyManager;
 import ru.gb.smarthome.common.smart.ISmartDevice;
 
-//import static ru.gb.smarthome.common.smart.SmartDevice.runConsole;
-
 //@SpringBootApplication (scanBasePackages = "ru.gb.smarthome.empty")
 public class EmptyApp {
 
@@ -26,5 +24,4 @@ public class EmptyApp {
         ok = /*propMan.readAllProperties("propertyFile")*/propMan != null;
         return ok;
     }
-
 }

@@ -11,5 +11,4 @@ public class SmartFridgeApp {
     public static void main (String[] args) {
         SpringApplication.run (SmartFridgeApp.class, args);
     }
-
 }

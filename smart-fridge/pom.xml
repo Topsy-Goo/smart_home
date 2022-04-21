@@ -21,10 +21,10 @@
 	<dependencies>
 		<dependency>
 			<groupId>ru.gb.smarthome</groupId>
-			<artifactId>home-keeper</artifactId>
+			<artifactId>smart-empty</artifactId>
 			<version>0.0.1-SNAPSHOT</version>
 			<scope>compile</scope>
-		</dependency><!-- ru.gb.smarthome : home-keeper : compile -->
+		</dependency><!-- ru.gb.smarthome : smart-empty : compile -->
 	</dependencies>
 
 </project>

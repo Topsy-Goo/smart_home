@@ -7,10 +7,12 @@
 	<packaging>pom</packaging>
 
 	<modules>
-		<module>home-keeper</module>
-		<module>smart-fridge</module>
-		<module>smart-sequrity-controller</module>
-		<module>smart-empty</module>
+		<module>home-keeper</module>	<!-- port 15550 -->
+		<module>smart-empty</module>	<!-- port 15549 -->
+		<module>smart-fridge</module>	<!-- port 15551 -->
+		<module>smart-sequrity-controller</module>	<!-- port 15552 -->
+		<module>smart-washer</module>				<!-- port 15553 -->
+		<module>smart-weather-station</module>		<!-- port 15554 -->
 	</modules>
 
 	<parent>

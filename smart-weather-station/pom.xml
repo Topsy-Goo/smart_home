@@ -11,11 +11,20 @@
 
 	<modelVersion>4.0.0</modelVersion>
 
-	<artifactId>home-keeper</artifactId>
+	<artifactId>smart-weather-station</artifactId>
 
 	<properties>
 		<maven.compiler.source>15</maven.compiler.source>
 		<maven.compiler.target>15</maven.compiler.target>
 	</properties>
+
+	<dependencies>
+		<dependency>
+			<groupId>ru.gb.smarthome</groupId>
+			<artifactId>smart-empty</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+			<scope>compile</scope>
+		</dependency><!-- ru.gb.smarthome : smart-empty : compile -->
+	</dependencies>
 
 </project>

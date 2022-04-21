@@ -1,5 +1,5 @@
-#server:
-#  port: 15549
+server:
+  port: 15549
 
 #application:
 #  homekeeper:
