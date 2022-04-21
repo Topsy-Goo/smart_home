@@ -1,4 +1,4 @@
-package ru.gb.smarthome.empty;
+package ru.gb.smarthome.fridge;
 
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
@@ -7,8 +7,8 @@ import org.springframework.context.annotation.Configuration;
 import ru.gb.smarthome.common.smart.ISmartDevice;
 
 @Configuration
-@ComponentScan (basePackages = "ru.gb.smarthome.empty")
-public class EmptyApp {
+@ComponentScan (basePackages = "ru.gb.smarthome.fridge")
+public class FridgeApp {
 
     public  static final boolean DEBUG = true;
     @SuppressWarnings("all")
@@ -17,8 +17,8 @@ public class EmptyApp {
     public static void main (String[] args)
     {
         if (init ()) {
-            context = new AnnotationConfigApplicationContext (EmptyApp.class);
-            ISmartDevice device = context.getBean (DeviceClientEmpty.class);
+            context = new AnnotationConfigApplicationContext (FridgeApp.class);
+            ISmartDevice device = context.getBean (DeviceClientFridge.class);
             new Thread (device).start();
         }
     }

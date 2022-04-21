@@ -12,4 +12,9 @@ public class SequrityControllerApp {
 		SpringApplication.run (SequrityControllerApp.class, args);
 	}
 
+    @SuppressWarnings("all")
+    static boolean init () {
+        boolean ok = true;
+        return ok;
+    }
 }

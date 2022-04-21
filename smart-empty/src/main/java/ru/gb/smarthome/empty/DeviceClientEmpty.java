@@ -1,7 +1,9 @@
 package ru.gb.smarthome.empty;
 
 import org.jetbrains.annotations.NotNull;
-import ru.gb.smarthome.common.PropertyManager;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
 import ru.gb.smarthome.common.exceptions.OutOfServiceException;
 import ru.gb.smarthome.common.exceptions.RWCounterException;
 import ru.gb.smarthome.common.smart.IConsolReader;
@@ -13,6 +15,7 @@ import ru.gb.smarthome.common.smart.structures.DeviceState;
 import ru.gb.smarthome.common.smart.structures.Message;
 import ru.gb.smarthome.common.smart.structures.Task;
 
+import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -27,27 +30,32 @@ import static ru.gb.smarthome.common.smart.enums.DeviceTypes.SMART;
 import static ru.gb.smarthome.common.smart.enums.OperationCodes.*;
 import static ru.gb.smarthome.common.smart.enums.TaskStates.*;
 import static ru.gb.smarthome.empty.EmptyApp.DEBUG;
-//import static ru.gb.smarthome.empty.FactoryEmpty.check;
 
+@Component
+@Scope ("prototype")
 public class DeviceClientEmpty extends SmartDevice implements IConsolReader
 {
-    private final PropertyManager propMan;
-    //private       OperationCodes  mode = OPCODE_INITIAL;   //< временно будет изображать состояние УУ
+    private final PropertyManagerEmpty propMan;
     private final ExecutorService exeService;
-    //private final
     private       boolean safeTurnOff;
     private       Future<Boolean> taskFuture;
     private final Set<Task>       availableTasks;
-    //private final boolean CAN_ABORT_UNINTERRUPTIBLE_TASK = true;
-    //private final Map<String, Task> mapTasks;
 
-    public DeviceClientEmpty (PropertyManager pm)
+    @Autowired
+    public DeviceClientEmpty (PropertyManagerEmpty pm)
     {
-        Thread  threadConsole;
-        Random rnd  = new Random();
         propMan = pm;
-        availableTasks = pm.getAvailableTasks_Fridge(); //pm.getTaskList_Empty(); //
+        exeService = Executors.newSingleThreadExecutor (r->{
+                            Thread t = new Thread (r);
+                            t.setDaemon (true);
+                            return t;
+                        });
+        availableTasks = new HashSet<>();
+    }
 
+    @PostConstruct public void init ()
+    {
+        Random rnd  = new Random();
         abilities = new Abilities(
                 SMART, "Учебное УУ №" + rnd.nextInt(100500),
                 UUID.randomUUID(),
@@ -56,15 +64,11 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
         state = new DeviceState().setOpCode(CMD_NOT_CONNECTED).setActive(NOT_ACTIVE);
 
         //if (DEBUG) {
-            threadConsole = new Thread (()->IConsolReader.runConsole (this));
+            Thread threadConsole = new Thread (()->IConsolReader.runConsole (this));
             threadConsole.setDaemon(true);
             threadConsole.start();
         //}
-        exeService = Executors.newSingleThreadExecutor (r->{
-                            Thread t = new Thread (r);
-                            t.setDaemon (true);
-                            return t;
-                        });
+        availableTasks.addAll(propMan.getAvailableTasks_Empty());
     }
 
     @Override public void run ()

@@ -11,9 +11,11 @@ import static ru.gb.smarthome.common.FactoryCommon.*;
 
 final public class FactoryEmpty {
 
+    /*
     public static PropertyManager getPropertyManager () {
         return PropertyManagerEmpty.getInstance();
     }
+    */
 
 
 }

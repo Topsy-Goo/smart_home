@@ -1,4 +1,4 @@
-package ru.gb.smarthome.empty;
+package ru.gb.smarthome.weatherstation;
 
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
@@ -7,18 +7,18 @@ import org.springframework.context.annotation.Configuration;
 import ru.gb.smarthome.common.smart.ISmartDevice;
 
 @Configuration
-@ComponentScan (basePackages = "ru.gb.smarthome.empty")
-public class EmptyApp {
+@ComponentScan (basePackages = "ru.gb.smarthome.weatherstation")
+public class WeatherStationApp {
 
-    public  static final boolean DEBUG = true;
+    public static final boolean DEBUG = true;
     @SuppressWarnings("all")
-    private static       ApplicationContext context;
+    private static      ApplicationContext context;
 
-    public static void main (String[] args)
-    {
+    public static void main (String[] args) {
+
         if (init ()) {
-            context = new AnnotationConfigApplicationContext (EmptyApp.class);
-            ISmartDevice device = context.getBean (DeviceClientEmpty.class);
+            context = new AnnotationConfigApplicationContext (WeatherStationApp.class);
+            ISmartDevice device = context.getBean (DeviceClientWeatherStation.class);
             new Thread (device).start();
         }
     }

@@ -1,12 +1,14 @@
 package ru.gb.smarthome.empty;
 
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
 import ru.gb.smarthome.common.PropertyManager;
 
-//import static ru.gb.smarthome.empty.EmptyApp.DEBUG;
-
+@Component ("empty_propman")
+@Scope ("singleton")
 public class PropertyManagerEmpty extends PropertyManager
 {
-    private static       PropertyManager instance;
+/*    private static       PropertyManager instance;
     private static final Object          monitor = new Object();
 
     private PropertyManagerEmpty () {}
@@ -18,7 +20,7 @@ public class PropertyManagerEmpty extends PropertyManager
                     instance = new PropertyManagerEmpty();
             }
         return instance;
-    }
+    }*/
 
     //@Override public boolean readFile (String fileName) {    return super.readFile (fileName);    }
 
@@ -26,4 +28,9 @@ public class PropertyManagerEmpty extends PropertyManager
 
     //@Override public String getServerAddress () {    return super.getServerAddress();    }
 
+    public void init() {
+    }
+
+    public void shutdown() {
+    }
 }
