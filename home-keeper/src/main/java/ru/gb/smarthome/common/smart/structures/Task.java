@@ -119,5 +119,21 @@ public class Task implements Serializable
                        ,message.get()
                        );
     }
+
+/** Сравнение задач выполняется только по их имени. Основание — юзер будет выбирать задачи по их имени,
+и для него одинаковые задачи сразными именами всегад будут разными задачами, и остальные парамтеры
+проверять нет смысла. */
+    @Override public boolean equals (Object o)
+    {
+        if (this == o) return true;
+
+        if (o instanceof Task)
+            o = ((Task)o).name;
+
+        if (o instanceof String)
+            return name.equals(o);
+
+        return false;
+    }
 }
 //@param cod код операции (см. {@link ru.gb.smarthome.common.smart.enums.OperationCodes OperationCodes}).

@@ -15,12 +15,12 @@ final public class FactoryCommon
 {
     public static final int SMART_PORTS_COUNT  = 3;
     public static final int BUSY_SLEEP_SECONDS = 5;
-    public static final int DEF_POLL_INTERVAL  = 5;
+    public static final int DEF_POLL_INTERVAL  = 3;
     public static final int    SERVER_PORT_DEFAULT    = 7777;
     public static final String SERVER_ADDRESS_DEFAULT = "localhost";
     public static final boolean ON        = true, OFF           = false;
     public static final boolean ACTIVE    = true, NOT_ACTIVE    = false;
-    public static final boolean OPENED    = true, CLOSED        = false;
+    //public static final boolean OPENED    = true, CLOSED        = false;
     public static final boolean CAN_SLEEP = true, CANNOT_SLEEP  = false;
     public static final boolean AUTONOMIC = true, NOT_AUTONOMIC = false;
     public static final boolean OK        = true, ERROR         = false;

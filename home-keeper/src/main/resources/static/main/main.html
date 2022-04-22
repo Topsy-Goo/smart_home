@@ -1,12 +1,12 @@
 <div style="margin: 10px;">
 	<h5>Список устройств, подключеных к Умному дому.</h5>
 	<p>&nbsp;</p>
-<!-- Начало экспериментальной части. -->
 
 	{{home_dto.string}}
 
-<!--	<div>-->
-<!--	</div>-->
+<!--	<div>
+		<button>Кнопка</button>
+	</div>-->
 
 <br>
 	<div ng-repeat="type_group in home_dto.groups"><!-- HTML-контейнер для устройств одного типа -->
@@ -28,19 +28,18 @@
 						<!-- Кнопка Активировать/Деактивировать устройство. -->
 						<button class="btn btn-outline-primary btn-sm justify-end" title="Активировать/Деактивировать устройство"
 								ng-click="toggleDeviceActiveState(device)">
-							{{getActiveButtonName(device.state.active)}}
+							{{getButtonNameActivate(device.state.active)}}
 						</button>
 						<br>
 						<!-- Кнопка Показать/Скрыть панель устройства. -->
 						<button class="btn btn-outline-primary btn-sm justify-end" title="Показать/Скрыть панель устройства"
-
-								ng-click="togglePanel(device, device.htmlPanelOpened)">
-							{{getShowOrHideButtonName(device.htmlPanelOpened)}}
-						</button><!-- ng-model="panel_opened" ng-init="panel_opened=device.htmlPanelOpened"   panel_opened=!panel_opened;  panel_opened -->
+								ng-click="togglePanelOpenedState(device.abilities.uuid)">
+							{{getButtonNameShowPanel(device.abilities.uuid)}}
+						</button><!--  -->
 					</td>
 				</tr>
 			</table>
-			<div class="almost_windows animate-if" ng-if="device.htmlPanelOpened"><!-- Источник: https://docs.angularjs.org/api/ng/directive/ngIf -->
+			<div class="almost_windows animate-if" ng-if="isPanelOpened(device.abilities.uuid)"><!--  -->
 <!--			<img src="img/Steampunk.jpg" alt="JPG">-->
 				<table class="table table-success table-striped margin_bottom_0">
 					<thead class="table-dark">
@@ -116,7 +115,7 @@
 							</div>
 						</form><!-- Форма для изменения device.friendlyName. -->
 					</li>
-					<li>device.htmlPanelOpened&nbsp;:&nbsp;{{device.htmlPanelOpened}}</li>
+					<!--<li>device.htmlPanelOpened&nbsp;:&nbsp;{{device.htmlPanelOpened}}</li>-->
 				</ul>
 			</div>
 		</div>

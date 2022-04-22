@@ -1,3 +1,20 @@
 server:
   port: 15551
 
+fridge:
+  uuid: 429c7bd1-b071-4998-8709-7c6e7ae6e3ab
+  name: ATLANT ХМ 4214-000
+#  tasks:
+#    count: 1
+#    task1:
+#      name: 'Разморозка'
+#      autonomic: true
+#      interruptible: false
+#      seconds: 120
+#    task2:
+#      name:
+#      autonomic:
+#      interruptible:
+#      seconds:
+#
+#b29dbbae-dc6a-454e-9f5d-9aaeeec47801

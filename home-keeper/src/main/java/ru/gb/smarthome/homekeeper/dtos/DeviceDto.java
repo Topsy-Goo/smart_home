@@ -16,7 +16,7 @@ public class DeviceDto {
     private AbilitiesDto abilities = nullAbilitiesDto;
     private StateDto     state     = nullStateDto;
     private String  friendlyName    = DEF_DEV_DTO_FRIENDLYNAME;
-    private boolean htmlPanelOpened = CLOSED;
+    //private boolean htmlPanelOpened = CLOSED;
 
     public DeviceDto (){}
 
@@ -31,7 +31,7 @@ public class DeviceDto {
             dto.state     = StateDto.deviceStateToDto (device.getState());
             if ((s = device.getDeviceFriendlyName()) != null)
                 dto.friendlyName = s;
-            dto.htmlPanelOpened = info.htmlPanelOpened == OPENED;
+            //dto.htmlPanelOpened = info.htmlPanelOpened == OPENED;
         }
         return dto;
     }

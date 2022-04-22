@@ -35,40 +35,35 @@ import static ru.gb.smarthome.empty.EmptyApp.DEBUG;
 @Scope ("prototype")
 public class DeviceClientEmpty extends SmartDevice implements IConsolReader
 {
-    private final PropertyManagerEmpty propMan;
-    private final ExecutorService exeService;
-    private       boolean safeTurnOff;
-    private       Future<Boolean> taskFuture;
-    private final Set<Task>       availableTasks;
+    protected final PropertyManagerEmpty propMan;
+    protected       ExecutorService exeService;
+    protected       boolean safeTurnOff;
+    protected       Future<Boolean> taskFuture;
 
     @Autowired
-    public DeviceClientEmpty (PropertyManagerEmpty pm)
-    {
+    public DeviceClientEmpty (PropertyManagerEmpty pm) {
         propMan = pm;
+        state = new DeviceState().setOpCode(CMD_NOT_CONNECTED).setActive(NOT_ACTIVE);
+    }
+
+    @PostConstruct public void init ()
+    {
+        abilities = new Abilities(
+                SMART,
+                propMan.getName(),
+                propMan.getUuid(),
+                new ArrayList<>(propMan.getAvailableTasks()),
+                CAN_SLEEP);
         exeService = Executors.newSingleThreadExecutor (r->{
                             Thread t = new Thread (r);
                             t.setDaemon (true);
                             return t;
                         });
-        availableTasks = new HashSet<>();
-    }
-
-    @PostConstruct public void init ()
-    {
-        Random rnd  = new Random();
-        abilities = new Abilities(
-                SMART, "Учебное УУ №" + rnd.nextInt(100500),
-                UUID.randomUUID(),
-                new ArrayList<>(availableTasks),
-                CAN_SLEEP);
-        state = new DeviceState().setOpCode(CMD_NOT_CONNECTED).setActive(NOT_ACTIVE);
-
         //if (DEBUG) {
             Thread threadConsole = new Thread (()->IConsolReader.runConsole (this));
             threadConsole.setDaemon(true);
             threadConsole.start();
         //}
-        availableTasks.addAll(propMan.getAvailableTasks_Empty());
     }
 
     @Override public void run ()
@@ -149,8 +144,8 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
                 //блок state greaterThan opCode
                 if (state.getOpCode().greaterThan (opCode)) {     //     opCode < state
                     sendState();
-                    errprintf("\n\nEmpty.mainLoop(): несвоевременный запрос из УД: state:%s, Msg:%s\n\n",
-                              state.getOpCode().name(), opCode.name());
+                    errprintf("\n\n%s.mainLoop(): несвоевременный запрос из УД: state:%s, Msg:%s\n\n",
+                              getClass().getSimpleName(), state.getOpCode().name(), opCode.name());
 
                     check (rwCounter.get() == 0L, RWCounterException.class, "блок state greaterThan opCode");
                     continue;
@@ -324,8 +319,8 @@ print("_wMa ");
         приходящие в УУ, стали актуальными.
     */
         Message mS = new Message().setOpCode (CMD_STATE)
-                                 .setData (state.safeCopy())
-                                 .setDeviceUUID (abilities.getUuid());
+                                  .setData (state.safeCopy())
+                                  .setDeviceUUID (abilities.getUuid());
         boolean ok = writeMessage (oos, mS);
 print("_wMs ");
 //if (DEBUG && ok) printf ("\nОтправили %s\n", mS);
@@ -385,7 +380,7 @@ state в УД, а потом должны сбрасываться (на что-
         }
     }
 
-//---------------------------------------------------------------------------
+//------------ Методы, используемые в IConsoleReader.runConsole -------------
 
     @Override public Socket getSocket () { return socket; }
     @Override public DeviceState getState () { return state; }
@@ -401,17 +396,18 @@ state в УД, а потом должны сбрасываться (на что-
 @param data строка-идентификатор задачи, для поиска её в списке доступных задач устройства.
 @return экземпляр Task, который является запущенной задачей или, в случае ошибки, сгодится для информирования о результатах запроса.
 */
-    private @NotNull Task startTask (Object data) //throws Exception
+    private @NotNull Task startTask (Object data)
     {
         String taskName = "?",
                taskMessage = "";
         TaskStates tstate = TS_REJECTED;
 
         Task newTask = null;
-        Task t = availableTasks.stream()
-                               .filter ((tsk)->(tsk.getName().equals (data)))
-                               .findFirst()
-                               .orElse (null);
+        Task t = abilities.getTasks()
+                          .stream()
+                          .filter ((tsk)->(tsk.equals (data)))
+                          .findFirst()
+                          .orElse (null);
         if (t == null) {
             tstate = TS_NOT_SUPPORTED;      taskMessage = "Задача не найдена.";
         }
@@ -460,7 +456,6 @@ state, state.currentTask, но можно изменять их Atomic-поля.
 
         public TaskExecutor (@NotNull Task t) {
             theTask = t.setTstate (TS_LAUNCHING);
-            //state.setCurrentTask (theTask); < это делает обработчик CMD_TASK
         }
 
         @Override public Boolean call ()
@@ -488,8 +483,6 @@ state, state.currentTask, но можно изменять их Atomic-поля.
             return result;
         }
     }//class TaskExecutor
-
-/*    private void applyTaskResult (Future<> f) {    }*/
 
     //TODO: Если УУ продолжает работать даже если связь с УД прервалась, то нужно это
     // как-то оформить (сделать консольный поток НЕдемоном, сделать поток executor-а недемоном,

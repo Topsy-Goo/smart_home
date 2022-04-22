@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static java.lang.String.format;
+import static ru.gb.smarthome.common.FactoryCommon.DEF_POLL_INTERVAL;
 
 @Data
 public class HomeDto {
@@ -14,14 +15,15 @@ public class HomeDto {
     public  static final List<TypeGroupDto> nullGroups = Collections.EMPTY_LIST;
     private              List<TypeGroupDto> groups     = nullGroups;
     private              String string;
+    private              int pollInterval = DEF_POLL_INTERVAL;
+    private              String uuid;
 
     public HomeDto (){}
 
     public HomeDto (List<TypeGroupDto> tgroups) {
-        int /*typeNumber = 0,*/ deviceCount = 0;
+        int deviceCount = 0;
         if (tgroups != null) {
             groups = tgroups;
-            //typeNumber = tgroups.size();
             for (TypeGroupDto group : groups)
                 deviceCount += group.getDevices().size();
         }

@@ -89,10 +89,21 @@
 	*/
 		const contextAuthoPath	= 'http://localhost:15550/home/v1/auth';
 
-        if ($localStorage.smartHomeUser)
-        {
+		//В $localStorage.openedPanels будем запоминать uuid-ы устройств, чьи панели нужно открыть при
+		//обновлении страницы. (Необязательная, но удобная ф-ция.)
+		if ($localStorage.openedPanels == null) {
+			$localStorage.openedPanels = [];
+		}
+
+        if ($localStorage.smartHomeUser) {
             $http.defaults.headers.common.Authorization = 'Bearer ' + $localStorage.smartHomeUser.token;
         }
+
+		if ($localStorage.smartHomeUser) {
+			//...
+		}
+
+
 
 /*		if (!$localStorage.gbj11SmartHomeActivationCode)
 		{
@@ -123,10 +134,7 @@
 	$scope.appTitle = 'Умный дом';
 	$scope.mainPageTitle = 'Главная страница';
 	$scope.schedulePageTitle = 'Расписание';
-//	$scope.storePageTitle = 'Каталог продуктов';
-//	$scope.edit_productPageTitle = 'Создать продукт';
-//	$scope.cartPageTitle = 'Ваша корзина';
-//	$rootScope.canEditProducts = false;
+
 
 	$scope.tryToRegister = function ()
 	{
@@ -152,13 +160,10 @@
 					$localStorage.smartHomeUser = {login: $scope.user.login, token: response.data.token};
 					$scope.clearUserFields();
 				}
-//				$scope.tryMergeCarts();
 				location.reload(false); /* перезагружает страницу (false=из кэша, true=из сервера);
 				 место вызова в коде имеет значение, т.к. при перезагрузке, например, могут потеряться
 				 данные о регистрации, если они не были записаны в хранилище браузера или не были
 				 сохранены иным способом */
-
-//				$rootScope.canEditProducts = $scope.canUserEditProducts();
 			},
 			function failureCallback (response)
 			{
@@ -169,7 +174,6 @@
 
 	$scope.tryToLogout = function ()
 	{
-//		$rootScope.canEditProducts = false;
 		$scope.removeUserFromLocalStorage();
 		$scope.clearUserFields();
 		$location.path('/registration');
@@ -180,25 +184,6 @@
 		delete $localStorage.smartHomeUser;
 		$http.defaults.headers.common.Authorization = '';
 	}
-
-/*	$scope.tryMergeCarts = function ()
-	{
-		if ($localStorage.gbj11SmartHomeActivationCode)
-		{
-			$http.get (contextCartPath + '/merge/' + $localStorage.gbj11SmartHomeActivationCode)
-			.then (
-			function successCallback (response)
-			{
-				console.log ('index - $scope.tryMergeCarts - OK');
-///////////////////////				$scope.loadCart();
-			},
-			function failureCallback (response)
-			{
-				console.log ('Ой! @ index - $scope.tryMergeCarts');
-				alert (response.data);
-			});
-		}
-	}*/
 
 //----------------------------------------------------------------------- разрешения
 	$rootScope.isUserLoggedIn = function ()

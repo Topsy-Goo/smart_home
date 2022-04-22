@@ -1,32 +1,28 @@
 package ru.gb.smarthome.homekeeper;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import ru.gb.smarthome.common.PropertyManager;
+import ru.gb.smarthome.common.smart.structures.Task;
 
-//import static ru.gb.smarthome.homekeeper.HomeKeeperApp.DEBUG;
+import javax.annotation.PostConstruct;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 @Component
 public class PropertyManagerHome extends PropertyManager
 {
-/*    private static       PropertyManager instance;
-    private static final Object          monitor = new Object();
+    //@Value ("${home.uuid}") private UUID uuid;
+    private final String name = "Умный дом 1";
+    private final UUID      uuid  = UUID.fromString ("7db3548c-717f-49e0-b8a4-137703f19496");
+    private final Set<Task> tasks = emptyTaskList();
 
+    @PostConstruct public void init() {}
 
-    private PropertyManagerHome () {}
+    public void shutdown() {}
 
-    public static PropertyManager getInstance() {
-        if (instance == null)
-            synchronized (monitor) {
-                if (instance == null)
-                    instance = new PropertyManagerHome();
-            }
-        return instance;
-    }*/
-
-    //@Override public boolean readFile (String fileName) {    return super.readFile (fileName);    }
-
-    //@Override public int getServerSocketPort () {    return super.getServerSocketPort();    }
-
-    //@Override public String getServerAddress () {    return super.getServerAddress();    }
-
+    @Override public UUID getUuid () { return uuid; }
+    @Override public String getName () { return name; }
+    @Override public Set<Task> getAvailableTasks () {  return tasks;  }
 }

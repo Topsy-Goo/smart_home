@@ -1,7 +1,2 @@
 server:
   port: 15549
-
-#application:
-#  homekeeper:
-#    port: 7777
-#    address: 'localhost'

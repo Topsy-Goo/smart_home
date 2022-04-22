@@ -7,7 +7,7 @@ import org.jetbrains.annotations.NotNull;
 import ru.gb.smarthome.common.smart.ISmartHandler;
 import ru.gb.smarthome.homekeeper.dtos.AbilitiesDto;
 
-import static ru.gb.smarthome.common.FactoryCommon.CLOSED;
+//import static ru.gb.smarthome.common.FactoryCommon.CLOSED;
 import static ru.gb.smarthome.common.FactoryCommon.NOT_ACTIVE;
 import static ru.gb.smarthome.homekeeper.dtos.DeviceDto.nullAbilitiesDto;
 
@@ -16,12 +16,12 @@ import static ru.gb.smarthome.homekeeper.dtos.DeviceDto.nullAbilitiesDto;
 //@Data
 public class DeviceInfo {
     public  final ISmartHandler device;
-    @Getter
+    //@Getter
     private Abilities    abilities;
-    @Getter
+    //@Getter
     private AbilitiesDto abilitiesDto/* = nullAbilitiesDto*/;
     //@Getter @Setter
-    public  boolean      htmlPanelOpened = CLOSED;
+    //public  boolean      htmlPanelOpened = CLOSED;
     //@Getter @Setter private boolean active = NOT_ACTIVE;
 
     public DeviceInfo (ISmartHandler theDevice) {

@@ -6,6 +6,7 @@ import ru.gb.smarthome.common.smart.ISmartHandler;
 import ru.gb.smarthome.common.smart.enums.DeviceTypes;
 import ru.gb.smarthome.common.smart.structures.Abilities;
 import ru.gb.smarthome.common.smart.structures.DeviceInfo;
+import ru.gb.smarthome.homekeeper.PropertyManagerHome;
 import ru.gb.smarthome.homekeeper.dtos.HomeDto;
 import ru.gb.smarthome.homekeeper.dtos.TypeGroupDto;
 
@@ -18,6 +19,7 @@ import static ru.gb.smarthome.homekeeper.HomeKeeperApp.DEBUG;
 @RequiredArgsConstructor
 public class HomeService
 {
+    private final PropertyManagerHome propMan;
     private final Map<UUID, ISmartHandler> handlers = new HashMap<>(SMART_PORTS_COUNT);
     private final Map<DeviceTypes, LinkedList<ISmartHandler>> handlerGroups = new TreeMap<>();
     //private final Map<DeviceTypes, LinkedList<UUID>> uuidGroups = new TreeMap<>();
@@ -78,7 +80,9 @@ public class HomeService
 
 /** Отдаём контроллеру список обнаруженых УУ. */
     public HomeDto getHomeDto () {
-        return new HomeDto (TypeGroupDto.getTypeGroupDtos (handlerGroups, handlersInfo));
+        HomeDto dto = new HomeDto (TypeGroupDto.getTypeGroupDtos (handlerGroups, handlersInfo));
+        dto.setUuid (propMan.getUuid().toString());
+        return dto;
     }
 
 /** Меняем строковое представление UUID на хэндлер УУ, которму этот UUID соответствует.
@@ -117,7 +121,7 @@ public class HomeService
         ISmartHandler device = deviceByUuidString (uuidStr);
         DeviceInfo info;
         if (device != null  &&  (info = handlersInfo.get(device)) != null) {
-            info.htmlPanelOpened = isopened == OPENED;
+            //info.htmlPanelOpened = isopened == OPENED;
         }
     }
 
