@@ -28,7 +28,7 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
     private       String  deviceFriendlyName;
     private       SynchronousQueue<Boolean> helloSynQue;
     private       IDeviceServer server;
-    private       int pollInterval = DEF_POLL_INTERVAL;
+    private       int pollInterval = DEF_POLL_INTERVAL_BACK;
 
     private final PriorityBlockingQueue<Message> priorityQueue =
         new PriorityBlockingQueue<> (10
@@ -65,11 +65,9 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
             oos = new ObjectOutputStream (socket.getOutputStream());
             ois = new ObjectInputStream (socket.getInputStream());
             writeMessage (oos, new Message().setOpCode (CMD_NOPORTS));
-print(" wMnp_");
-            if (DEBUG) {
-                printf ("\nClientHandler: отправлено соощение: %s.", CMD_NOPORTS.name());
-                println ("\nClientHandler: клиенту отказано в подключении, — нет свободных портов.");
-            }
+//print(" wMnp_");
+            printf ("\nClientHandler: отправлено соощение: %s.", CMD_NOPORTS.name());
+            println ("\nClientHandler: клиенту отказано в подключении, — нет свободных портов.");
         }
         catch (Exception e) { e.printStackTrace(); }
     }
@@ -90,13 +88,13 @@ print(" wMnp_");
         }
         catch (Exception e) {
             code = e.getMessage();
-            if (DEBUG) e.printStackTrace();
+            e.printStackTrace();
         }
         finally {
             if (helloSynQue != null) helloSynQue.offer (ERROR);helloSynQue = null;  //< сообщаем в DeviceServerHome, что у нас не получилось начать работу.
             disconnect();
             Thread.yield(); //< возможно, это позволит вовремя вывести сообщение об ошибке.
-            if (DEBUG) printf ("\nClientHandler: поток %s завершился. Код завершения: %s.\n", threadRun, code);
+            printf ("\nClientHandler: поток %s завершился. Код завершения: %s.\n", threadRun, code);
         }
     }
 
@@ -332,7 +330,7 @@ print(" wMnp_");
             state.setActive (NOT_ACTIVE);
         }
         else if (state.isActive() == ACTIVE) {
-//TODO: нужно проверить, можно ли УУ деактивировать прямо сейчас.
+//TODO: нужно проверять, можно ли УУ деактивировать прямо сейчас.
             Task t = state.getCurrentTask();
             if (t == null  ||  t.isAutonomic())
                 state.setActive (NOT_ACTIVE);
@@ -387,7 +385,7 @@ printf("\n%s : %s\n", deviceFriendlyName, state);
         //synchronized (messagingMonitor)
         {
             if (writeMessage (oos, mA.setData(null))) {
-print(" wMa_");
+//print(" wMa_");
                 m = readMessage(ois); //< блокирующая операция
 
                 if (m != null
@@ -454,7 +452,7 @@ state.active в значение NOT_ACTIVE. (Неисправное УУ не �
         //synchronized (messagingMonitor)
         {
             if (writeMessage (oos, mW.setData(null))) {
-print(" wMs_");
+//print(" wMs_");
                 mR = readMessage(ois); //< блокирующая операция
 
                 if (mR != null
@@ -489,7 +487,7 @@ print(" wMs_");
         Message mQ = new Message().setDeviceUUID (null);
         Message mA = null;
         boolean sent = writeMessage (oos, mQ.setOpCode (opCodeQ).setData (dataQ));
-print(" wMr_");
+//print(" wMr_");
         if (sent)
             mA = readMessage(ois); //< блокирующая операция
 

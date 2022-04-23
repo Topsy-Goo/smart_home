@@ -14,6 +14,8 @@ import static ru.gb.smarthome.common.smart.enums.OperationCodes.*;
 /** Используется классами, реализующими ISmartDevice и использующими консольный ввод. */
 public interface IConsolReader extends ISmartDevice {
 
+    boolean isDebugMode ();
+
     Socket getSocket ();
 
     Abilities getAbilities ();
@@ -23,28 +25,36 @@ public interface IConsolReader extends ISmartDevice {
 /** Консольное управление Умным Устройством. (Для отладки.) */
     public static void runConsole (IConsolReader device)
     {
-        String helpPrompt    = " Введите команду /? для печати справочника по командам.",
-               notRecognized = "Команда не распознана [%s]. %s\n";
-        String  msg, param;
-        int i;
+        if (device == null || !device.isDebugMode())
+            return;
+
         Thread thread = Thread.currentThread();
+        int len;
+        String helpPrompt    = " Введите команду /? для печати справочника по командам.",
+               notRecognized = "Команда не распознана [%s]. %s\n",
+               msg, param1;
 
         println ("Запуск runConsoleReader()." + helpPrompt);
         try (Scanner scanner = new Scanner(System.in))
         {
-            if (device == null) throw new IllegalArgumentException();
-
             while (!thread.isInterrupted())
             if (scanner.hasNext() && (msg = scanner.nextLine()) != null)
             {
+                if (msg.isBlank())
+                    continue;
+
                 if (msg.equals("/?".trim())) {
                     showConsoleKeysHelp (device);
                     continue;
                 }
+
                 String[] parts = msg.split("\\s");
-                if ((i = parts.length) <= 0)
+                if ((len = parts.length) <= 0)
                     continue;
-                param = (i > 1) ? parts[1] : null;
+
+                param1 = (len > 1) ? parts[1] : null;
+                if (param1 != null && param1.isBlank())
+                    param1 = null;
 
                 OperationCodes opCode = OperationCodes.byCKey (parts[0]);
                 if (opCode == null)
@@ -60,22 +70,32 @@ public interface IConsolReader extends ISmartDevice {
                 case CMD_STATE:
                     println (device.getState().toString());
                     break;
+
                 //case CMD_TASK:
                 //    break;
-                //case CMD_BUSY:
-                //    break;
-                case CMD_ABILITIES: println (device.getAbilities().toString());
-                    break;
-                case CMD_ERROR:
-                    device.getState().setOpCode((param != null) ? CMD_ERROR : CMD_READY)
-                                     .setErrCode(param); //< отсутствие параметра сбрасывет ошибку (также см.case CMD_READY).
+
+                case CMD_BUSY:
+                    if (!device.getState().getOpCode().greaterThan(CMD_BUSY))
+                        device.getState().setOpCode(CMD_BUSY);  //< расчёт на то, что коды в интервале (BUSY; WAKEUP] являются командами, а не состояниями т.е. выполняются мгновенно.
                     println (device.getState().toString());
                     break;
+
+                case CMD_ABILITIES: println (device.getAbilities().toString());
+                    break;
+
+                case CMD_ERROR:
+                    device.getState().setOpCode(param1 != null ? CMD_ERROR : CMD_READY)
+                                     .setErrCode(param1); //< отсутствие параметра сбрасывет ошибку (также см.case CMD_READY).
+                    println (device.getState().toString());
+                    break;
+
                 case CMD_EXIT:
                     thread.interrupt();         //< это завершит поток консоли.
                     device.getSocket().close(); //< это закроет соединение клиента и завершит его поток.
                     break;
-                default: printf (notRecognized, msg, helpPrompt);
+
+                default:
+                    printf (notRecognized, msg, helpPrompt);
                 }
             }//while
         }

@@ -103,8 +103,6 @@
 			//...
 		}
 
-
-
 /*		if (!$localStorage.gbj11SmartHomeActivationCode)
 		{
 			$http.get(contextAuthoPath + '/activation')

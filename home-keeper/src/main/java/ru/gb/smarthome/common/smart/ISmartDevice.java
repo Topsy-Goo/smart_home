@@ -19,6 +19,7 @@ public interface ISmartDevice  extends ITaskProvider, IModesProvider, Runnable
 
     /** Запрос на отключение устройства, которое, возможно, занято какой-то операцией. */
     boolean isItSafeToTurnOff ();
+
     //boolean canSleep ();
     //boolean canBeMaster ();
     //boolean canBeSlave ();

@@ -88,7 +88,7 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
         finally {
             disconnect();
             Thread.yield(); //< возможно, это позволит вовремя вывести сообщение об ошибке.
-            if (DEBUG) printf ("\nПоток %s завершился. Код завершения: %s.\n", threadRun, code);
+            printf ("\nПоток %s завершился. Код завершения: %s.\n", threadRun, code);
         }
     }
 
@@ -100,8 +100,7 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
         socket = new Socket (address, port);
         //(Стримы нельзя здесь получать, — если они взбрыкнут, то метод не вернёт socket, и мы не
         // сможем его закрыть в try(…){}.)
-        if (DEBUG)
-            printf ("\nСоединение с сервером установлено (адрес:%s, порт:%d).\n", address, port);
+        printf ("\nСоединение с сервером установлено (адрес:%s, порт:%d).\n", address, port);
         return socket;
     }
 
@@ -180,12 +179,12 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
                         break;
 
                     case CMD_TASK:
-                    //запускаем задачу и составляем state для информирования вызывающего:
+                    //запускаем задачу, составляем state для информирования вызывающего и информируем :
                         state.setOpCode(CMD_TASK)    //< временный условный код для информирования.
                              .setCurrentTask (startTask (mR.getData()));
-
-                    //информируем и приводим state в порядок:
                         sendState();
+
+                    //приводим в порядок state:
                         if (taskFuture != null && !taskFuture.isDone()) //< если выполнение задачи займёт какое-то время, …
                             state.setOpCode(CMD_BUSY);                   //  …включим соотв.режим.
                         else {
@@ -299,7 +298,7 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
                                  .setData (abilities.copy()) //< см.комментарий в sendState().
                                  .setDeviceUUID (abilities.getUuid());
         boolean ok = writeMessage (oos, m);
-print("_wMa ");
+//print("_wMa ");
 //if (DEBUG && ok) printf ("\nОтправили %s\n", m);
         if (!ok)
             throw new OutOfServiceException (format ("\nНе удалось отправить сообщение : %s.\n", m));
@@ -322,7 +321,7 @@ print("_wMa ");
                                   .setData (state.safeCopy())
                                   .setDeviceUUID (abilities.getUuid());
         boolean ok = writeMessage (oos, mS);
-print("_wMs ");
+//print("_wMs ");
 //if (DEBUG && ok) printf ("\nОтправили %s\n", mS);
         if (!ok)
             throw new OutOfServiceException (format ("\nНе удалось отправить сообщение : %s.\n", mS));
@@ -336,7 +335,7 @@ print("_wMs ");
     {
         Message mS = new Message().setOpCode (opCode);
         boolean ok = writeMessage (oos, mS);
-print("_wMc ");
+//print("_wMc ");
 //if (DEBUG && ok) printf ("\nОтправили %s\n", mS);
         if (!ok)
             throw new OutOfServiceException (format ("\nНе удалось отправить код : %s.\n", opCode.name()));
@@ -385,6 +384,7 @@ state в УД, а потом должны сбрасываться (на что-
     @Override public Socket getSocket () { return socket; }
     @Override public DeviceState getState () { return state; }
     @Override public Abilities getAbilities () { return abilities; }
+    @Override public boolean isDebugMode () { return DEBUG; }
 
 //---------------------------------------------------------------------------
 

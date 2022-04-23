@@ -3,222 +3,154 @@
 	<p>&nbsp;</p>
 
 	{{home_dto.string}}
-
-<!--	<div>
-		<button>Кнопка</button>
-	</div>-->
+	<br>
+	<br><button ng-click="timerStop()">Таймер стоп</button>
+	<br>
 
 <br>
 	<div ng-repeat="type_group in home_dto.groups"><!-- HTML-контейнер для устройств одного типа -->
-		<p><h4 align="center">{{type_group.typeName}}</h4></p>
+		<h4 align="center">{{type_group.typeName}}</h4>
 		<div ng-repeat="device in type_group.devices" class="device_panel"><!-- ng-repeat работатет в <div>, но не работает в <table> -->
-			<table class="table table-striped margin_bottom_0">
-				<tr><td class="col-3">
-						{{device.friendlyName}}
-					</td>
-					<td class="col-2">
-						{{device.state.opCode}}
-					</td>
-					<td class="col-5">
-						{{getActiveString(device.state.active)}}
-						<br>
-						{{device.state.currentTask.name}}&nbsp;({{device.state.currentTask.tstate}})
-					</td>
-					<td class="col-2">
-						<!-- Кнопка Активировать/Деактивировать устройство. -->
-						<button class="btn btn-outline-primary btn-sm justify-end" title="Активировать/Деактивировать устройство"
-								ng-click="toggleDeviceActiveState(device)">
-							{{getButtonNameActivate(device.state.active)}}
-						</button>
-						<br>
-						<!-- Кнопка Показать/Скрыть панель устройства. -->
-						<button class="btn btn-outline-primary btn-sm justify-end" title="Показать/Скрыть панель устройства"
-								ng-click="togglePanelOpenedState(device.abilities.uuid)">
-							{{getButtonNameShowPanel(device.abilities.uuid)}}
-						</button><!--  -->
-					</td>
-				</tr>
-			</table>
-			<div class="almost_windows animate-if" ng-if="isPanelOpened(device.abilities.uuid)"><!--  -->
-<!--			<img src="img/Steampunk.jpg" alt="JPG">-->
-				<table class="table table-success table-striped margin_bottom_0">
-					<thead class="table-dark">
-						<tr>
-							<th>
-								(заголовок к рабочей области устройства)
-							</th>
-						</tr>
-					</thead>
-					<tbody>
-						<tr><td>
-								(рабочая область)
-							</td>
-						</tr>
-					</tbody>
-					<tfoot class="table-primary">
-						<tr>
-							<td>
-								(футер к рабочей области устройства)
-							</td>
-						</tr>
-					</tfoot>
+<!-- Часть панели, которая видна всегда — заголовок панели. -->
+			<div><!-- ng-init="deviceState=getState(device.abilities.uuid)"  ng-model="deviceCurrentState=getDeviceState(device.abilities.uuid)" -->
+				<table class="table table-striped margin_bottom_0">
+					<tr><td class="col-3">{{device.friendlyName}}</td>
+<!--						<td class="col-2">{{deviceState.opCode}}<br>
+										  {{deviceState.errCode}}</td>-->
+						<td class="col-2">{{device.state.opCode}}<br>
+										  {{device.state.errCode}}</td>
+<!--						<td class="col-5">{{getActiveString(deviceState.active)}}<br>
+										  {{deviceState.currentTask.name}} ({{deviceState.currentTask.tstate}})</td>-->
+						<td class="col-5">{{getActiveString(device.state.active)}}<br>
+										  {{device.state.currentTask.name}} ({{device.state.currentTask.tstate}})</td>
+						<td class="col-2">
+							<!-- Кнопка Активировать/Деактивировать устройство. -->
+							<button class="btn btn-outline-primary btn-sm justify-end"
+									title="Активировать/Деактивировать устройство"
+									ng-click="toggleDeviceActiveState(device.abilities.uuid)">
+<!--								{{getButtonNameActivate(deviceState.active)}}-->
+								{{getButtonNameActivate(device.state.active)}}
+							</button>
+							<br>
+							<!-- Кнопка Показать/Скрыть панель устройства. -->
+							<button class="btn btn-outline-primary btn-sm justify-end"
+									title="Показать/Скрыть панель устройства"
+									ng-click="togglePanelOpenedState(device.abilities.uuid)">
+								{{getButtonNameShowPanel(device.abilities.uuid)}}
+							</button><!--  -->
+						</td>
+					</tr>
 				</table>
-				<ul>
-					<li>device.abilities.deviceType : {{device.abilities.deviceType}}</li>
+			</div>
+<!-- Часть панели, которая может быть скрыта. -->
+			<div class="almost_windows" ng-show="isPanelOpened(device.abilities.uuid)"><!--  -->
+				<!-- <img src="img/Steampunk.jpg" alt="JPG">-->
+				<ul><li>device.abilities.deviceType : {{device.abilities.deviceType}}</li>
 					<li>device.abilities.vendorName : {{device.abilities.vendorName}}</li>
-					<li>device.abilities.uuid : 	  {{device.abilities.uuid}}</li><!--  ng-model="device_change.uuid" -->
+					<li>device.abilities.uuid : 	  {{device.abilities.uuid}}</li><!--  -->
 					<li>device.abilities.canSleep :   {{device.abilities.canSleep}}</li>
-					<li>device.abilities.tasks :
-						<ul ng-repeat="task in device.abilities.tasks">
-							<li>device.abilities.tasks.name : 		   {{task.name}}</li>
-							<li>device.abilities.tasks.tstate : 	   {{task.tstate}}</li>
-							<li>device.abilities.tasks.autonomic : 	   {{task.autonomic}}</li>
-							<li>device.abilities.tasks.interruptible : {{task.interruptible}}</li>
-							<li>device.abilities.tasks.duration : 	   {{task.duration}}</li>
-							<li>device.abilities.tasks.remained : 	   {{task.remained}}</li>
-							<li>device.abilities.tasks.elapsed : 	   {{task.elapsed}}</li>
-							<li>device.abilities.tasks.message : 	   {{task.message}}</li>
-						</ul>
-					</li><!-- <<<< Список задач (device.abilities.tasks) с описаниями. -->
-					<li>device.state.active :  {{device.state.active}}</li>
+					<li style="width: 100%;">
+<!-- Форма для выбора задачи из списка доступных задач. -->
+						<form class="align-middle col-12" ng-submit="launchTask(device.abilities.uuid,taskToLaunch)">
+							<div class="input-group-sm" style="margin-left: -15px;">
+								device.abilities.tasks&nbsp;:&nbsp;
+								<select	id="taskList"	name="taskList"
+										class="form-select-sm"
+                                		style="margin-left: 10px; padding: 2px; border-color: #aaaadd; border-radius: 3px; border-width: 2px;"
+										required="required"
+										ng-model="taskToLaunch"
+										title="Выберете задачу, которую хотите запустить.">
+									<option selected></option>
+									<option ng-repeat="tsk in device.abilities.tasks"
+											value="{{tsk.name}}">{{tsk.name}} ({{tsk.duration/60}} мин.)
+									</option>
+								</select>
+								<button id="taskSubmit"
+										class="btn-sm btn-outline-warning"
+										style="margin-left: 10px;"
+										type="submit"
+										title="Запустить выбраную задачу.">Запустить</button>
+								<button id="taskSchedule"
+										class="btn-sm btn-outline-default"
+										style="margin-left: 10px;"
+										ng-click="scheduleTask(device.abilities.uuid,taskToLaunch)"
+										title="Запланировать запуск выбраной задачи.">Запланировать</button>
+							</div>
+						</form>
+					</li>
+<!--				<li>device.state.active :  {{device.state.active}}</li>
 					<li>device.state.opCode :  {{device.state.opCode}}</li>
-					<li>device.state.errCode : {{device.state.errCode}}</li>
-					<li>device.state.currentTask : <!--{{device.state.currentTask}}-->
-						<ul>
-							<li>device.abilities.tasks.name : 			{{device.abilities.tasks.name}}</li>
-							<li>device.abilities.tasks.tstate : 		{{device.abilities.tasks.tstate}}</li>
-							<li>device.abilities.tasks.autonomic : 		{{device.abilities.tasks.autonomic}}</li>
-							<li>device.abilities.tasks.interruptible :	{{device.abilities.tasks.interruptible}}</li>
-							<li>device.abilities.tasks.duration : 		{{device.abilities.tasks.duration}}</li>
-							<li>device.abilities.tasks.remained : 		{{device.abilities.tasks.remained}}</li>
-							<li>device.abilities.tasks.elapsed : 		{{device.abilities.tasks.elapsed}}</li>
-							<li>device.abilities.tasks.message : 		{{device.abilities.tasks.message}}</li>
-						</ul>
-					</li><!-- Текущая задача. -->
+					<li>device.state.errCode : {{device.state.errCode}}</li>-->
+					<!-- Текущая задача. -->
+					<li>device.state.currentTask :<!--  <span ng-show="device.state.currentTask.remained <= 0">(нет текущих задач)</span> -->
+<!-- Описание состояния УУ. -->
+						<select class="form-select col-12" size="5"><!-- ng-show="device.state.currentTask.remained > 0"  -->
+							<!--<option selected></option>-->
+							<option value="{{device.state.currentTask.name}}"			>device.state.currentTask.name : 		  {{device.state.currentTask.name}}			</option>
+							<option value="{{device.state.currentTask.tstate}}"			>device.state.currentTask.tstate : 		  {{device.state.currentTask.tstate}}		</option>
+							<option value="{{device.state.currentTask.autonomic}}"		>device.state.currentTask.autonomic : 	  {{device.state.currentTask.autonomic}}		</option>
+							<option value="{{device.state.currentTask.interruptible}}"	>device.state.currentTask.interruptible : {{device.state.currentTask.interruptible}}	</option>
+							<option value="{{device.state.currentTask.duration}}"		>device.state.currentTask.duration : 	  {{device.state.currentTask.duration}}		</option>
+							<option value="{{device.state.currentTask.remained}}"		>device.state.currentTask.remained : 	  {{device.state.currentTask.remained}}		</option>
+							<option value="{{device.state.currentTask.elapsed}}"		>device.state.currentTask.elapsed : 	  {{device.state.currentTask.elapsed}}		</option>
+							<option value="{{device.state.currentTask.message}}"		>device.state.currentTask.message : 	  {{device.state.currentTask.message}}		</option>
+						</select><!--  size="5"  aria-label="size 3 select example" -->
+					</li>
+<!-- Форма для изменения device.friendlyName. -->
 					<li><form class="align-middle col-12" ng-submit="tryNewFriendlyName(device, newFriendlyName)">
 							<div class="input-group input-group-sm" style="margin-left: -15px;">
 								device.friendlyName&nbsp;:&nbsp;{{device.friendlyName}}&nbsp;
 								<input	id="friendlyNameInput"
-                                		class="form-control"
+                                		class="form-control form-control-sm"
                                 		style="margin-left: 10px;"
                                 		type="text"
-                                		value="{{device.friendlyName}}"
-										aria-describedby="inputGroup-sizing-sm"
 										ng-model="newFriendlyName"
 										required="required"
-										><!--       -->
+										><!--   input-group     -->
 								<button	id="friendlyNameSubmit"
-                                		class="btn btn-outline-warning btn-sm"
+                                		class="btn btn-sm btn-outline-warning"
                                 		style="margin-left: 10px;"
                                 		type="submit"
                                 		>Запомнить</button>
 							</div>
-						</form><!-- Форма для изменения device.friendlyName. -->
+						</form>
 					</li>
+<!--				<li><form>
+							<input	id="inp" type="text" required="required">
+							<button>Ok</button>
+						</form>
+					</li>-->
 					<!--<li>device.htmlPanelOpened&nbsp;:&nbsp;{{device.htmlPanelOpened}}</li>-->
 				</ul>
 			</div>
 		</div>
 	</div>
 	<br><br>
-<!--	<div>&lt;!&ndash; HTML-контейнер для одного устройства &ndash;&gt;&lt;!&ndash; камера видеонаблюдения &ndash;&gt;
-			<table class="table table-striped">
-				<tr><td class="col-3">
-						Камера видеонаблюдения
-					</td>
-					<td class="col-2">
-						(состояние)
-					</td>
-					<td class="col-5">
-						(краткие показания)
-					</td>
-					<td class="col-2">
-						<button class="btn btn-outline-primary btn-sm justify-end"
-								ng-model="checked2" ng-init="checked2=false" ng-click="checked2=!checked2">
-							Показать-Скрыть
-						</button>
-					</td>
-				</tr>
-			</table>
-			<div class="almost_windows" ng-if="checked2" class="animate-if">&lt;!&ndash; Источник: https://docs.angularjs.org/api/ng/directive/ngIf &ndash;&gt;
-&lt;!&ndash;				<img src="img/NTSC-PAL-SECAM global map.svg.png" alt="PNG">&ndash;&gt;
-				<table class="table table-success table-striped">
-					<thead class="table-dark">
-						<tr>
-							<th>
-								(заголовок к рабочей области устройства)
-							</th>
-						</tr>
-					</thead>
-					<tbody>
-						<tr>
-							<td>
-								(рабочая область)
-							</td>
-						</tr>
-					</tbody>
-					<tfoot class="table-primary">
-						<tr>
-							<td>
-								(футер к рабочей области устройства)
-							</td>
-						</tr>
-					</tfoot>
-				</table>
-			</div>
-	</div>
-	<br><br>
-	<div>&lt;!&ndash; HTML-контейнер для одного устройства &ndash;&gt;&lt;!&ndash;  &ndash;&gt;
-			<table class="table table-striped">
-				<tr><td class="col-3">
-						(Название устройства)
-					</td>
-					<td class="col-2">
-						(состояние)
-					</td>
-					<td class="col-5">
-						(краткие показания)
-					</td>
-					<td class="col-2">
-						<button class="btn btn-outline-primary btn-sm justify-end"
-								ng-model="checked3" ng-init="checked3=false" ng-click="checked3=!checked3">
-							Показать-Скрыть
-						</button>
-					</td>
-				</tr>
-			</table>
-			<div class="almost_windows" ng-if="checked3" class="animate-if">&lt;!&ndash; Источник: https://docs.angularjs.org/api/ng/directive/ngIf &ndash;&gt;
-&lt;!&ndash;				<img src="img/001.jpeg" alt="JPEG">&ndash;&gt;
-&lt;!&ndash;				<img src="img/ase3.gif" alt="GIF">&ndash;&gt;
-&lt;!&ndash;				<img src="img/BIG.BMP" alt="BMP">&ndash;&gt;
-				<table class="table table-success table-striped">
-					<thead class="table-dark">
-						<tr>
-							<th>
-								(заголовок к рабочей области устройства)
-							</th>
-						</tr>
-					</thead>
-					<tbody>
-						<tr>
-							<td>
-								(рабочая область)
-							</td>
-						</tr>
-					</tbody>
-					<tfoot class="table-primary">
-						<tr>
-							<td>
-								(футер к рабочей области устройства)
-							</td>
-						</tr>
-					</tfoot>
-				</table>
-			</div>
-	</div>
-	<br><br>-->
 
 <!--	<button class="btn btn-primary btn-sm" >Управление устройствами</button>-->
+
+<!--	<table class="table table-success table-striped margin_bottom_0">
+		<thead class="table-dark">
+			<tr>
+				<th>
+					(заголовок к рабочей области устройства)
+				</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr><td>
+					(рабочая область)
+				</td>
+			</tr>
+		</tbody>
+		<tfoot class="table-primary">
+			<tr>
+				<td>
+					(футер к рабочей области устройства)
+				</td>
+			</tr>
+		</tfoot>
+	</table>-->
 
 <!-- Конец экспериментальной части. -->
 </div>

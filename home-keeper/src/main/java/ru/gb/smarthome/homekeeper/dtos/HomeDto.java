@@ -6,7 +6,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static java.lang.String.format;
-import static ru.gb.smarthome.common.FactoryCommon.DEF_POLL_INTERVAL;
+import static ru.gb.smarthome.common.FactoryCommon.DEF_POLL_INTERVAL_FRONT;
 
 @Data
 public class HomeDto {
@@ -15,7 +15,7 @@ public class HomeDto {
     public  static final List<TypeGroupDto> nullGroups = Collections.EMPTY_LIST;
     private              List<TypeGroupDto> groups     = nullGroups;
     private              String string;
-    private              int pollInterval = DEF_POLL_INTERVAL;
+    private              int pollInterval = DEF_POLL_INTERVAL_FRONT;
     private              String uuid;
 
     public HomeDto (){}

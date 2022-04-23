@@ -54,7 +54,7 @@ ois — это экземпляр ObjectInputStream, предоставленн�
                 rwCounter.incrementAndGet();
                 Message mCIn = (o instanceof Message) ? (Message) o : null;
 //printf("\nПолучили: %s.\n", mCIn);
-print ("rM");
+//print ("rM");
                 return mCIn;
             }
             else throw new IOException ("bad ObjectInputStream passed in.");

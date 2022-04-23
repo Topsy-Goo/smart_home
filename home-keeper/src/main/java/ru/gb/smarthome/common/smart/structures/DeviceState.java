@@ -57,13 +57,12 @@ public class DeviceState implements Serializable
     public boolean isActive ()       { return active; }*/
 
     public DeviceState setOpCode (@NotNull OperationCodes val) { opCode = val;    return this; }
-    public DeviceState setErrCode (String val)
-    {
+    public DeviceState setActive      (boolean val) { active = val;     return this; }
+    public DeviceState setCurrentTask (Task val)    { currentTask = val;  return this; }
+    public DeviceState setErrCode (String val) {
         errCode = val == null ? "" : val.trim();
         return this;
     }
-    public DeviceState setActive      (boolean val) { active = val;     return this; }
-    public DeviceState setCurrentTask (Task val)    { currentTask = val;  return this; }
 
     @Override public String toString ()
     {
