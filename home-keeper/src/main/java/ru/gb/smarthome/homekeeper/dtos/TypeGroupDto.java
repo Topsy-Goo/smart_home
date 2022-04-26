@@ -14,10 +14,11 @@ import static ru.gb.smarthome.common.FactoryCommon.DEF_TYPEGROUP_DTO_DEVICETYPE;
 @Data
 public class TypeGroupDto {
 
+    private String          typeName    = DEF_TYPEGROUP_DTO_DEVICETYPE;
+    private List<DeviceDto> devices     = DeviceDto.nullDevices;
+
     @SuppressWarnings("unchecked")
-    public  static final List<DeviceDto> nullDevices = Collections.EMPTY_LIST;
-    private              String          typeName    = DEF_TYPEGROUP_DTO_DEVICETYPE;
-    private              List<DeviceDto> devices     = nullDevices;
+    public  static final List<TypeGroupDto> nullGroups = Collections.EMPTY_LIST;
 
     public TypeGroupDto () {}
 
@@ -31,21 +32,23 @@ public class TypeGroupDto {
  @return TypeGroupDto это — список списков. Он содержащий DeviceDto, рассортированные по типам.
 */
     public static @NotNull List<TypeGroupDto> getTypeGroupDtos (
-                                Map<DeviceTypes, LinkedList<ISmartHandler>> mapHandlers,
-                                Map<ISmartHandler, DeviceInfo> handlersInfo)
+                                Map<DeviceTypes, LinkedList<ISmartHandler>> readOnlyMapHandlers,
+                                Map<ISmartHandler, DeviceInfo> readOnlyHandlersInfo)
     {
         List<TypeGroupDto> list = new ArrayList<> (DeviceTypes.length);
         for (DeviceTypes type : DeviceTypes.values())
         {
-            LinkedList<ISmartHandler> typeHandlers = mapHandlers.get(type);
+            LinkedList<ISmartHandler> typeHandlers = readOnlyMapHandlers.get(type);
             if (typeHandlers.isEmpty())
                 continue;
-            List<DeviceDto> ldto = typeHandlers.stream().map(h->DeviceDto.smartDeviceToDto(handlersInfo.get(h))).collect (Collectors.toList());
-            TypeGroupDto dto = new TypeGroupDto (type.typeName, ldto);
+
+            List<DeviceDto> ldto = typeHandlers.stream()
+                                    .map(h->DeviceDto.smartDeviceToDto (readOnlyHandlersInfo.get(h)))
+                                    .collect (Collectors.toList());
+
+            TypeGroupDto dto = new TypeGroupDto (type.typeNameMultiple, ldto);
             list.add(dto);
         }
         return list;
     }
-
-    //public int getCount() { ; }
 }

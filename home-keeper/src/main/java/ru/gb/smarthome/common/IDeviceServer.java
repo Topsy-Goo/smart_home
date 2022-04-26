@@ -1,8 +1,6 @@
 package ru.gb.smarthome.common;
 
-import ru.gb.smarthome.common.smart.ISmartDevice;
 import ru.gb.smarthome.common.smart.ISmartHandler;
-import ru.gb.smarthome.common.smart.enums.OperationCodes;
 import ru.gb.smarthome.common.smart.structures.Message;
 
 public interface IDeviceServer extends Runnable {
@@ -16,7 +14,7 @@ public interface IDeviceServer extends Runnable {
  @param device УУ, вызвавшее этот метод.
  @param message сообщение, которое ранее было поставлено в очередь на обработку и которое УУ как-то обработало.
 */
-    void requestCompleted (ISmartHandler device, Message message, Object result);
+    //void requestCompleted (ISmartHandler device, Message message, Object result);
 
 /** Хэндлер сообщает, что не смог выполненить запрос. Этот метод хэндлер вызывает, если ему
  не удалось связаться с УУ, или данные, полученные от УУ, непригодны для использования в качестве
@@ -24,5 +22,5 @@ public interface IDeviceServer extends Runnable {
  @param device УУ, вызвавшее этот метод.
  @param message сообщение, которое ранее было поставлено в очередь на обработку и которое не удалось обработать.
 */
-    void requestError (ISmartHandler device, Message message);
+    //void requestError (ISmartHandler device, Message message);
 }

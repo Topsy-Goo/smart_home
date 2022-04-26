@@ -82,14 +82,14 @@ public class DeviceServerHome implements IDeviceServer
         homeService.smartDeviceIsOff (device);
     }
 
-    @Override public void requestCompleted (ISmartHandler device, Message message, Object result) {
+/*    @Override public void requestCompleted (ISmartHandler device, Message message, Object result) {
         //TODO: передаём это в HomeService.
         //homeService.requestPerformed (opCode, device);
-    }
+    }*/
 
-    @Override public void requestError (ISmartHandler device, Message message) {
+/*    @Override public void requestError (ISmartHandler device, Message message) {
         //TODO: передаём это в HomeService.
         //homeService.requestPerformed (opCode, device);
-    }
+    }*/
 
 }

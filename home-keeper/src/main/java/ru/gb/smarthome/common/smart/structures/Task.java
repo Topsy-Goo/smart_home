@@ -11,6 +11,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static java.lang.String.format;
 import static ru.gb.smarthome.common.FactoryCommon.*;
+import static ru.gb.smarthome.common.smart.enums.TaskStates.TS_IDLE;
 
 public class Task implements Serializable
 {
@@ -19,6 +20,9 @@ public class Task implements Serializable
 
     /** операция может продолжаться даже при отключении УУ от УД. */
     @Getter private boolean autonomic;
+
+    /** выполнение задачи можно прервать без ущерба для результата */
+    @Getter private boolean interruptible;
 
     /** продолжительность операции */
     @Getter private long duration;
@@ -31,70 +35,65 @@ public class Task implements Serializable
 
     @Getter private AtomicReference<TaskStates> tstate;
 
-    /** выполнение задачи можно прервать без ущерба для результата */
-    @Getter private boolean interruptible;
-
     @Getter private AtomicReference<String> message;
 
 
 /**
-@param opName <u>короткое</u> название операции.
-@param auto операция может продолжаться даже при отключении УУ от УД.
+@param taskName <u>короткое</u> название операции.
+@param isAutonomic операция может продолжаться даже при отключении УУ от УД.
 @param durationInSeconds продолжительность операции с секундах.
 */
-    public Task (String opName, boolean auto, long durationInSeconds, boolean interrupt)
+    public Task (String taskName, boolean isAutonomic, long durationInSeconds, boolean isInterruptible)
     {
         if (durationInSeconds < 0)
             throw new IllegalArgumentException();
 
-        name = (opName == null || opName.isBlank()) ? DEF_TASK_NAME : opName.trim();
-        autonomic = auto;
-        duration = durationInSeconds;
-        interruptible = interrupt;
-        remained = new AtomicLong (duration);
-        elapsed  = new AtomicLong (0);
-        tstate   = new AtomicReference<> (DEF_TASK_STATE);
-        message  = new AtomicReference<> (DEF_TASK_MESSAGE);
+        name = (taskName == null || taskName.isBlank()) ? DEF_TASK_NAME : taskName.trim();
+        autonomic     = isAutonomic;
+        duration      = durationInSeconds;
+        interruptible = isInterruptible;
+        remained      = new AtomicLong (duration);
+        elapsed       = new AtomicLong (0);
+        tstate        = new AtomicReference<> (DEF_TASK_STATE);
+        message       = new AtomicReference<> (DEF_TASK_MESSAGE);
     }
 
 /**
-@param opName <u>короткое</u> название операции.
-@param auto операция может продолжаться даже при отключении УУ от УД.
+@param taskName <u>короткое</u> название операции.
+@param isAutonomic операция может продолжаться даже при отключении УУ от УД.
 @param duration продолжительность операции.
 @param timeUnits единицы времени для параметра duration.
-@param interrupt выполнение задачи можно прервать без ущерба для результата
+@param isInterruptible выполнение задачи можно прервать без ущерба для результата
 */
-    public Task (String opName, boolean auto, long duration, @NotNull TimeUnit timeUnits, boolean interrupt)
+    public Task (String taskName, boolean isAutonomic, long duration, @NotNull TimeUnit timeUnits,
+                 boolean isInterruptible)
     {
-        this (opName, auto, timeUnits.toSeconds(duration), interrupt);
+        this (taskName, isAutonomic, timeUnits.toSeconds(duration), isInterruptible);
     }
 
     private Task () {} //< требование сериализации.
 
     /** Конструктор для экземпляров Task, назначение которых — только информирование. */
-    public Task (@NotNull String nam, TaskStates ts, String mes) {
-        name = nam;
-        tstate = new AtomicReference<>(ts);
-        message = new AtomicReference<>(mes != null ? mes : DEF_TASK_MESSAGE);
+    public Task (@NotNull String tname, TaskStates ts, String tmessage) {
+        name     = tname;
+        tstate   = new AtomicReference<>(ts);
+        message  = new AtomicReference<>(tmessage != null ? tmessage : DEF_TASK_MESSAGE);
+        remained = new AtomicLong(0L);
+        elapsed  = new AtomicLong(0L);
+        tstate   = new AtomicReference<>(DEF_TASK_STATE);
     }
 
 /** Делаем максимально полную копию экземпляра, чтобы владелец копии мог работать с ней, не боясь повредить
  данные в оригинале */
     public Task safeCopy () {
         Task t = new Task (name, autonomic, duration, interruptible);
-        long rem = remained.get();
+        long rem = remained.get(); //TODO: NullPointerException, если задачу прервать ошибкой, а птом «починить» командой /err.
         t.remained = new AtomicLong (rem);
         t.elapsed = new AtomicLong(duration - rem);
         t.tstate = new AtomicReference<>(tstate.get());
         t.message = new AtomicReference<>(message.get());
         return t;
     }
-
-/*    public Task setRemain (long val) {
-        if (val >= 0 && val <= duration)
-        remain = val;
-        return this;
-    }*/
 
     public Task setName (@NotNull String val) { name = val;   return this; }
     public Task setTstate (@NotNull TaskStates val) { tstate.set(val);   return this; }
@@ -111,10 +110,8 @@ public class Task implements Serializable
     @Override public String toString () {
         return format ("Task[%s: %d/%d сек, %s%s | %s | %s]",
                         name
-                       ,remained.get()
-                       ,duration
-                       ,autonomic ? "A" : "a"
-                       ,interruptible ? "I" : "i"
+                       ,elapsed.get()    ,duration
+                       ,autonomic ? "A" : "a"   ,interruptible ? "I" : "i"
                        ,tstate.get().name()
                        ,message.get()
                        );

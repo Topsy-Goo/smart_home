@@ -22,6 +22,9 @@ public interface IConsolReader extends ISmartDevice {
 
     DeviceState getState();
 
+/** Включение в УУ режима ошибки. */
+    void enterErrorState (String errCode);
+
 /** Консольное управление Умным Устройством. (Для отладки.) */
     public static void runConsole (IConsolReader device)
     {
@@ -84,8 +87,7 @@ public interface IConsolReader extends ISmartDevice {
                     break;
 
                 case CMD_ERROR:
-                    device.getState().setOpCode(param1 != null ? CMD_ERROR : CMD_READY)
-                                     .setErrCode(param1); //< отсутствие параметра сбрасывет ошибку (также см.case CMD_READY).
+                    device.enterErrorState(param1); //< отсутствие параметра сбрасывет ошибку (также см.case CMD_READY).
                     println (device.getState().toString());
                     break;
 

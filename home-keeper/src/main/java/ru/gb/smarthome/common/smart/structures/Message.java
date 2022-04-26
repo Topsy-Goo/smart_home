@@ -11,7 +11,7 @@ import java.util.UUID;
 import static java.lang.String.format;
 
 /** Структура для обмена данными между УД и подключеннми к нему УУ. */
-public class Message implements Serializable {
+public class Message implements Serializable, Comparable<Message> {
 
     @Getter private OperationCodes opCode;
     @Getter private UUID deviceUUID;
@@ -36,6 +36,10 @@ public class Message implements Serializable {
 
     @Override public String toString () {
         return format ("Message[%s | uuid:%s | data:%s]", opCode.name(), deviceUUID, data);
+    }
+
+    @Override public int compareTo (@NotNull Message other) {
+        return this.opCode.compareTo(other.opCode);
     }
 }
 //Если при сериализации А таже сериализуются подтипы несериализуемых классов, то такие подтипы нужно снабжать умолчальными конструкторами, доступными из А.

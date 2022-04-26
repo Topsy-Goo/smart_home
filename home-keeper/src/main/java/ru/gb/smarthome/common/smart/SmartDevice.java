@@ -3,38 +3,31 @@ package ru.gb.smarthome.common.smart;
 import ru.gb.smarthome.common.smart.structures.Abilities;
 import ru.gb.smarthome.common.smart.structures.DeviceState;
 import ru.gb.smarthome.common.smart.structures.Message;
+import ru.gb.smarthome.common.smart.structures.Task;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static ru.gb.smarthome.common.FactoryCommon.*;
 
 public abstract class SmartDevice implements ISmartDevice
 {
-    protected Socket socket;
-    protected ObjectInputStream  ois;
-    protected ObjectOutputStream oos;
-    protected Thread      threadRun;
-    protected Abilities   abilities;
-    protected DeviceState state;
-    protected AtomicLong  rwCounter = new AtomicLong(0); //счётчик количества чтений из ObjectInputStream и записей в ObjectOutputStream.
-
-
-    //protected SmartDevice () {}
+    protected       Socket socket;
+    protected       ObjectInputStream  ois;
+    protected       ObjectOutputStream oos;
+    protected       Thread      threadRun;
+    protected       Abilities   abilities;
+    protected       DeviceState state;
+    protected final AtomicLong  rwCounter = new AtomicLong(0); //счётчик количества чтений из ObjectInputStream и записей в ObjectOutputStream.
 
 //------------------------ Реализации интерфейсов ----------------------
-
-
-    //@Override public Abilities getAbilities () {  return abilities;  }
-    //@Override public DeviceState getState () { return state; }
-
-    //@Override public UUID uuid () { return (abilities != null) ? abilities.uuid() : null; }
-
     /** запрос на отключение устройства, которое, возможно, занято какой-то операцией. */
     @Override public boolean isItSafeToTurnOff () { return false; }
 
-    //@Override public void setPort (Port port) { }
     //@Override public void turnOff () {    }
     //@Override public void sleepSwitch (boolean sleep) {    }
     //@Override public void wakeUp () {    }
@@ -53,8 +46,8 @@ ois — это экземпляр ObjectInputStream, предоставленн�
                 Object o = ois.readObject();
                 rwCounter.incrementAndGet();
                 Message mCIn = (o instanceof Message) ? (Message) o : null;
-//printf("\nПолучили: %s.\n", mCIn);
-//print ("rM");
+                //printf("\nПолучили: %s.\n", mCIn);
+                //print ("rM");
                 return mCIn;
             }
             else throw new IOException ("bad ObjectInputStream passed in.");
@@ -71,10 +64,10 @@ oos — это экземпляр ObjectOutputStream, предоставленн
     {
         try {
             if (oos != null) {
-                oos.writeObject (mOut); //TODO: Если клиент упал, то мы продолжаем его опрашивать!!!
+                oos.writeObject (mOut);
                 rwCounter.decrementAndGet();
-//printf ("\nОтправили: %s\n", mOut);
-//print ("wM ");
+                //printf ("\nОтправили: %s\n", mOut);
+                //print ("wM ");
                 return true;
             }
             throw new IOException ("bad ObjectOutputStream passed in.");

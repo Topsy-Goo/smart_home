@@ -51,6 +51,7 @@
 
 		function walkThroughGroup(group) {
 			group.devices.forEach(extractAndStoreDeviceState);
+			group.devices.forEach (readDeviceNews);
 		}
 		function extractAndStoreDeviceState(device) {
 			let uu = device.abilities.uuid;
@@ -61,7 +62,29 @@
 			$scope.states.push({uuid: uu, state: device.state});
 			$scope.uuids.push(uu);
 		}
+		function readDeviceNews (device) {
+			$scope.showDeviceNews (device.state.lastNews);
+		}
 		console.log ('$scope.states = '+ $scope.states);
+	}
+
+	$scope.showDeviceNews = function (lastNews)
+	{
+		if (lastNews)
+		{
+			let newsPaper = '';
+			let length = lastNews.length;
+			if (length > 0) {
+				for (let i=0; i<length; i++)
+				{
+					newsPaper += lastNews[i];
+					if (i < length-1) {
+						newsPaper += '\r\r';
+					}
+				}
+				alert (newsPaper);
+			}
+		}
 	}
 
 //Запрашиваем из бэка структуры StateDto для каждого элемента массива $scope.states, и обновляем
@@ -101,6 +124,8 @@
 				element.state.opCode 	  = response.data.opCode;
 				element.state.errCode     = response.data.errCode;
 				element.state.currentTask = response.data.currentTask;
+				element.state.lastNews	  = response.data.lastNews;
+				$scope.showDeviceNews (response.data.lastNews);
 			},
 			function failureCallback (response) {
 				$scope.cleanUp();
@@ -197,15 +222,25 @@
 		}
 	}
 
-	$scope.launchTask = function (uuid, task)
+	$scope.launchTask = function (device, taskName)
 	{
-		console.log ('$scope.launchTask: uuid = '+ uuid);
-		console.log ('$scope.launchTask: task = '+ task);
-		//...
+console.log ('$scope.launchTask(): uuid = '+ device.abilities.uuid);
+console.log ('$scope.launchTask(): taskName = '+ taskName);
+		$http.get (contextMainPath + '/launch_task/'+ device.abilities.uuid +'/'+ taskName)
+		.then (
+		function successCallback (response) {
+			alert (response.data.s);
+		},
+		function failureCallback (response)	{
+			alert ('ОШИБКА: не удалось обработать запрос:\r'+ response.data);
+		});
+
 	}
 
-	$scope.scheduleTask = function (uuid, task)
+	$scope.scheduleTask = function (device, taskName)
 	{
+console.log ('$scope.scheduleTask(): uuid = '+ device.abilities.uuid);
+console.log ('$scope.scheduleTask(): taskName = '+ taskName);
 		//...
 	}
 

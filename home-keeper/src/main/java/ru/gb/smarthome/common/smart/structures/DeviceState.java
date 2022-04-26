@@ -28,9 +28,6 @@ public class DeviceState implements Serializable
     /** Текущая операция. Может быть null. */
     @Getter private Task currentTask;
 
-    //String[] modeDesciption = new String[2] {"", ""}; <<<<< что-то для этого, кажется, есть в наблосках.
-    // * statistics — это пары строк в формате Название_параметра: значение. */
-    //private Map<String, String> statistics = new HashMap<>();
 
 /**
 @param activ отображает текущее состояние активности УУ : ACTIVE или NOT_ACTIVE .
@@ -48,13 +45,10 @@ public class DeviceState implements Serializable
  данные в оригинале. */
     public DeviceState safeCopy () {
         Task t = currentTask;
-        if (t != null) t = currentTask.safeCopy();
+        if (t != null)
+            t = currentTask.safeCopy();
         return new DeviceState (active, opCode, errCode).setCurrentTask (t);
     }
-
-/*  public String getErrCode ()      { return errCode; }
-    public OperationCodes getCode () { return code; }
-    public boolean isActive ()       { return active; }*/
 
     public DeviceState setOpCode (@NotNull OperationCodes val) { opCode = val;    return this; }
     public DeviceState setActive      (boolean val) { active = val;     return this; }

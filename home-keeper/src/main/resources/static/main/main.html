@@ -11,7 +11,7 @@
 	<div ng-repeat="type_group in home_dto.groups"><!-- HTML-контейнер для устройств одного типа -->
 		<h4 align="center">{{type_group.typeName}}</h4>
 		<div ng-repeat="device in type_group.devices" class="device_panel"><!-- ng-repeat работатет в <div>, но не работает в <table> -->
-<!-- Часть панели, которая видна всегда — заголовок панели. -->
+<!-- заголовок панели — виден всегда. -->
 			<div><!-- ng-init="deviceState=getState(device.abilities.uuid)"  ng-model="deviceCurrentState=getDeviceState(device.abilities.uuid)" -->
 				<table class="table table-striped margin_bottom_0">
 					<tr><td class="col-3">{{device.friendlyName}}</td>
@@ -22,7 +22,20 @@
 <!--						<td class="col-5">{{getActiveString(deviceState.active)}}<br>
 										  {{deviceState.currentTask.name}} ({{deviceState.currentTask.tstate}})</td>-->
 						<td class="col-5">{{getActiveString(device.state.active)}}<br>
-										  {{device.state.currentTask.name}} ({{device.state.currentTask.tstate}})</td>
+
+
+
+<label for="file">{{device.state.currentTask.name}} ({{device.state.currentTask.tstate}}) :</label><br>
+<progress	id="file" max="100" style="width: 100%;"
+			value="{{device.state.currentTask.elapsed * 100 / device.state.currentTask.duration}}">
+	<!--{{device.state.currentTask.elapsed  / device.state.currentTask.duration}} сек.-->
+</progress>
+
+<!--							<div class="progress">-->
+<!--								<br><input type="range" class="form-range" min="0" max="5" id="customRange2" disabled>-->
+
+<!--							</div>-->
+						</td>
 						<td class="col-2">
 							<!-- Кнопка Активировать/Деактивировать устройство. -->
 							<button class="btn btn-outline-primary btn-sm justify-end"
@@ -51,7 +64,8 @@
 					<li>device.abilities.canSleep :   {{device.abilities.canSleep}}</li>
 					<li style="width: 100%;">
 <!-- Форма для выбора задачи из списка доступных задач. -->
-						<form class="align-middle col-12" ng-submit="launchTask(device.abilities.uuid,taskToLaunch)">
+						<form	class="align-middle col-12"
+								ng-submit="launchTask(device,taskToLaunch)">
 							<div class="input-group-sm" style="margin-left: -15px;">
 								device.abilities.tasks&nbsp;:&nbsp;
 								<select	id="taskList"	name="taskList"
@@ -73,7 +87,7 @@
 								<button id="taskSchedule"
 										class="btn-sm btn-outline-default"
 										style="margin-left: 10px;"
-										ng-click="scheduleTask(device.abilities.uuid,taskToLaunch)"
+										ng-click="scheduleTask(device,taskToLaunch)"
 										title="Запланировать запуск выбраной задачи.">Запланировать</button>
 							</div>
 						</form>
@@ -84,7 +98,7 @@
 					<!-- Текущая задача. -->
 					<li>device.state.currentTask :<!--  <span ng-show="device.state.currentTask.remained <= 0">(нет текущих задач)</span> -->
 <!-- Описание состояния УУ. -->
-						<select class="form-select col-12" size="5"><!-- ng-show="device.state.currentTask.remained > 0"  -->
+						<select class="form-select col-12" size="8"><!-- ng-show="device.state.currentTask.remained > 0"  -->
 							<!--<option selected></option>-->
 							<option value="{{device.state.currentTask.name}}"			>device.state.currentTask.name : 		  {{device.state.currentTask.name}}			</option>
 							<option value="{{device.state.currentTask.tstate}}"			>device.state.currentTask.tstate : 		  {{device.state.currentTask.tstate}}		</option>
@@ -97,7 +111,8 @@
 						</select><!--  size="5"  aria-label="size 3 select example" -->
 					</li>
 <!-- Форма для изменения device.friendlyName. -->
-					<li><form class="align-middle col-12" ng-submit="tryNewFriendlyName(device, newFriendlyName)">
+					<li><form	class="align-middle col-12" ng-submit="tryNewFriendlyName(device, newFriendlyName);">
+								<!--   -->
 							<div class="input-group input-group-sm" style="margin-left: -15px;">
 								device.friendlyName&nbsp;:&nbsp;{{device.friendlyName}}&nbsp;
 								<input	id="friendlyNameInput"
@@ -105,13 +120,12 @@
                                 		style="margin-left: 10px;"
                                 		type="text"
 										ng-model="newFriendlyName"
-										required="required"
-										><!--   input-group     -->
+										ng-trim="true"
+										required="required"><!--   input-group     -->
 								<button	id="friendlyNameSubmit"
                                 		class="btn btn-sm btn-outline-warning"
                                 		style="margin-left: 10px;"
-                                		type="submit"
-                                		>Запомнить</button>
+                                		type="submit">Запомнить</button>
 							</div>
 						</form>
 					</li>

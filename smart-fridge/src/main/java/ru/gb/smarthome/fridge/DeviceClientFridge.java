@@ -9,8 +9,6 @@ import ru.gb.smarthome.empty.DeviceClientEmpty;
 
 import javax.annotation.PostConstruct;
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.UUID;
 import java.util.concurrent.Executors;
 
 import static ru.gb.smarthome.common.FactoryCommon.*;
@@ -46,8 +44,5 @@ public class DeviceClientFridge extends DeviceClientEmpty
         //}
     }
 
-//TODO: кажется в остальном холодильник может пользоваться методами.
-    //@Override public void run () {
-    //}
-
+    //@Override public void run () { }
 }

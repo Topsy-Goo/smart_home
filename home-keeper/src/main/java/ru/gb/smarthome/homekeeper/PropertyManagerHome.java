@@ -22,7 +22,7 @@ public class PropertyManagerHome extends PropertyManager
 
     public void shutdown() {}
 
-    @Override public UUID getUuid () { return uuid; }
-    @Override public String getName () { return name; }
+    @Override public UUID getUuid ()                { return uuid; }
+    @Override public String getName ()              { return name; }
     @Override public Set<Task> getAvailableTasks () {  return tasks;  }
 }

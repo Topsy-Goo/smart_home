@@ -36,9 +36,15 @@ import static ru.gb.smarthome.empty.EmptyApp.DEBUG;
 public class DeviceClientEmpty extends SmartDevice implements IConsolReader
 {
     protected final PropertyManagerEmpty propMan;
+    //private         boolean safeTurnOff;
+
+    /** Спонсор потока текущей задачи. */
     protected       ExecutorService exeService;
-    protected       boolean safeTurnOff;
-    protected       Future<Boolean> taskFuture;
+    /** Фьючерс окончания текущей задачи. */
+    private         Future<Boolean> taskFuture;
+    /** состояние, к которому нужно вернуться по окончании текущей задачи. */
+    private         OperationCodes opCodeToReturnTo;
+
 
     @Autowired
     public DeviceClientEmpty (PropertyManagerEmpty pm) {
@@ -78,7 +84,7 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
             printf ("\nСоединение с сервером установлено (УУ:%s): "+
                     "\nsocket : %s (opend: %b)"+
                     "\nois : %s"+
-                    "\noos : %s\n", abilities.getVendorName(), socket, !socket.isClosed(), ois, oos);
+                    "\noos : %s\n", abilities.getVendorString(), socket, !socket.isClosed(), ois, oos);
             mainLoop();
         }
         catch (Exception e) {
@@ -178,24 +184,26 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
                         if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_WAKEUP");
                         break;
 
-                    case CMD_TASK:
-                    //запускаем задачу, составляем state для информирования вызывающего и информируем :
-                        state.setOpCode(CMD_TASK)    //< временный условный код для информирования.
-                             .setCurrentTask (startTask (mR.getData()));
-                        sendState();
-
-                    //приводим в порядок state:
-                        if (taskFuture != null && !taskFuture.isDone()) //< если выполнение задачи займёт какое-то время, …
-                            state.setOpCode(CMD_BUSY);                   //  …включим соотв.режим.
-                        else {
-                            state.setCurrentTask (null);  //< если задача не запустилась или уже закончилась, …
-                        }                                 //  …обновим state соотв.образом. (Код state не меняем, каким бы он не был!)
-                        if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_TASK");
-                        break;
-
                     case CMD_PAIR:  //< не поддерживается.
                         sendState();
                         if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_PAIR");
+                        break;
+
+                    case CMD_TASK:
+                    //пробуем запустить задачу:
+                        Task t = startTask (mR.getData());
+                        if (t == errTask) {
+                            sendData (CMD_TASK, t.safeCopy());
+                        }
+                        else {
+                            opCodeToReturnTo = state.getOpCode();
+                    //Если задача создана и запущена, то изменяем state и отвечаем хэндлеру только что созданной Task:
+                            state.setOpCode (CMD_TASK)  //< временный условный код для информирования.
+                                 .setCurrentTask (t);
+                            sendData (CMD_TASK, t);
+                            state.setOpCode (CMD_BUSY); //< теперь включим соотв. состояние до завершения задачи.
+                        }
+                        if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_TASK");
                         break;
 
                     case CMD_BUSY:  //< не поддерживается.
@@ -217,7 +225,9 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
                         if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_ABILITIES");
                         break;
 
-                    case CMD_NOT_CONNECTED:
+                    case CMD_NOT_CONNECTED: /* Это умолчальное состояние УУ, при котором соединение с
+                        хэндлером отсутствует. Получение команды CMD_NOT_CONNECTED невозможно, и её
+                        обработка здесь является заглушкой. */
                         sendCode (CMD_NOT_CONNECTED);
                         break;
 
@@ -305,7 +315,8 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
     }
 
 /** Отправлем в УД наш {@code state}.<p>
-При изменении этого метода следует помнить, что он используется как умолчальное, ни к чему не обязывающее действие для некоторых операций. */
+ При изменении этого метода следует помнить, что он используется как умолчальное, ни к чему
+ не обязывающее действие для некоторых операций. */
     private void sendState () throws OutOfServiceException
     {
     /*  Делаем копию state и отдаём её в УД. Отсылать оригинал state нельзя,
@@ -317,15 +328,25 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
         данные. Стоило начать перед отправкой создавать новый экземпляр, как данные,
         приходящие в УУ, стали актуальными.
     */
-        Message mS = new Message().setOpCode (CMD_STATE)
+        sendData (CMD_STATE, state.safeCopy());
+/*        Message mS = new Message().setOpCode (CMD_STATE)
                                   .setData (state.safeCopy())
+                                  .setDeviceUUID (abilities.getUuid());
+        boolean ok = writeMessage (oos, mS);
+        if (!ok)
+            throw new OutOfServiceException (format ("\nНе удалось отправить сообщение : %s.\n", mS));*/
+    }
+
+    private void sendData (OperationCodes opCode, Object data) throws OutOfServiceException
+    {
+        Message mS = new Message().setOpCode (opCode)
+                                  .setData (data)
                                   .setDeviceUUID (abilities.getUuid());
         boolean ok = writeMessage (oos, mS);
 //print("_wMs ");
 //if (DEBUG && ok) printf ("\nОтправили %s\n", mS);
         if (!ok)
-            throw new OutOfServiceException (format ("\nНе удалось отправить сообщение : %s.\n", mS));
-        clearTemporaryStates();
+            throw new OutOfServiceException (format ("\nНе удалось отправить сообщение: %s.\n", mS));
     }
 
 /** Отправляем в УД сообщение, которое содержит только указанный OperationCodes. Другая полезная
@@ -341,18 +362,6 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
             throw new OutOfServiceException (format ("\nНе удалось отправить код : %s.\n", opCode.name()));
     }
 
-/** Сбрасываем некоторые особые сотсояния на что-нибудь попроще.
-Эти особые состояния устанавливаются на период до ближайшей отправки
-state в УД, а потом должны сбрасываться (на что-то), т.к. не являются
-полноценными состояними. */
-    private void clearTemporaryStates ()
-    {
-        if (state.getOpCode().equals(CMD_TASK)) {
-            state.setOpCode(CMD_READY).setCurrentTask (null);
-        }
-        //else if (state.getCode().equals(CMD_PAIR)) {/*...*/}
-    }
-
 /** Проверяем состояние некоторых особых состояний.
 Сейчас метод реагирует на state.code == CMD_BUSY — проверяет, не завершилась ли задача. */
     private void checkSpecialStates () throws ExecutionException, InterruptedException
@@ -360,21 +369,28 @@ state в УД, а потом должны сбрасываться (на что-
         OperationCodes statecode = state.getOpCode();
         if ( ! statecode.greaterThan (CMD_BUSY))
         {
-        //Если мы здесь, то sate == BUSY, а Message.opCode > CMD_BUSY (если УД работает правильно)
+        //Если мы здесь, то sate.opCode <= BUSY.
 
-            //Если приоритет текущего состояния выше CMD_BUSY, то завершение задачи не
-            // обрабатываем, даже если задача уже давно завершена, — ждём, когда приоритет понизится
-            // хотя бы до CMD_BUSY. Это упрощение позволит передать в УД результат выполнение задачи,
-            // когда это никому не будет мешать.
-            //    В качестве побочного эффекта, это решение запрещает нам обрабатывать завершение
-            // задачи в аварийной ситуации, т.е. когда state.code == CMD_ERROR.
+        //Если приоритет текущего состояния выше CMD_BUSY, то завершение задачи не
+        // обрабатываем, даже если задача уже давно завершена, — ждём, когда приоритет понизится
+        // хотя бы до CMD_BUSY. Это упрощение позволит передать в УД результат выполнение задачи,
+        // когда это никому не будет мешать.
+        //    В качестве побочного эффекта, это решение запрещает нам обрабатывать завершение
+        // задачи в аварийной ситуации, т.е. когда state.code == CMD_ERROR.
 
-            if (taskFuture != null && taskFuture.isDone()) { // задача звершилась сама или была отменена (canceled)
-                boolean success = taskFuture.get();
+            if (taskFuture != null && taskFuture.isDone())  // задача звершилась сама или была отменена (canceled)
+            {
+//boolean success = taskFuture.get(); //TODO: бросается исключениями, если задача завершилсь ненормально.
                 //boolean success = !taskFuture.isCancelled() < если taskFuture имеет тип Future<?>.
                 taskFuture = null;
-                state.setOpCode(CMD_TASK); //< это уйдёт при первой же отаправке state. Подробности
-                    // выполнения задачи будут лежать в state.currentTask.
+                OperationCodes c = (opCodeToReturnTo == null) ? CMD_READY : opCodeToReturnTo;
+                opCodeToReturnTo = null;
+                state.setOpCode (c); //< это уйдёт при первой же отаправке state. Выполненная
+                                     //  задача останется в state.currentTask.
+println("");
+                //Task t = state.getCurrentTask();
+                //if (t != null)
+                //    t.setMessage (format ("Задача «%s» завершена.", t.getName()));
             }
         }
     }
@@ -385,8 +401,30 @@ state в УД, а потом должны сбрасываться (на что-
     @Override public DeviceState getState () { return state; }
     @Override public Abilities getAbilities () { return abilities; }
     @Override public boolean isDebugMode () { return DEBUG; }
+    @Override public void enterErrorState (String errCode)
+    {
+        boolean setError = errCode != null;
+        if (setError) {
+            state.setOpCode(CMD_ERROR).setErrCode(errCode);
+
+            if (taskFuture != null) //< пусть при ошибке задача прерывается назависимо от флага Task.interruptible
+                taskFuture.cancel(true);
+        }
+        else {
+            state.setOpCode(CMD_READY).setErrCode(null);
+/*            if (taskFuture != null) {
+                println("\n* "+ taskFuture);
+                println("\n* "+ opCodeToReturnTo);
+                println("\n* "+ state);
+            }*/
+        }
+
+    }
 
 //---------------------------------------------------------------------------
+
+/** Используется для ошибок. */
+    static final Task errTask = new Task (DEF_TASK_NAME, DEF_TASK_STATE, DEF_TASK_MESSAGE);
 
 /** Запуск указанной задачи. Запрос на запуск задачи будет проигнориован, если:<br>
 • state.code == CMD_ERROR (эта проверка нужна на случай, если УД ещё не знает об ошике в нашем УУ. Если бы он знал, то не прислал бы CMD_TASK);<br>
@@ -399,8 +437,8 @@ state в УД, а потом должны сбрасываться (на что-
     private @NotNull Task startTask (Object data)
     {
         String taskName = "?",
-               taskMessage = "";
-        TaskStates tstate = TS_REJECTED;
+               taskErrorMessage = DEF_TASK_MESSAGE;
+        TaskStates errorTState = TS_REJECTED;
 
         Task newTask = null;
         Task t = abilities.getTasks()
@@ -409,29 +447,33 @@ state в УД, а потом должны сбрасываться (на что-
                           .findFirst()
                           .orElse (null);
         if (t == null) {
-            tstate = TS_NOT_SUPPORTED;      taskMessage = "Задача не найдена.";
+            errorTState = TS_NOT_SUPPORTED;      taskErrorMessage = "Задача не найдена.";
         }
         else {
             Task currentTask = state.getCurrentTask();
             taskName = t.getName();
 
             if (state.getOpCode().equals (CMD_ERROR)) {
-                taskMessage = "УУ неисправно.";
-            }
-            else if (currentTask != null && !currentTask.getTstate().get().canReplace) {
-                taskMessage = format ("Выполняется задача «%s»", currentTask.getName());
+        //если УУ находится в состоянии ошибки, то:
+                taskErrorMessage = "УУ неисправно.";
             }
             else if (taskFuture != null) {
-                taskMessage = "Ошибка запуска.";
+        //если почему-либо предыдущая задача не завершена (такого не может быть):
+                taskErrorMessage = "Ошибка запуска.";
+            }
+            else if (currentTask != null && !currentTask.getTstate().get().canReplace) {
+        //если текущая задача находится в состоянии, НЕ допускающем запуск параллельной задачи:
+                taskErrorMessage = format("Задача не завершена: «%s».", currentTask.getName());
             }
             else {
-                tstate = TS_LAUNCHING;
-                TaskExecutor te = new TaskExecutor(newTask = t.safeCopy());
+        //если задачу можно создать и запустить:
+                TaskExecutor te = new TaskExecutor (newTask = t.safeCopy());
                 taskFuture = exeService.submit (te);
             }
         }
-        if (newTask == null) //< не удалось запустиь задачу (составляем Task, пригодный только для информирования)
-            newTask = new Task (taskName, tstate, taskMessage);
+        if (newTask == null)
+            //Если не удалось запустиь задачу, то заполняем errTask, специально используеый для информирования об ошибках.
+            newTask = errTask.setName (taskName).setTstate (errorTState).setMessage (taskErrorMessage);
         return newTask;
     }
 
@@ -453,34 +495,41 @@ state, state.currentTask, но можно изменять их Atomic-поля.
     static class TaskExecutor implements Callable<Boolean>
     {
         private final Task theTask;
+        private final String taskName;
 
-        public TaskExecutor (@NotNull Task t) {
-            theTask = t.setTstate (TS_LAUNCHING);
+        public TaskExecutor (@NotNull Task newTask) {
+            theTask = newTask.setTstate (TS_LAUNCHING)
+                             .setMessage (format ("Запускается задача «%s».", newTask.getName()));
+            taskName = newTask.getName();
         }
 
         @Override public Boolean call ()
         {
-            theTask.setTstate(TS_RUNNING);
-            boolean result = false;
+            if (DEBUG) printf("\nНачинает работать задача: %s.", theTask);
+
+            theTask.setTstate(TS_RUNNING).setMessage(format ("Выполняется задача «%s»", taskName));
+            boolean ok = false;
             try {
                 AtomicLong reminder = theTask.getRemained();
                 while (reminder.get() > 0L) {
                     TimeUnit.SECONDS.sleep(1);
                     theTask.tick (1);
                 }
-                result = reminder.get() == 0L;
-            }
-            catch (InterruptedException e) {
-                result = theTask.isInterruptible();
-                theTask.setMessage ("Задача прервана");
+                ok = reminder.get() == 0L;
+                theTask.setTstate (ok ? TS_DONE : TS_ERROR);
             }
             catch (Exception e) {
-                theTask.setMessage (e.getMessage());
+                ok = (e instanceof InterruptedException  &&  theTask.isInterruptible());
+                if (ok)
+                    theTask.setTstate (TS_INTERRUPTED).setMessage (format("Задача «%s» прервана.", taskName));
+                else
+                    theTask.setTstate (TS_ERROR).setMessage (format("Задача «%s» прервана из-за ошибки «%s».",
+                                                             taskName, e.getMessage()));
             }
             finally {
-                theTask.setTstate (result ? TS_DONE : TS_ERROR);
+                if (DEBUG) printf("\nЗавершилась задача: %s.", theTask);
             }
-            return result;
+            return ok;
         }
     }//class TaskExecutor
 

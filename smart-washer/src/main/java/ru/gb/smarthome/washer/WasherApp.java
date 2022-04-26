@@ -14,8 +14,8 @@ public class WasherApp {
     @SuppressWarnings("all")
     private static      ApplicationContext context;
 
-    public static void main (String[] args) {
-
+    public static void main (String[] args)
+    {
         if (init ()) {
             context = new AnnotationConfigApplicationContext (WasherApp.class);
             ISmartDevice device = context.getBean (DeviceClientWasher.class);

@@ -16,7 +16,7 @@ final public class FactoryCommon
     public static final int SMART_PORTS_COUNT  = 3;
     public static final int BUSY_SLEEP_SECONDS      = 5;
     public static final int DEF_POLL_INTERVAL_BACK  = 5;
-    public static final int DEF_POLL_INTERVAL_FRONT = 5;
+    public static final int DEF_POLL_INTERVAL_FRONT = 3;
     public static final int    SERVER_PORT_DEFAULT    = 7777;
     public static final String SERVER_ADDRESS_DEFAULT = "localhost";
     public static final boolean ON        = true, OFF           = false;
@@ -26,18 +26,29 @@ final public class FactoryCommon
     public static final boolean AUTONOMIC = true, NOT_AUTONOMIC = false;
     public static final boolean OK        = true, ERROR         = false;
     public static final boolean INTERRUPTIBLE = true, NON_INTERRUPTIBLE = false;
+    public static final boolean FAIR = true;
 
     public static final TaskStates DEF_TASK_STATE   = TS_IDLE;
     public static final DeviceTypes DEF_DEVICETYPES = SMART;
-    public static final String DEF_TASK_NAME    = "(нет текущих задач)";
-    public static final String DEF_TASK_MESSAGE = "";
+    public static final String DEF_TASK_NAME    = "";//(нет текущих задач)
+    public static final String DEF_TASK_MESSAGE = "—";
     public static final String DEF_STATE_DTO_ERRCODE = "";
     public static final String DEF_STATE_DTO_OPCODE  = "";
+    //public static final String[] DEF_STATE_DTO_NEWS    = {};
     public static final String DEF_DEV_DTO_FRIENDLYNAME = "";
-    public static final String DEF_ABILITIES_DTO_DEVICETYPE = "";
-    public static final String DEF_ABILITIES_DTO_VENDORNAME = "";
-    public static final String DEF_ABILITIES_DTO_UUID       = "";
+    public static final String DEF_ABILITIES_DTO_DEVICETYPE   = "";
+    public static final String DEF_ABILITIES_DTO_VENDORSTRING = "";
+    public static final String DEF_ABILITIES_DTO_UUID         = "";
     public static final String DEF_TYPEGROUP_DTO_DEVICETYPE = "";
+    public static final String FORMAT_LAUNCHING_TASK_ = "Задача «%s» запускается.";
+    public static final String FORMAT_CANNOT_LAUNCH_TASK_ = "Не удалось запустить задачу: «%s».";
+    public static final String FORMAT_ACTIVATE_DEVICE_FIRST_ = "Устройство «%s» неактивно.\rАктивизируйте его и повторите попытку.";
+
+    public static final String
+        promptActivationDuringErrorState = "Активация неисправного устройства невозможна.",
+        promptDeactivationIsNotSafeNow = "Деактивировать устройство сейчас нельзя!",
+        promptCannotChangeActivityState = "Не удалось изменить активность устроуства.";
+
     //public static final String  = "";
     //public static final   = ;
     //public static final   = ;
@@ -60,8 +71,10 @@ final public class FactoryCommon
     }
 
     public static void println (String s) { System.out.println(s); }
+    public static void lnprint (String s) { System.out.println("\n"+ s); }
     public static void print (String s) { System.out.print(s); }
     public static void printf (String s, Object... args) { System.out.printf(s, args); }
+    public static void lnprintf (String s, Object... args) { System.out.println(); System.out.printf(s, args); }
 
     public static void errprintln (String s) { System.err.println(s); }
     public static void errprint (String s) { System.err.print(s); }

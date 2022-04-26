@@ -2,7 +2,6 @@ package ru.gb.smarthome.common.smart.structures;
 
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
-import ru.gb.smarthome.common.smart.ISmartDevice;
 import ru.gb.smarthome.common.smart.enums.DeviceTypes;
 
 import java.io.Serializable;
@@ -24,9 +23,9 @@ import static ru.gb.smarthome.common.FactoryCommon.*;
  */
 public final class Abilities implements Serializable
 {
-    @Getter private DeviceTypes type = DEF_DEVICETYPES;
+    @Getter private DeviceTypes type         = DEF_DEVICETYPES;
     /** Описание УУ, которым его снабдил производитель. */
-    @Getter private String      vendorName = DEF_ABILITIES_DTO_VENDORNAME;
+    @Getter private String      vendorString = DEF_ABILITIES_DTO_VENDORSTRING;
     /** Уникальный ID УУ. По идее, он должен быть зашит в УУ, например, в ПЗУ. */
     @Getter private UUID        uuid;
     /** Флаг, указывающий, может ли УУ быть переключено в режим энергосбережения. */
@@ -57,7 +56,7 @@ public final class Abilities implements Serializable
                       List<Task> tt, boolean sleepable)
     {
         if (dt != null) type = dt;
-        vendorName = vname;
+        vendorString = vname;
         uuid = uu;
         if (tt == null)
             tt = new ArrayList<>(0);
@@ -65,10 +64,10 @@ public final class Abilities implements Serializable
         canSleep = sleepable;
     }
 
-    public Abilities copy () { return new Abilities (type, vendorName, uuid, tasks, canSleep); }
+    public Abilities copy () { return new Abilities (type, vendorString, uuid, tasks, canSleep); }
 
     public String toString () { //< для отладки
         return format("Abilities:\n\t\tТип : %s\n\t\tНазвание : %s\n\t\tUUID : %s\n\t\tЭнергосбережение : %s\n\t\tЗадачи : %s.",
-                      type.typeName, vendorName, uuid, canSleep ? "есть" : "нет", tasks);
+                      type.typeName, vendorString, uuid, canSleep ? "есть" : "нет", tasks);
     }
 }

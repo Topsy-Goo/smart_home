@@ -7,16 +7,20 @@ import ru.gb.smarthome.common.exceptions.RWCounterException;
 import ru.gb.smarthome.common.smart.ISmartHandler;
 import ru.gb.smarthome.common.smart.SmartDevice;
 import ru.gb.smarthome.common.smart.enums.OperationCodes;
+import ru.gb.smarthome.common.smart.enums.TaskStates;
 import ru.gb.smarthome.common.smart.structures.*;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.*;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 
 import static java.lang.String.format;
 import static ru.gb.smarthome.common.smart.enums.OperationCodes.*;
+import static ru.gb.smarthome.common.smart.enums.TaskStates.*;
 import static ru.gb.smarthome.homekeeper.HomeKeeperApp.DEBUG;
 import static ru.gb.smarthome.common.FactoryCommon.*;
 
@@ -28,13 +32,12 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
     private       String  deviceFriendlyName;
     private       SynchronousQueue<Boolean> helloSynQue;
     private       IDeviceServer server;
-    private       int pollInterval = DEF_POLL_INTERVAL_BACK;
+    private       int        pollInterval  = DEF_POLL_INTERVAL_BACK;
+    //private final List<Task> rejectedTasks = new LinkedList<>();
+    private final List<String> rejectedCommands = new LinkedList<>();
 
     private final PriorityBlockingQueue<Message> priorityQueue =
-        new PriorityBlockingQueue<> (10
-                //,(a,b)->(b.getOpCode().ordinal() - a.getOpCode().ordinal())
-                //,Comparator.comparingInt(m->m.getOpCode().ordinal())
-                );
+        new PriorityBlockingQueue<> (10); //< Естественный способ сравнения приоритетов нам подходит.
 
     //* предоставляет блокирующие операции извлечения
     //* не допускает пустых элементов
@@ -118,7 +121,8 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
  •  ();<br>
  •  ();<br>
 */
-    private void mainLoop () throws Exception {
+    private void mainLoop () throws Exception
+    {
         Message mQ = new Message();
         Message mA;
         int len;
@@ -136,7 +140,7 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
             errprint ("\nEmpty.mainLoop(): не удалось получить первые CMD_ABILITIES и CMD_STATE.");
             return;
         }
-        deviceFriendlyName = abilities.getVendorName(); //< потом юзер сможет это изменить.
+        deviceFriendlyName = abilities.getVendorString(); //< потом юзер сможет это изменить.
 
         if (DEBUG)
             check(rwCounter.get() == 0L, RuntimeException.class, "блок mainLoop(){перед getIntoDetectedList()}");
@@ -281,6 +285,8 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
         }//while try
     }
 
+    static final String rejectedTaskMessageFormat = "Устройство %s\rне выполнило задачу %s — %s\r(%s).";
+
 /** делаем запрос и ждём в ответ DeviceState с подробностями. Присланый DeviceState не
 применяем к нашему state, — нам его прислали только для информирования.
 @param peekedMsg сообщение, извлечённое из очереди запросов хэндлера. */
@@ -289,16 +295,32 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
         Object obj;
         Task task;
         DeviceState dState;
+        String error = null;
+        OperationCodes opCode;
 
-        if ((mR = requestClient (peekedMsg)) != null
-        &&  (obj = mR.getData()) instanceof DeviceState
-        &&  (dState = (DeviceState) obj).getOpCode().equals (CMD_TASK)
-        &&  (task = dState.getCurrentTask()) != null)
+        if ((mR = requestClient (peekedMsg)) != null)
+        if ((opCode = mR.getOpCode()).equals (CMD_TASK))
         {
-            server.requestCompleted (this, peekedMsg, task);
-            updateState(); //< получаем CMD_BUSY и применяем его к нашему state.
+            if ((obj = mR.getData()) instanceof Task) {
+                task = (Task) obj;
+                TaskStates tstate = task.getTstate().get();
+
+                if (tstate.launchingError)
+                    error = (format (rejectedTaskMessageFormat,
+                                      deviceFriendlyName,
+                                      task.getName(),
+                                      task.getTstate().get().tsName, //< стандартное (очень) краткое описание результата
+                                      task.getMessage().get()));   //< строка-сообщение о результате выполнения.
+            }
+            else {
+                error = format ("Устройство %s\rнекорректно обработало запрос.", deviceFriendlyName);
+            }
         }
-        else {server.requestError (this, peekedMsg);}
+        else if (opCode.equals(CMD_PAIR)) {
+        }
+
+        if (error != null && !error.isBlank())
+            rejectedCommands.add (error);
     }
 
 //---------------------- Реализации методов --------------------------------
@@ -315,33 +337,63 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
         }
     }
 
-    @Override public void offerRequest (Message mRequest) {
-        if (mRequest != null)
-            priorityQueue.offer(mRequest);
+    @Override public boolean offerRequest (Message mR)
+    {
+        boolean ok = false;
+        if (mR != null  &&  state.getOpCode().lesserThan(CMD_ERROR)) {
+            ok = priorityQueue.offer(mR);
+        }
+        else {
+            //...
+            //mR.getOpCode().greaterThan(CMD_ERROR);
+        }
+        return ok;
     }
 
     @Override public boolean activate (final boolean value)
     {
-        if (state.isActive() == value)
+        String error = promptCannotChangeActivityState;
+        boolean currentActive = state.isActive();
+        if (currentActive == value)
             return true;
 
-        updateState();
-        if (state.getOpCode().equals (CMD_ERROR)) {
-            state.setActive (NOT_ACTIVE);
-        }
-        else if (state.isActive() == ACTIVE) {
-//TODO: нужно проверять, можно ли УУ деактивировать прямо сейчас.
-            Task t = state.getCurrentTask();
-            if (t == null  ||  t.isAutonomic())
+        synchronized (stateMonitor)
+        {
+            updateState();
+            if (state.getOpCode().equals (CMD_ERROR))
+            {
+                error = promptActivationDuringErrorState;
                 state.setActive (NOT_ACTIVE);
+            }
+            else if (currentActive == ACTIVE)
+            {
+                if (isItSafeToDeactivate())
+                    state.setActive (NOT_ACTIVE);
+                else
+                    error = promptDeactivationIsNotSafeNow;
+            }
+            else state.setActive (ACTIVE);
+
+//printf("\n%s : %s\n", deviceFriendlyName, state);
+            boolean ok = state.isActive() == value;
+            if (!ok)
+                rejectedCommands.add (error);
+            return ok;
         }
-        else {
-            /*state = requestClientState (NOT_ACTIVE)*/
-            state.setActive (ACTIVE);
+    }
+
+/** Выясняем, безопасно ли деактивировать наше подопечное УУ. */
+    private boolean isItSafeToDeactivate ()
+    {
+        boolean running = false;
+        Task t = state.getCurrentTask();
+        boolean ok = t == null;
+
+        if (!ok) {
+            TaskStates tstate = t.getTstate().get();
+            ok = t.isAutonomic() || !tstate.runningState;
         }
-//printf ("\n%s->%s\n", value ? "acitivate":"deactivate", state.isActive() ? "acitive":"notActive");
-printf("\n%s : %s\n", deviceFriendlyName, state);
-        return state.isActive() == value;
+        return ok;
     }
 
     @Override public void setPollInterval (int seconds) {
@@ -364,6 +416,27 @@ printf("\n%s : %s\n", deviceFriendlyName, state);
                        ,state
                        );
     } //< для отладки
+
+    @Override public List<String> getLastNews ()
+    {
+        synchronized (stateMonitor) {
+            List<String> list = new ArrayList<>(rejectedCommands);
+            rejectedCommands.clear();
+            return list;
+        }
+    }
+
+/*    @Override public Collection<Task> getRejectedTasks (){
+        synchronized (stateMonitor) {
+            return Collections.unmodifiableCollection (rejectedTasks);
+        }
+    }
+
+    @Override public void clearRejectedTasksList () {
+        synchronized (stateMonitor) {
+            rejectedTasks.clear();
+        }
+    }*/
 
 //---------------------- Другие полезные методы: ---------------------------
 

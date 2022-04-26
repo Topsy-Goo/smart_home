@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Washer only" type="CompoundRunConfigurationType">
+    <toRun name="HomeKeeperApp" type="Application" />
+	  <toRun name="WasherApp" type="Application" />
+	  <method v="2" />
+  </configuration>
+</component>

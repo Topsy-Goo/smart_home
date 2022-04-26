@@ -3,6 +3,10 @@ package ru.gb.smarthome.common.smart;
 import ru.gb.smarthome.common.smart.structures.Abilities;
 import ru.gb.smarthome.common.smart.structures.DeviceState;
 import ru.gb.smarthome.common.smart.structures.Message;
+import ru.gb.smarthome.common.smart.structures.Task;
+
+import java.util.Collection;
+import java.util.List;
 
 public interface ISmartHandler extends ISmartDevice
 {
@@ -31,5 +35,14 @@ public interface ISmartHandler extends ISmartDevice
     /** Поместить запрос в очередь запросов. Чем выще приоритет запрошеной операции, тем
     быстрее запрос будет обработан. Коды операций в {@link ru.gb.smarthome.common.smart.enums.OperationCodes
     OperationCodes} выстроены в порядке увеличения приортета. */
-    void offerRequest (Message mRequest);
+    boolean offerRequest (Message mRequest);
+
+/** Отдать список невыполненых задач. */
+    //Collection<Task> getRejectedTasks ();
+
+/** Очистить список неывполеных задач. */
+    //void clearRejectedTasksList ();
+
+/** Собираем собщения, которые хэндлер успел собрать для юзера. */
+    List<String> getLastNews ();
 }
