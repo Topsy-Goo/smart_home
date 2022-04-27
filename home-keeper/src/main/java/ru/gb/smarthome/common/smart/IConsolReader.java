@@ -1,41 +1,53 @@
 package ru.gb.smarthome.common.smart;
 
+import ru.gb.smarthome.common.exceptions.OutOfServiceException;
 import ru.gb.smarthome.common.smart.enums.OperationCodes;
-import ru.gb.smarthome.common.smart.structures.Abilities;
 import ru.gb.smarthome.common.smart.structures.DeviceState;
 
-import java.net.Socket;
 import java.util.Scanner;
 
 import static ru.gb.smarthome.common.FactoryCommon.printf;
 import static ru.gb.smarthome.common.FactoryCommon.println;
-import static ru.gb.smarthome.common.smart.enums.OperationCodes.*;
 
 /** Используется классами, реализующими ISmartDevice и использующими консольный ввод. */
 public interface IConsolReader extends ISmartDevice {
 
-    boolean isDebugMode ();
+/** Выясняем, находится ли приложение в режиме отладки (IConsolReader запускается только в режиме отладки). */
+    boolean crIsDebugMode ();
 
-    Socket getSocket ();
+/** Выход из приложения. */
+    void crExit () throws OutOfServiceException;
 
-    Abilities getAbilities ();
+/** Вывести на экран структуру Abilities устройства. */
+    void crAbilities ();
 
-    DeviceState getState();
+/** Вывести на экран структуру DeviceState устройства. */
+    void crState ();
 
-/** Включение в УУ режима ошибки. */
-    void enterErrorState (String errCode);
+/** Включение/выключение в УУ режима CMD_ERROR. */
+    void crEnterErrorState (String errCode);
+
+/** Включение в УУ режима CMD_BUSY. */
+    void crEnterBusyState ();
+
+/** Включение в УУ режима CMD_READY. */
+    void crEnterReadyState ();
+
+/** Выполнить указанную задачу. */
+    void crExecuteTask (String taskname) throws InterruptedException;
+
 
 /** Консольное управление Умным Устройством. (Для отладки.) */
     public static void runConsole (IConsolReader device)
     {
-        if (device == null || !device.isDebugMode())
+        if (device == null || !device.crIsDebugMode())
             return;
 
         Thread thread = Thread.currentThread();
         int len;
-        String helpPrompt    = " Введите команду /? для печати справочника по командам.",
+        String helpPrompt    = " Введите команду /? для печати списка команд.",
                notRecognized = "Команда не распознана [%s]. %s\n",
-               msg, param1;
+               msg, param1, param2;
 
         println ("Запуск runConsoleReader()." + helpPrompt);
         try (Scanner scanner = new Scanner(System.in))
@@ -55,11 +67,10 @@ public interface IConsolReader extends ISmartDevice {
                 if ((len = parts.length) <= 0)
                     continue;
 
-                param1 = (len > 1) ? parts[1] : null;
-                if (param1 != null && param1.isBlank())
-                    param1 = null;
-
                 OperationCodes opCode = OperationCodes.byCKey (parts[0]);
+                param1 = (len > 1  &&  parts[1] != null  &&  !parts[1].isBlank()) ? parts[1] : null;
+                param2 = (len > 2  &&  parts[2] != null  &&  !parts[2].isBlank()) ? parts[2] : null;
+
                 if (opCode == null)
                     printf (notRecognized, msg, helpPrompt);
                 else
@@ -67,35 +78,22 @@ public interface IConsolReader extends ISmartDevice {
                 {
                 //case CMD_SLEEP:
                 //    break;
-                case CMD_READY:
-                    device.getState().setOpCode(CMD_READY)
-                                     .setErrCode(null); //< пока считаем, что переход в этот режим сбрасывае ошибку (также см.case CMD_ERROR).
-                case CMD_STATE:
-                    println (device.getState().toString());
+                case CMD_READY: device.crEnterReadyState();
                     break;
-
-                //case CMD_TASK:
-                //    break;
-
-                case CMD_BUSY:
-                    if (!device.getState().getOpCode().greaterThan(CMD_BUSY))
-                        device.getState().setOpCode(CMD_BUSY);  //< расчёт на то, что коды в интервале (BUSY; WAKEUP] являются командами, а не состояниями т.е. выполняются мгновенно.
-                    println (device.getState().toString());
+                case CMD_STATE: device.crState();
                     break;
-
-                case CMD_ABILITIES: println (device.getAbilities().toString());
+                case CMD_TASK:  device.crExecuteTask (param1);
                     break;
-
-                case CMD_ERROR:
-                    device.enterErrorState(param1); //< отсутствие параметра сбрасывет ошибку (также см.case CMD_READY).
-                    println (device.getState().toString());
+                case CMD_BUSY:  device.crEnterBusyState();
                     break;
-
+                case CMD_ABILITIES: device.crAbilities();
+                    break;
+                case CMD_ERROR: device.crEnterErrorState(param1); //< отсутствие параметра сбрасывет ошибку (также см.case CMD_READY).
+                    break;
                 case CMD_EXIT:
-                    thread.interrupt();         //< это завершит поток консоли.
-                    device.getSocket().close(); //< это закроет соединение клиента и завершит его поток.
+                    thread.interrupt();  //< это завершит поток консоли.
+                    device.crExit();
                     break;
-
                 default:
                     printf (notRecognized, msg, helpPrompt);
                 }
@@ -109,7 +107,7 @@ public interface IConsolReader extends ISmartDevice {
 выводим в консоль краткую справку. */
     private static void showConsoleKeysHelp (IConsolReader device)
     {
-        StringBuilder sb = new StringBuilder("Справка ещё не реализована. Вывожу все известные команды:\n");
+        StringBuilder sb = new StringBuilder("Список команд:\n");
         OperationCodes[] codes = OperationCodes.values();
         int counter = 0;
         String usage;
@@ -125,7 +123,8 @@ public interface IConsolReader extends ISmartDevice {
             sb.append("\n");
             counter++;
         }
-        sb.append("Пож. примите к сведению, что некоторые из перечисленых команд могут не поддерживаться устройством.\n");
+        sb.append("Некоторые из перечисленых команд могут не поддерживаться устройством.\n")
+          .append("Команды предназначены для отладки; для них могут не выполняться необходимые проверки.\n");
 
         if (counter > 0)
             println (sb.toString());

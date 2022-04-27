@@ -108,7 +108,7 @@ public class Task implements Serializable
     }
 
     @Override public String toString () {
-        return format ("Task[%s: %d/%d сек, %s%s | %s | %s]",
+        return format ("[%s: %d/%d сек, %s%s | %s | %s]",
                         name
                        ,elapsed.get()    ,duration
                        ,autonomic ? "A" : "a"   ,interruptible ? "I" : "i"

@@ -71,9 +71,7 @@ public class HomeService {
     //@SuppressWarnings("all")
     public void smartDeviceIsOff (ISmartHandler device)
     {
-        //wLock.lock();
-        if (device != null)
-        /*try*/ {
+        if (device != null) {
             Abilities abilities = device.getAbilities();
             UUID uuid = abilities.getUuid();
 
@@ -87,11 +85,14 @@ public class HomeService {
 
             handlersInfo.remove(device);
 
-            printf ("\nУдалено УУ: %s.\n", device);
+            printf ("\nУдалено УУ: %s (%s, %s, %s).\n",
+                    device.getDeviceFriendlyName(),
+                    abilities.getType(),
+                    abilities.getVendorString(),
+                    uuid);
             if (DEBUG)
                 printf("\nHomeService: оставшиеся устройства: \n%s\n", handlers);
         }
-        //finally { wLock.unlock(); }
     }
 
 /** Отдаём контроллеру список обнаруженых УУ. */

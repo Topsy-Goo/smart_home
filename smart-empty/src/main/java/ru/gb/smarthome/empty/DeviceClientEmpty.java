@@ -36,7 +36,8 @@ import static ru.gb.smarthome.empty.EmptyApp.DEBUG;
 public class DeviceClientEmpty extends SmartDevice implements IConsolReader
 {
     protected final PropertyManagerEmpty propMan;
-    //private         boolean safeTurnOff;
+    private   final Object consoleMonitor = new Object(); //< для синхронизации параллельного доступа к state и …
+    // boolean safeTurnOff;
 
     /** Спонсор потока текущей задачи. */
     protected       ExecutorService exeService;
@@ -132,136 +133,138 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
         {   while (!threadRun.isInterrupted())
             try
             {   //блок readMessage
-                if ((mR = readMessage (ois)) == null) { //< блокирующая операция
-                    if (DEBUG)
-                        throw new RuntimeException ("Неправильный тип считанного объекта.");
-                    sendState(); //< (Метод умеет обрабатывать m == null.)
-
-                    check (rwCounter.get() == 0L, RWCounterException.class, "блок readMessage");
-                    continue;
-                }
-
-                final OperationCodes opCode = mR.getOpCode();
-
-            //Если код текущего состояния УУ имеет более высокий приоритет по отношению к коду запроса,
-            // то не обрабатываем запрос, а лишь посылаем в ответ state, который покажет вызывающему
-            // положение дел:
-                //блок state greaterThan opCode
-                if (state.getOpCode().greaterThan (opCode)) {     //     opCode < state
-                    sendState();
-                    errprintf("\n\n%s.mainLoop(): несвоевременный запрос из УД: state:%s, Msg:%s\n\n",
-                              getClass().getSimpleName(), state.getOpCode().name(), opCode.name());
-
-                    check (rwCounter.get() == 0L, RWCounterException.class, "блок state greaterThan opCode");
-                    continue;
-                }
-
-                checkSpecialStates();                           //     state < opCode
-
-            //(Запросы в switch для удобства выстроены в порядке увеличения их приоритета, хотя приоритет
-            // здесь не обрабатывается.)
-            //На необрабатываемые запросы игнорируем — обрабатываем их как запрос CMD_STATE.
-
-                switch (opCode)
+                mR = readMessage (ois);
+                synchronized (consoleMonitor)
                 {
-                    case CMD_READY:
-                        if (CMD_READY.greaterThan (state.getOpCode()))
+                    if (mR == null) { //< блокирующая операция
+                        if (DEBUG)
+                            throw new RuntimeException ("Неправильный тип считанного объекта.");
+                        sendState(); //< (Метод умеет обрабатывать m == null.)
+
+                        if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок readMessage");
+                        continue;
+                    }
+
+                    final OperationCodes opCode = mR.getOpCode();
+
+                //Если код текущего состояния УУ имеет более высокий приоритет по отношению к коду запроса,
+                // то не обрабатываем запрос, а лишь посылаем в ответ state, который покажет вызывающему
+                // положение дел:
+                    //блок state greaterThan opCode
+                    if (state.getOpCode().greaterThan (opCode)) {     //     opCode < state
+                        sendState();
+                        if (DEBUG) errprintf("\n\n%s.mainLoop(): несвоевременный запрос из УД: state:%s, Msg:%s\n\n",
+                                             getClass().getSimpleName(), state.getOpCode().name(), opCode.name());
+
+                        if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок state greaterThan opCode");
+                        continue;
+                    }
+
+                    checkSpecialStates();                           //     state < opCode
+
+                //(Запросы в switch для удобства выстроены в порядке увеличения их приоритета, хотя приоритет
+                // здесь не обрабатывается.)
+                //На необрабатываемые запросы игнорируем — обрабатываем их как запрос CMD_STATE.
+
+                    switch (opCode)
+                    {
+                        case CMD_READY:
+                            if (CMD_READY.greaterThan (state.getOpCode()))
+                                state.setOpCode(CMD_READY);
+                            sendState();
+                            if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_READY");
+                            break;
+
+                        case CMD_SLEEP:
+                            if (canSleepNow())
+                                state.setOpCode(CMD_SLEEP);
+                            sendState();
+                            if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_SLEEP");
+                            break;
+
+                        case CMD_WAKEUP:
                             state.setOpCode(CMD_READY);
-                        sendState();
-                        if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_READY");
-                        break;
+                            sendState();
+                            if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_WAKEUP");
+                            break;
 
-                    case CMD_SLEEP:
-                        if (canSleepNow())
-                            state.setOpCode(CMD_SLEEP);
-                        sendState();
-                        if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_SLEEP");
-                        break;
+                        case CMD_PAIR:  //< не поддерживается.
+                            sendState();
+                            if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_PAIR");
+                            break;
 
-                    case CMD_WAKEUP:
-                        state.setOpCode(CMD_READY);
-                        sendState();
-                        if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_WAKEUP");
-                        break;
+                        case CMD_TASK:
+                        //пробуем запустить задачу:
+                            Task t = startTask (mR.getData());
+                            if (t == errTask) {
+                                sendData (CMD_TASK, t.safeCopy());
+                            }
+                            else {
+                        //Если задача создана и запущена, то изменяем state и отвечаем хэндлеру только что созданной Task:
+                                state.setOpCode (CMD_TASK)  //< временный условный код для информирования.
+                                     .setCurrentTask (t);
+                                sendData (CMD_TASK, t);
+                                state.setOpCode (CMD_BUSY); //< теперь включим соотв. состояние до завершения задачи.
+                            }
+                            if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_TASK");
+                            break;
 
-                    case CMD_PAIR:  //< не поддерживается.
-                        sendState();
-                        if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_PAIR");
-                        break;
+                        case CMD_BUSY:  //< не поддерживается.
+                            sendState();
+                            if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_BUSY");
+                            break;
 
-                    case CMD_TASK:
-                    //пробуем запустить задачу:
-                        Task t = startTask (mR.getData());
-                        if (t == errTask) {
-                            sendData (CMD_TASK, t.safeCopy());
-                        }
-                        else {
-                            opCodeToReturnTo = state.getOpCode();
-                    //Если задача создана и запущена, то изменяем state и отвечаем хэндлеру только что созданной Task:
-                            state.setOpCode (CMD_TASK)  //< временный условный код для информирования.
-                                 .setCurrentTask (t);
-                            sendData (CMD_TASK, t);
-                            state.setOpCode (CMD_BUSY); //< теперь включим соотв. состояние до завершения задачи.
-                        }
-                        if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_TASK");
-                        break;
+                        case CMD_ERROR: //< не может придти извне (не требуется чтение), и устанавливается по усмотрению самого УУ.
+                            if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_ERROR");
+                            break;
 
-                    case CMD_BUSY:  //< не поддерживается.
-                        sendState();
-                        if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_BUSY");
-                        break;
+                        case CMD_STATE:     //< приходит очень часто. Первый запрос является частью инициализации хэндлера
+                            sendState();    //  нашего УУ (после него хэндлер добавляется в список обнаруженых УУ).
+                            if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_STATE");
+                            break;
 
-                    case CMD_ERROR: //< не может придти извне (не требуется чтение), и устанавливается по усмотрению самого УУ.
-                        if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_ERROR");
-                        break;
+                        case CMD_ABILITIES:   //< обычно приходит 1 — раз сразу после подключения. Первый запрос
+                            sendAbilities();  //  является частью инициализации хэндлера нашего УУ.
+                            if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_ABILITIES");
+                            break;
 
-                    case CMD_STATE:     //< приходит очень часто. Первый запрос является частью инициализации хэндлера
-                        sendState();    //  нашего УУ (после него хэндлер добавляется в список обнаруженых УУ).
-                        if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_STATE");
-                        break;
+                        case CMD_NOT_CONNECTED: /* Это умолчальное состояние УУ, при котором соединение с
+                            хэндлером отсутствует. Получение команды CMD_NOT_CONNECTED невозможно, и её
+                            обработка здесь является заглушкой. */
+                            sendCode (CMD_NOT_CONNECTED);
+                            break;
 
-                    case CMD_ABILITIES:   //< обычно приходит 1 — раз сразу после подключения. Первый запрос
-                        sendAbilities();  //  является частью инициализации хэндлера нашего УУ.
-                        if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_ABILITIES");
-                        break;
+                        case CMD_CONNECTED:
+                            println ("\nПодключен."); //< приходит из УД при подключении, когда соединение можно считать
+                            // состоявшимся. В этот момент хэндлер нашего УУ ещё не полностью инициализирован
+                            // (см. case CMD_ABILITIES и case CMD_STATE).
+                            state.setOpCode(CMD_READY);
+                            sendCode (CMD_READY);
+                            //rwCounter.decrementAndGet(); //< поскольку мы не должны отвечать на это сообщение.
+                            if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_CONNECTED");
+                            break;
 
-                    case CMD_NOT_CONNECTED: /* Это умолчальное состояние УУ, при котором соединение с
-                        хэндлером отсутствует. Получение команды CMD_NOT_CONNECTED невозможно, и её
-                        обработка здесь является заглушкой. */
-                        sendCode (CMD_NOT_CONNECTED);
-                        break;
+                        case CMD_NOPORTS:   //< приходит из УД при подкючении, когда все порты оказались заняты.
+                            state.setOpCode(CMD_NOT_CONNECTED);
+                            rwCounter.decrementAndGet(); //< поскольку мы не должны отвечать на это сообщение.
+                            if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_NOPORTS");
+                            throw new OutOfServiceException("!!! Отказано в подключении, — нет свободных портов. !!!");
+                            //break;
 
-                    case CMD_CONNECTED:
-                        println ("\nПодключен."); //< приходит из УД при подключении, когда соединение можно считать
-                        // состоявшимся. В этот момент хэндлер нашего УУ ещё не полностью инициализирован
-                        // (см. case CMD_ABILITIES и case CMD_STATE).
-                        state.setOpCode(CMD_READY);
-                        sendCode (CMD_READY);
-                        //rwCounter.decrementAndGet(); //< поскольку мы не должны отвечать на это сообщение.
-                        if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_CONNECTED");
-                        break;
+                        case CMD_EXIT:   //< вызывается только из консоли; здесь обработчик присутствует на всякий случай.
+                            crExit();
+                            //if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_EXIT");
+                            break;
 
-                    case CMD_NOPORTS:   //< приходит из УД при подкючении, когда все порты оказались заняты.
-                        state.setOpCode(CMD_NOT_CONNECTED);
-                        rwCounter.decrementAndGet(); //< поскольку мы не должны отвечать на это сообщение.
-                        if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_NOPORTS");
-                        throw new OutOfServiceException("!!! Отказано в подключении, — нет свободных портов. !!!");
-                        //break;
-
-                    case CMD_EXIT:      //< вызывается только из консоли.
-                        //threadRun.interrupt();
-                        state.setOpCode(CMD_EXIT);
-                        if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_EXIT");
-                        break;
-
-                    default: {
-                            if (DEBUG)
-                                 throw new UnsupportedOperationException ("Неизвестный код операции: "+ opCode.name());
-                            else sendState();
-                        }
-                        if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок default");
-                }
-                check (rwCounter.get() == 0L, RWCounterException.class, "блок switch"); //< общая проверка остаётся в чистовой версии.
+                        default: {
+                                if (DEBUG)
+                                     throw new UnsupportedOperationException ("Неизвестный код операции: "+ opCode.name());
+                                else sendState();
+                            }
+                            if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок default");
+                    }
+                    check (rwCounter.get() == 0L, RWCounterException.class, "блок switch"); //< общая проверка остаётся в чистовой версии.
+                }//synchronized (consoleMonitor)
             }
             catch (RWCounterException rwe) {
                 if (DEBUG) {
@@ -274,6 +277,7 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
             }//while try
         }
         catch (OutOfServiceException e) {  println ("\n" + e.getMessage());  }
+        //catch (InterruptedException e) { throw new InterruptedException (e.getMessage()); }
         catch (Exception e)    {  e.printStackTrace();  }
         finally {
             cleanup();
@@ -364,7 +368,7 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
 
 /** Проверяем состояние некоторых особых состояний.
 Сейчас метод реагирует на state.code == CMD_BUSY — проверяет, не завершилась ли задача. */
-    private void checkSpecialStates () throws ExecutionException, InterruptedException
+    private void checkSpecialStates ()
     {
         OperationCodes statecode = state.getOpCode();
         if ( ! statecode.greaterThan (CMD_BUSY))
@@ -397,28 +401,107 @@ println("");
 
 //------------ Методы, используемые в IConsoleReader.runConsole -------------
 
-    @Override public Socket getSocket () { return socket; }
-    @Override public DeviceState getState () { return state; }
-    @Override public Abilities getAbilities () { return abilities; }
-    @Override public boolean isDebugMode () { return DEBUG; }
-    @Override public void enterErrorState (String errCode)
+    @Override public void crState () {
+        synchronized (consoleMonitor) {
+            lnprintln (state.toString());
+        }
+    }   //+
+    @Override public void crAbilities () {
+        synchronized (consoleMonitor) {
+            lnprintln (abilities.toString());
+        }
+    }   //+
+    @Override public void crExit () throws OutOfServiceException {
+        synchronized (consoleMonitor) {
+            state.setOpCode(CMD_EXIT);
+            //throw new OutOfServiceException ("Выход из приложения по команде /exit.");
+            //crGetSocket().close(); < это не нужно, — сокет закроется в run().
+        }
+        threadRun.interrupt();
+    } //+
+    @Override public boolean crIsDebugMode ()    { return DEBUG; }  //+
+    @Override public void crEnterErrorState (String errCode)  //+
     {
         boolean setError = errCode != null;
-        if (setError) {
-            state.setOpCode(CMD_ERROR).setErrCode(errCode);
-
-            if (taskFuture != null) //< пусть при ошибке задача прерывается назависимо от флага Task.interruptible
-                taskFuture.cancel(true);
+        synchronized (consoleMonitor) {
+            if (setError) {
+                state.setOpCode(CMD_ERROR).setErrCode(errCode);
+                if (taskFuture != null) //< пусть при ошибке задача прерывается назависимо от флага Task.interruptible
+                    taskFuture.cancel(true);
+            }
+            else state.setOpCode(CMD_READY).setErrCode(null);
+            lnprintln (state.toString());
         }
-        else {
-            state.setOpCode(CMD_READY).setErrCode(null);
-/*            if (taskFuture != null) {
-                println("\n* "+ taskFuture);
-                println("\n* "+ opCodeToReturnTo);
-                println("\n* "+ state);
-            }*/
+    }
+    @Override public void crEnterBusyState () {
+        synchronized (consoleMonitor) {
+            if (state.getOpCode().lesserThan (CMD_BUSY))
+                state.setOpCode (CMD_BUSY);  //< расчёт на то, что коды в интервале (BUSY; WAKEUP] являются
+                // командами, а не состояниями, т.е. выполняются почти мгновенно, а устанавливаются только
+                // в потоке кдиента (из конслои их застать нельзя).
+            else
+                println("Невозможно установить CMD_BUSY.");
+            lnprintln (state.toString());
         }
+    }   //+
+    @Override public void crEnterReadyState () {
+        synchronized (consoleMonitor) {
+            state.setOpCode(CMD_READY)
+                 .setErrCode(null); //< считаем, что переход в этот режим сбрасывае ошибку.
+            lnprintln (state.toString());
+        }
+    }   //+
 
+    @Override public void crExecuteTask (String taskname) throws InterruptedException
+    {
+        boolean justResetCurrentTaskToIdleState = taskname == null || taskname.isBlank();
+        synchronized (consoleMonitor) {
+            if (justResetCurrentTaskToIdleState)
+            {
+                if (state.getOpCode().greaterThan (CMD_BUSY))
+                    println("Невозможно остановить задачу сейчас."); //< объяснение предоставить print(state), вызванный ниже.
+                else {
+                    Task tcurrent = state.getCurrentTask();
+                    if (tcurrent != null) {
+                        if (taskFuture != null) {
+                            if (!taskFuture.isDone()) {
+                                taskFuture.cancel(true);
+                                while (!taskFuture.isDone());
+                            }
+                            taskFuture = null;
+                            TimeUnit.MILLISECONDS.sleep(500); //< даём параллельному потоку возможность
+                            // обработать завершение задачи, чтобы его результаты попали в state до вызова
+                            // print (state), выполняемого ниже. (Вызова yield() оказалось недостаточно.)
+                        }
+                        else {
+                            tcurrent.setTstate(TS_IDLE).setMessage("Задача остановлена из косоли."); //elapsed и remained пока не трогаем.
+                        }
+                    }
+                    else println("Нет текущей задачи.");
+
+                    if (opCodeToReturnTo != null) {
+                        state.setOpCode(opCodeToReturnTo);
+                        opCodeToReturnTo = null;
+                    }
+                    else state.setOpCode(CMD_READY);
+                }
+            }
+            else if (!state.getOpCode().lesserThan (CMD_BUSY))//< расчёт на то, что коды в интервале (BUSY; WAKEUP]
+                // являются командами, а не состояниями, т.е. выполняются почти мгновенно, а устанавливаются только
+                // в потоке кдиента (из конслои их застать нельзя).
+                println("Невозможно запустить задачу сейчас.");
+            else {
+                //Повторяем поведение обработчика команды CMD_TASK, но без информирования хэндлера.
+                Task t = startTask (taskname);
+                if (t == errTask) {
+                    println("Не удалось запустить задачу: "+ errTask);
+                }
+                else {
+                    state.setOpCode (CMD_BUSY).setCurrentTask(t);
+                }
+            }
+            lnprintln (state.toString());
+        }//synchronized
     }
 
 //---------------------------------------------------------------------------
@@ -439,13 +522,9 @@ println("");
         String taskName = "?",
                taskErrorMessage = DEF_TASK_MESSAGE;
         TaskStates errorTState = TS_REJECTED;
-
         Task newTask = null;
-        Task t = abilities.getTasks()
-                          .stream()
-                          .filter ((tsk)->(tsk.equals (data)))
-                          .findFirst()
-                          .orElse (null);
+
+        Task t = findTask (data);
         if (t == null) {
             errorTState = TS_NOT_SUPPORTED;      taskErrorMessage = "Задача не найдена.";
         }
@@ -469,12 +548,23 @@ println("");
         //если задачу можно создать и запустить:
                 TaskExecutor te = new TaskExecutor (newTask = t.safeCopy());
                 taskFuture = exeService.submit (te);
+                opCodeToReturnTo = state.getOpCode();
             }
         }
         if (newTask == null)
             //Если не удалось запустиь задачу, то заполняем errTask, специально используеый для информирования об ошибках.
             newTask = errTask.setName (taskName).setTstate (errorTState).setMessage (taskErrorMessage);
         return newTask;
+    }
+
+/** Поиск задачи в Abilities.tasks по указаному параметру data.
+ @param data может быть типов Task или String. Во втором случае он расценивается как Task.name.  */
+    private Task findTask (Object data)
+    {
+        if (abilities == null)
+            return null;
+        return abilities.getTasks().stream().filter ((tsk)->(tsk.equals (data)))
+                                   .findFirst().orElse (null);
     }
 
 /** Этот класс изображает запущенную на исполнение задачу. Всё, что он делает, — это
@@ -507,7 +597,9 @@ state, state.currentTask, но можно изменять их Atomic-поля.
         {
             if (DEBUG) printf("\nНачинает работать задача: %s.", theTask);
 
-            theTask.setTstate(TS_RUNNING).setMessage(format ("Выполняется задача «%s»", taskName));
+            theTask.setTstate(TS_RUNNING)
+                   .setMessage (format ("Выполняется задача «%s»", taskName));
+
             boolean ok = false;
             try {
                 AtomicLong reminder = theTask.getRemained();
@@ -516,15 +608,18 @@ state, state.currentTask, но можно изменять их Atomic-поля.
                     theTask.tick (1);
                 }
                 ok = reminder.get() == 0L;
-                theTask.setTstate (ok ? TS_DONE : TS_ERROR);
+                theTask.setTstate (ok ? TS_DONE : TS_ERROR)
+                       .setMessage ("Задача завершена.");
             }
             catch (Exception e) {
                 ok = (e instanceof InterruptedException  &&  theTask.isInterruptible());
                 if (ok)
-                    theTask.setTstate (TS_INTERRUPTED).setMessage (format("Задача «%s» прервана.", taskName));
+                    theTask.setTstate (TS_INTERRUPTED)
+                           .setMessage (format("Задача «%s» прервана.", taskName));
                 else
-                    theTask.setTstate (TS_ERROR).setMessage (format("Задача «%s» прервана из-за ошибки «%s».",
-                                                             taskName, e.getMessage()));
+                    theTask.setTstate (TS_ERROR)
+                           .setMessage (format("Задача «%s» прервана из-за ошибки «%s».",
+                                               taskName, e.getMessage()));
             }
             finally {
                 if (DEBUG) printf("\nЗавершилась задача: %s.", theTask);

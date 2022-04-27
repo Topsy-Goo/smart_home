@@ -72,6 +72,7 @@ final public class FactoryCommon
 
     public static void println (String s) { System.out.println(s); }
     public static void lnprint (String s) { System.out.println("\n"+ s); }
+    public static void lnprintln (String s) { System.out.println("\n"+ s+ "\n"); }
     public static void print (String s) { System.out.print(s); }
     public static void printf (String s, Object... args) { System.out.printf(s, args); }
     public static void lnprintf (String s, Object... args) { System.out.println(); System.out.printf(s, args); }

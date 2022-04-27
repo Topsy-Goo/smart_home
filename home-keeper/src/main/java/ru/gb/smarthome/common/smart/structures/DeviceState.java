@@ -7,6 +7,7 @@ import ru.gb.smarthome.common.smart.enums.OperationCodes;
 import java.io.Serializable;
 
 import static java.lang.String.format;
+import static ru.gb.smarthome.common.FactoryCommon.isStringsValid;
 import static ru.gb.smarthome.common.smart.enums.OperationCodes.CMD_SLEEP;
 
 /** Состояние УУ для отображения в web-интерфейсе. <p>
@@ -19,12 +20,15 @@ import static ru.gb.smarthome.common.smart.enums.OperationCodes.CMD_SLEEP;
  */
 public class DeviceState implements Serializable
 {
-    /** Указывает, активно ли в данный момент УУ. Варианты значений: ACTIVE и NOT_ACTIVE. */
-    @Getter private boolean active;
     /** Код текущего состояния УУ. */
     @Getter private OperationCodes opCode;
+
     /** Код ошибки. Используется только при code == CMD_ERROR. */
     @Getter private String errCode;
+
+    /** Указывает, активно ли в данный момент УУ. Варианты значений: ACTIVE и NOT_ACTIVE. */
+    @Getter private boolean active;
+
     /** Текущая операция. Может быть null. */
     @Getter private Task currentTask;
 
@@ -58,13 +62,11 @@ public class DeviceState implements Serializable
         return this;
     }
 
-    @Override public String toString ()
-    {
-        return format ("%s%s, %s, %s"
-                      ,opCode.name()
-                      ,errCode == null || errCode.isBlank() ? "" : format("(%s)", errCode)
-                      ,active ? "Активно" : "Неактивно"
-                      ,opCode.equals(CMD_SLEEP) ? "Спит" : "Не спит"
-                      );
+    @Override public String toString () {
+        return format ("%s%s, %s, задача:%s",
+                      opCode.name(),
+                      isStringsValid (errCode) ? format("(%s)", errCode) : "",
+                      active ? "Активно" : "Неактивно",
+                      currentTask);
     }
 }

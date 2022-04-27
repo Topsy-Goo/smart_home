@@ -67,7 +67,23 @@ public final class Abilities implements Serializable
     public Abilities copy () { return new Abilities (type, vendorString, uuid, tasks, canSleep); }
 
     public String toString () { //< для отладки
-        return format("Abilities:\n\t\tТип : %s\n\t\tНазвание : %s\n\t\tUUID : %s\n\t\tЭнергосбережение : %s\n\t\tЗадачи : %s.",
-                      type.typeName, vendorString, uuid, canSleep ? "есть" : "нет", tasks);
+        StringBuilder sb = new StringBuilder("Abilities:\n");
+
+        sb.append("\tТип : ").append(type.typeName)
+          .append("\n\tНазвание : ").append(vendorString)
+          .append("\n\tUUID : ").append(uuid)
+          .append("\n\tЭнергосбережение : ").append(canSleep ? "есть" : "нет")
+          .append("\n\tЗадачи : ");
+        for (Task t : tasks)
+            sb.append("\n\t\tname:\t").append(t.getName())
+              .append("\n\t\t\tautonomic:\t").append(t.isAutonomic())
+              .append(    "\t\tinterruptible:\t").append(t.isInterruptible())
+              .append("\n\t\t\tduration:\t").append(t.getDuration())
+              .append(    "\t\tremained:\t").append(t.getRemained().get())
+              .append(    "\t\telapsed:\t").append(t.getElapsed().get())
+              .append("\n\t\t\ttstate:\t").append(t.getTstate().get().name()).append(" (").append(t.getTstate().get().tsName).append(")")
+              .append("\n\t\t\tmessage:\t").append(t.getMessage().get())
+              .append('.');
+        return sb.toString();
     }
 }
