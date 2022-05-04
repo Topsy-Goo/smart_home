@@ -3,12 +3,13 @@ package ru.gb.smarthome.common.smart.structures;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import ru.gb.smarthome.common.smart.enums.OperationCodes;
+import ru.gb.smarthome.common.smart.enums.SensorStates;
 
 import java.io.Serializable;
+import java.util.*;
 
 import static java.lang.String.format;
 import static ru.gb.smarthome.common.FactoryCommon.isStringsValid;
-import static ru.gb.smarthome.common.smart.enums.OperationCodes.CMD_SLEEP;
 
 /** Состояние УУ для отображения в web-интерфейсе. <p>
 На стороне УУ (т.е. в клиенте) рекомендуется эту структуру своевременно заполнять, чтобы на момент
@@ -26,20 +27,18 @@ public class DeviceState implements Serializable
     /** Код ошибки. Используется только при code == CMD_ERROR. */
     @Getter private String errCode;
 
-    /** Указывает, активно ли в данный момент УУ. Варианты значений: ACTIVE и NOT_ACTIVE. */
-    @Getter private boolean active;
-
     /** Текущая операция. Может быть null. */
     @Getter private Task currentTask;
 
+/** Датчики, которыми располагает УУ и состоянием которых оно готово делиться с хэндлером.  */
+    @Getter private Map<UUID, SensorStates> sensors = Collections.emptyMap();
+
 
 /**
-@param activ отображает текущее состояние активности УУ : ACTIVE или NOT_ACTIVE .
 @param cod кодтекущего состояния УУ : режим, выполняемыя задача, … (см. {@link ru.gb.smarthome.common.smart.enums.OperationCodes OperationCodes})
 @param errCod содержит уточняющий код ошибки, если состояние УУ имеет код CMD_ERROR. Может принимать любые <u>КОРОТКИЕ</u> строковые значения.
  */
-    public DeviceState (boolean activ, @NotNull OperationCodes cod, String errCod) {
-        active = activ;
+    public DeviceState (@NotNull OperationCodes cod, String errCod) {
         opCode = cod;
         setErrCode (errCod);
     }
@@ -51,22 +50,33 @@ public class DeviceState implements Serializable
         Task t = currentTask;
         if (t != null)
             t = currentTask.safeCopy();
-        return new DeviceState (active, opCode, errCode).setCurrentTask (t);
+        return new DeviceState (opCode, errCode)
+                        .setCurrentTask (t)
+                        .setSensors (new HashMap<>(sensors)/*Collections.unmodifiableMap (sensors)*/);
     }
 
     public DeviceState setOpCode (@NotNull OperationCodes val) { opCode = val;    return this; }
-    public DeviceState setActive      (boolean val) { active = val;     return this; }
     public DeviceState setCurrentTask (Task val)    { currentTask = val;  return this; }
     public DeviceState setErrCode (String val) {
-        errCode = val == null ? "" : val.trim();
+        errCode = (val == null) ? "" : val.trim();
+        return this;
+    }
+    public DeviceState setSensors (Map<UUID, SensorStates> val) {
+        sensors = (val != null) ? val : Collections.emptyMap();
         return this;
     }
 
-    @Override public String toString () {
-        return format ("%s%s, %s, задача:%s",
+    @Override public String toString ()
+    {
+        StringBuilder sb = new StringBuilder("датчики: ");
+        for (SensorStates v : sensors.values()) {
+            sb.append (v.name()).append(" • ");
+        }
+        return format ("%s%s,\n\tзадача:%s\n\t%s",
                       opCode.name(),
                       isStringsValid (errCode) ? format("(%s)", errCode) : "",
-                      active ? "Активно" : "Неактивно",
-                      currentTask);
+                      currentTask,
+                      sb.toString());
     }
 }
+//@param activ отображает текущее состояние активности УУ : ACTIVE или NOT_ACTIVE .

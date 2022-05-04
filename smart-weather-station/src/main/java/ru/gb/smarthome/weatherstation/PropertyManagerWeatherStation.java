@@ -9,8 +9,6 @@ import javax.annotation.PostConstruct;
 import java.util.Set;
 import java.util.UUID;
 
-import static ru.gb.smarthome.common.FactoryCommon.println;
-
 @Component ("fridge_propman")
 @Scope ("singleton")
 public class PropertyManagerWeatherStation extends PropertyManagerEmpty
@@ -20,10 +18,7 @@ public class PropertyManagerWeatherStation extends PropertyManagerEmpty
     private final Set<Task> tasks = emptyTaskList();
 
 
-    @PostConstruct public void init() {
-        //println ("\n************************* Считывание настроек: *************************");
-        //println ("************************** Настройки считаны: **************************");
-    }
+    @PostConstruct public void init() {}
 
     public void shutdown() {}
 

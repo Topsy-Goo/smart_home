@@ -2,7 +2,6 @@ package ru.gb.smarthome.common.smart;
 
 import ru.gb.smarthome.common.exceptions.OutOfServiceException;
 import ru.gb.smarthome.common.smart.enums.OperationCodes;
-import ru.gb.smarthome.common.smart.structures.DeviceState;
 
 import java.util.Scanner;
 
@@ -28,13 +27,18 @@ public interface IConsolReader extends ISmartDevice {
     void crEnterErrorState (String errCode);
 
 /** Включение в УУ режима CMD_BUSY. */
-    void crEnterBusyState ();
+    //void crEnterBusyState ();
 
 /** Включение в УУ режима CMD_READY. */
     void crEnterReadyState ();
 
 /** Выполнить указанную задачу. */
     void crExecuteTask (String taskname) throws InterruptedException;
+
+/* * Перевести указанный сенсор в указанное состояние.
+ @param senStrUuid строка-UUID датчика.
+ @param strToState строка-требуемое состояние. */
+    //void crSetSensorState (String senStrUuid, String strToState);
 
 
 /** Консольное управление Умным Устройством. (Для отладки.) */
@@ -84,12 +88,14 @@ public interface IConsolReader extends ISmartDevice {
                     break;
                 case CMD_TASK:  device.crExecuteTask (param1);
                     break;
-                case CMD_BUSY:  device.crEnterBusyState();
-                    break;
+                //case CMD_BUSY:  device.crEnterBusyState();
+                //    break;
                 case CMD_ABILITIES: device.crAbilities();
                     break;
                 case CMD_ERROR: device.crEnterErrorState(param1); //< отсутствие параметра сбрасывет ошибку (также см.case CMD_READY).
                     break;
+                //case CMD_SENSOR:    device.crSetSensorState (param1, param2);
+                //    break;
                 case CMD_EXIT:
                     thread.interrupt();  //< это завершит поток консоли.
                     device.crExit();

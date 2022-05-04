@@ -2,47 +2,57 @@ package ru.gb.smarthome.common;
 
 import ru.gb.smarthome.common.smart.enums.DeviceTypes;
 import ru.gb.smarthome.common.smart.enums.OperationCodes;
+import ru.gb.smarthome.common.smart.enums.SensorStates;
 import ru.gb.smarthome.common.smart.enums.TaskStates;
+import ru.gb.smarthome.common.smart.structures.Sensor;
 
 import java.lang.reflect.Constructor;
 import java.util.List;
+import java.util.UUID;
 
 import static ru.gb.smarthome.common.smart.enums.DeviceTypes.SMART;
 import static ru.gb.smarthome.common.smart.enums.OperationCodes.CMD_BUSY;
-import static ru.gb.smarthome.common.smart.enums.TaskStates.TS_IDLE;
+import static ru.gb.smarthome.common.smart.enums.OperationCodes.CMD_INVALID;
+import static ru.gb.smarthome.common.smart.enums.TaskStates.TS_NONE;
 
 final public class FactoryCommon
 {
-    public static final int SMART_PORTS_COUNT  = 3;
-    public static final int BUSY_SLEEP_SECONDS      = 5;
-    public static final int DEF_POLL_INTERVAL_BACK  = 5;
-    public static final int DEF_POLL_INTERVAL_FRONT = 3;
+    public static final int SMART_PORTS_COUNT  = 5;
+    public static final int BUSY_SLEEP_SECONDS = 5;
+    public static final int DEF_POLL_INTERVAL_MIN   = 500;
+    public static final int DEF_POLL_INTERVAL_BACK  = 2000;
+    public static final int DEF_POLL_INTERVAL_FRONT = 2000;
     public static final int    SERVER_PORT_DEFAULT    = 7777;
     public static final String SERVER_ADDRESS_DEFAULT = "localhost";
     public static final boolean ON        = true, OFF           = false;
     public static final boolean ACTIVE    = true, NOT_ACTIVE    = false;
-    //public static final boolean OPENED    = true, CLOSED        = false;
+    public static final boolean MASTER    = true, SLAVE         = false;
     public static final boolean CAN_SLEEP = true, CANNOT_SLEEP  = false;
     public static final boolean AUTONOMIC = true, NOT_AUTONOMIC = false;
     public static final boolean OK        = true, ERROR         = false;
     public static final boolean INTERRUPTIBLE = true, NON_INTERRUPTIBLE = false;
-    public static final boolean FAIR = true;
+    public static final boolean FAIR  = true;
+    //public static final boolean ALARM = true, WATCHING = false;
+    public static final boolean LIP = true, EVENT = false;
+    public static final boolean BINDABLE = true;
 
-    public static final TaskStates DEF_TASK_STATE   = TS_IDLE;
-    public static final DeviceTypes DEF_DEVICETYPES = SMART;
-    public static final String DEF_TASK_NAME    = "";//(нет текущих задач)
-    public static final String DEF_TASK_MESSAGE = "—";
+    public static final OperationCodes DEF_STATE_DTO_OPCODE  = CMD_INVALID;
+    public static final DeviceTypes DEF_DEVICETYPE = SMART;
+    public static final TaskStates  DEF_TASK_STATE = TS_NONE;
+    public static final String DEF_TASK_NAME       = "—";
+    public static final String DEF_TASK_MESSAGE    = "—";
     public static final String DEF_STATE_DTO_ERRCODE = "";
-    public static final String DEF_STATE_DTO_OPCODE  = "";
     //public static final String[] DEF_STATE_DTO_NEWS    = {};
     public static final String DEF_DEV_DTO_FRIENDLYNAME = "";
     public static final String DEF_ABILITIES_DTO_DEVICETYPE   = "";
     public static final String DEF_ABILITIES_DTO_VENDORSTRING = "";
     public static final String DEF_ABILITIES_DTO_UUID         = "";
-    public static final String DEF_TYPEGROUP_DTO_DEVICETYPE = "";
+    //public static final String DEF_TYPEGROUP_DTO_DEVICETYPE = "";
     public static final String FORMAT_LAUNCHING_TASK_ = "Задача «%s» запускается.";
     public static final String FORMAT_CANNOT_LAUNCH_TASK_ = "Не удалось запустить задачу: «%s».";
     public static final String FORMAT_ACTIVATE_DEVICE_FIRST_ = "Устройство «%s» неактивно.\rАктивизируйте его и повторите попытку.";
+    public static final String FORMAT_REQUEST_ERROR = "Устройство %s\rне смогло обработать запрос.";
+    public static final String USE_DEF_SENSOR_NAME  = null;
 
     public static final String
         promptActivationDuringErrorState = "Активация неисправного устройства невозможна.",
@@ -118,5 +128,58 @@ final public class FactoryCommon
             list.add(t);
     }
 
+/*    public static <K,V> void addIfAbsent (Map<K, LinkedList<V>> map, K k, V v)
+    {
+        LinkedList<V> list = map.get(k);
+        if (list == null)
+            map.put(k, list = new LinkedList<V>());
+        map.get(k).add(v);
+    }*/
 
+/** Убеждаемся, что объект является UUID.
+ @param o исследуемый объект.
+ @return Объект o, преобразованный к типу UUID, или NULL, если о не является объектом UUID. */
+    public static UUID uuidFromObject (Object o) {
+        if (o instanceof UUID)
+            return (UUID) o;
+        return null;
+    }
+
+/** Убеждаемся, что объект является строкой, и возвращаем его же, но с правильным типом.
+ @param o исследуемый объект.
+ @return Объект o, преобразованный к типу String, или NULL, если о не является объектом String. */
+    public static String stringFromObject (Object o) {
+        if (o instanceof String)
+            return (String) o;
+        return null;
+    }
+
+/** Убеждаемся, что объект является сенсором, и возвращаем его же, но с правильным типом.
+ @param o исследуемый объект.
+ @return Объект o, преобразованный к типу Sensor, или NULL, если о не является объектом Sensor. */
+    public static Sensor sensorFromObject (Object o) {
+        if (o instanceof Sensor)
+            return (Sensor) o;
+        return null;
+    }
+
+    public static SensorStates sensorStateFromString (String str) {
+        try {
+            return SensorStates.valueOf (str);
+        }
+        catch (IllegalArgumentException e) {
+            printf ("В SensorStates нет константы: «%s».", str);
+            return null;
+        }
+    }
+
+    public static UUID uuidFromString (String strUuid) {
+        try {
+            return UUID.fromString (strUuid);
+        }
+        catch (IllegalArgumentException e) {
+            printf ("Строка «%s» не может быть преобразована к UUID.", strUuid);
+            return null;
+        }
+    }
 }

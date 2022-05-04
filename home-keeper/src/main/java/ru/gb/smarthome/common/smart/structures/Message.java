@@ -2,7 +2,6 @@ package ru.gb.smarthome.common.smart.structures;
 
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
-import ru.gb.smarthome.common.smart.ISmartDevice;
 import ru.gb.smarthome.common.smart.enums.OperationCodes;
 
 import java.io.Serializable;
@@ -14,7 +13,7 @@ import static java.lang.String.format;
 public class Message implements Serializable, Comparable<Message> {
 
     @Getter private OperationCodes opCode;
-    @Getter private UUID deviceUUID;
+    @Getter private UUID deviceUUID;    //< TODO:кажется, не используется нигде.
     @Getter private Object data;
 
     public Message () {} //< условие сериализации

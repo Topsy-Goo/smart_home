@@ -10,7 +10,11 @@ public enum TaskStates {
     ,TS_ERROR        (false, false,  true, "Ошибка.") //< неустранимая ошибка (задача не может продолжиться)
     ,TS_NOT_SUPPORTED(true,  false,  true, "Не поддерживается")
     ,TS_REJECTED     (true,  false,  true, "Запуск невозможен")  //< отказано в выполнении задачи
-    ;
+    ,TS_NONE         (true,  false,  true, "—")
+    ;//               repl   runn    lerr   tsNm
+/** Количество элементов в TaskStates. */
+    public static final int length = values().length;
+
     /** Указывает, можно ли запустить задачу (любую), если текущая задача имеет состояние TaskStates.
     Например, если текущая задача находится в состоянии IDLE или DONE, то её можно перезапустить или
     заменить другой задачей. */
@@ -23,15 +27,14 @@ public enum TaskStates {
  допускает её перезапуск, если этому не мешают другие обстоятельства.  */
     public final boolean runningState;
 
-/** Коды состояний, которые являются индикаторами ошибки запуска задачи. Например, клиент с пом.этих
- кодов может информирвать хэндлер о том, что послужило препятствием для запуска запрошеной задачи). */
+/** Помечает коды состояний, которые являются индикаторами ошибки запуска задачи. Например,
+ клиент с пом. TaskStates-кодов может информирвать хэндлер о состоянии запуска задачи, а
+ хэндлеру достаточно проверить истинность поля TaskStates.launchingError полученного кода,
+ чтобы понять, составлять сообщение об ошибке, или нет.  */
     public final boolean launchingError;
 
 /** Короткое описание состояния задачи. */
     public final String  tsName;
-
-/** Количество элементов в TaskStates. */
-    public static final int length = values().length;
 
     TaskStates (boolean canreplace, boolean runnState, boolean launchErr, String tsN) {
         canReplace = canreplace;

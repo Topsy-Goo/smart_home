@@ -1,7 +1,7 @@
 server:
   port: 15549
 
-smart:
-  vendor:
-    string: Учебное УУ № 0001
-    uuid: bc852471-11e4-4ae4-98c2-4e48a859259f
+#smart:
+#  vendor:
+#    string: Учебное УУ № 0001
+#    uuid: bc852471-11e4-4ae4-98c2-4e48a859259f

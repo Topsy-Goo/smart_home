@@ -5,14 +5,11 @@ import ru.gb.smarthome.common.smart.structures.DeviceState;
 import ru.gb.smarthome.common.smart.structures.Message;
 import ru.gb.smarthome.common.smart.structures.Task;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.Socket;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
-
-import static ru.gb.smarthome.common.FactoryCommon.*;
 
 public abstract class SmartDevice implements ISmartDevice
 {
@@ -24,15 +21,7 @@ public abstract class SmartDevice implements ISmartDevice
     protected       DeviceState state;
     protected final AtomicLong  rwCounter = new AtomicLong(0); //счётчик количества чтений из ObjectInputStream и записей в ObjectOutputStream.
 
-//------------------------ Реализации интерфейсов ----------------------
-    /** запрос на отключение устройства, которое, возможно, занято какой-то операцией. */
-    @Override public boolean isItSafeToTurnOff () { return false; }
-
-    //@Override public void turnOff () {    }
-    //@Override public void sleepSwitch (boolean sleep) {    }
-    //@Override public void wakeUp () {    }
-    //@Override public boolean canBeMaster () {        return false;    }
-    //@Override public boolean canBeSlave () {        return false;    }
+//----------------------------------------------------------------------
 
 //----------------------------------------------------------------------
 
@@ -45,10 +34,7 @@ ois — это экземпляр ObjectInputStream, предоставленн�
             if (ois != null) {
                 Object o = ois.readObject();
                 rwCounter.incrementAndGet();
-                Message mCIn = (o instanceof Message) ? (Message) o : null;
-                //printf("\nПолучили: %s.\n", mCIn);
-                //print ("rM");
-                return mCIn;
+                return (o instanceof Message) ? (Message) o : null;
             }
             else throw new IOException ("bad ObjectInputStream passed in.");
         }
@@ -66,8 +52,6 @@ oos — это экземпляр ObjectOutputStream, предоставленн
             if (oos != null) {
                 oos.writeObject (mOut);
                 rwCounter.decrementAndGet();
-                //printf ("\nОтправили: %s\n", mOut);
-                //print ("wM ");
                 return true;
             }
             throw new IOException ("bad ObjectOutputStream passed in.");
@@ -75,6 +59,16 @@ oos — это экземпляр ObjectOutputStream, предоставленн
         catch (IOException e) { e.printStackTrace();   return false; }
     }
 //----------------------------------------------------------------------
+
+/** Поиск задачи в Abilities.tasks по указаному параметру data.
+ @param data может быть типов Task или String. Во втором случае он расценивается как Task.name.  */
+    protected Task findTask (Object data)
+    {
+        if (abilities == null)
+            return null;
+        return abilities.getTasks().stream().filter ((tsk)->(tsk.equals (data)))
+                                   .findFirst().orElse (null);
+    }
 
 //----------------------------------------------------------------------
 }

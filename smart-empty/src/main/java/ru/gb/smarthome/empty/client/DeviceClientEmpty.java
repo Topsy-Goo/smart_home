@@ -1,19 +1,19 @@
-package ru.gb.smarthome.empty;
+package ru.gb.smarthome.empty.client;
 
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
+import ru.gb.smarthome.common.IPropertyManager;
 import ru.gb.smarthome.common.exceptions.OutOfServiceException;
 import ru.gb.smarthome.common.exceptions.RWCounterException;
 import ru.gb.smarthome.common.smart.IConsolReader;
 import ru.gb.smarthome.common.smart.SmartDevice;
 import ru.gb.smarthome.common.smart.enums.OperationCodes;
+import ru.gb.smarthome.common.smart.enums.SensorStates;
 import ru.gb.smarthome.common.smart.enums.TaskStates;
-import ru.gb.smarthome.common.smart.structures.Abilities;
-import ru.gb.smarthome.common.smart.structures.DeviceState;
-import ru.gb.smarthome.common.smart.structures.Message;
-import ru.gb.smarthome.common.smart.structures.Task;
+import ru.gb.smarthome.common.smart.structures.*;
+import ru.gb.smarthome.empty.PropertyManagerEmpty;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
@@ -21,13 +21,16 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.*;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static java.lang.String.format;
 import static ru.gb.smarthome.common.FactoryCommon.*;
 import static ru.gb.smarthome.common.smart.enums.DeviceTypes.SMART;
 import static ru.gb.smarthome.common.smart.enums.OperationCodes.*;
+import static ru.gb.smarthome.common.smart.enums.SensorStates.SST_ON;
 import static ru.gb.smarthome.common.smart.enums.TaskStates.*;
 import static ru.gb.smarthome.empty.EmptyApp.DEBUG;
 
@@ -35,22 +38,31 @@ import static ru.gb.smarthome.empty.EmptyApp.DEBUG;
 @Scope ("prototype")
 public class DeviceClientEmpty extends SmartDevice implements IConsolReader
 {
-    protected final PropertyManagerEmpty propMan;
-    private   final Object consoleMonitor = new Object(); //< для синхронизации параллельного доступа к state и …
-    // boolean safeTurnOff;
+    protected final IPropertyManager propMan;
+
+/** Количество сенсоров на борту. */
+    protected       int             sensorsNumber;
+
+/** для синхронизации параллельного доступа к данным класса из методов IConsolReader. */
+    private   final Object          consoleMonitor = new Object();
 
     /** Спонсор потока текущей задачи. */
-    protected       ExecutorService exeService;
+    protected       ExecutorService taskExecutorService;
+
     /** Фьючерс окончания текущей задачи. */
-    private         Future<Boolean> taskFuture;
-    /** состояние, к которому нужно вернуться по окончании текущей задачи. */
-    private         OperationCodes opCodeToReturnTo;
+    Future<Boolean> taskFuture;
+
+/** StatesManager заботится о правильном перелючении состояний УУ. */
+    private   final StatesManager   statesManager = new StatesManager();
+
+/** Периодичность, скоторой УД (хэндлер) опрашивает состояние этого УУ. */
+    private   final int pollInterval = DEF_POLL_INTERVAL_BACK;
 
 
     @Autowired
     public DeviceClientEmpty (PropertyManagerEmpty pm) {
         propMan = pm;
-        state = new DeviceState().setOpCode(CMD_NOT_CONNECTED).setActive(NOT_ACTIVE);
+        state = new DeviceState().setOpCode(CMD_NOT_CONNECTED);
     }
 
     @PostConstruct public void init ()
@@ -59,13 +71,17 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
                 SMART,
                 propMan.getName(),
                 propMan.getUuid(),
-                new ArrayList<>(propMan.getAvailableTasks()),
-                CAN_SLEEP);
-        exeService = Executors.newSingleThreadExecutor (r->{
+                CAN_SLEEP)
+                .setTasks (propMan.getAvailableTasks())
+                .setSensors (propMan.getAvailableSensors())
+                .setSlaveTypes (propMan.slaveTypes())
+                ;
+        sensorsNumber = abilities.getSensors().size();
+
+        taskExecutorService = Executors.newSingleThreadExecutor (r->{
                             Thread t = new Thread (r);
                             t.setDaemon (true);
-                            return t;
-                        });
+                            return t;});
         //if (DEBUG) {
             Thread threadConsole = new Thread (()->IConsolReader.runConsole (this));
             threadConsole.setDaemon(true);
@@ -132,25 +148,23 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
         try
         {   while (!threadRun.isInterrupted())
             try
-            {   //блок readMessage
-                mR = readMessage (ois);
+            {   mR = readMessage (ois); //< блокирующая операция
                 synchronized (consoleMonitor)
                 {
-                    if (mR == null) { //< блокирующая операция
-                        if (DEBUG)
-                            throw new RuntimeException ("Неправильный тип считанного объекта.");
-                        sendState(); //< (Метод умеет обрабатывать m == null.)
-
+                    checkSpecialStates();
+                    if (mR == null) {
+                        if (DEBUG) throw new RuntimeException ("Неправильный тип считанного объекта.");
+                        sendState();
                         if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок readMessage");
                         continue;
                     }
-
                     final OperationCodes opCode = mR.getOpCode();
 
-                //Если код текущего состояния УУ имеет более высокий приоритет по отношению к коду запроса,
-                // то не обрабатываем запрос, а лишь посылаем в ответ state, который покажет вызывающему
-                // положение дел:
-                    //блок state greaterThan opCode
+                //Если код текущего состояния УУ имеет более высокий приоритет по отношению к коду запроса, то не
+                // обрабатываем запрос, а лишь посылаем в ответ state, который покажет вызывающему положение дел.
+                //Если у запроса приоритет совпадает с текущим кодом сотсояния, то обрабатываем запрос — на месте
+                // разберёмся, как быть, т.к. некоторые команды могут выполняться параллельно, а некоторые — нет.
+
                     if (state.getOpCode().greaterThan (opCode)) {     //     opCode < state
                         sendState();
                         if (DEBUG) errprintf("\n\n%s.mainLoop(): несвоевременный запрос из УД: state:%s, Msg:%s\n\n",
@@ -160,12 +174,10 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
                         continue;
                     }
 
-                    checkSpecialStates();                           //     state < opCode
-
                 //(Запросы в switch для удобства выстроены в порядке увеличения их приоритета, хотя приоритет
                 // здесь не обрабатывается.)
                 //На необрабатываемые запросы игнорируем — обрабатываем их как запрос CMD_STATE.
-
+//TODO: сделать обработчики для case-ов, когда код switch-а устоится.
                     switch (opCode)
                     {
                         case CMD_READY:
@@ -188,23 +200,15 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
                             if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_WAKEUP");
                             break;
 
-                        case CMD_PAIR:  //< не поддерживается.
-                            sendState();
-                            if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_PAIR");
-                            break;
-
                         case CMD_TASK:
-                        //пробуем запустить задачу:
                             Task t = startTask (mR.getData());
-                            if (t == errTask) {
+                            if (t == errorTask) {
                                 sendData (CMD_TASK, t.safeCopy());
                             }
-                            else {
-                        //Если задача создана и запущена, то изменяем state и отвечаем хэндлеру только что созданной Task:
-                                state.setOpCode (CMD_TASK)  //< временный условный код для информирования.
-                                     .setCurrentTask (t);
+                            else { //Если задача создана и запущена, то изменяем state и отвечаем хэндлеру только что созданной Task:
+                                statesManager.taskStarts();
+                                state.setCurrentTask (t);
                                 sendData (CMD_TASK, t);
-                                state.setOpCode (CMD_BUSY); //< теперь включим соотв. состояние до завершения задачи.
                             }
                             if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_TASK");
                             break;
@@ -216,6 +220,12 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
 
                         case CMD_ERROR: //< не может придти извне (не требуется чтение), и устанавливается по усмотрению самого УУ.
                             if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_ERROR");
+                            break;
+
+                        case CMD_SENSOR:
+                            Sensor sen = onCmdSensor (mR.getData());
+                            sendData (CMD_SENSOR, sen);
+                            if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_SENSOR");
                             break;
 
                         case CMD_STATE:     //< приходит очень часто. Первый запрос является частью инициализации хэндлера
@@ -283,13 +293,12 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
             cleanup();
             println ("\nВыход из mainLoop().");
         }
-    }
+    }//mainLoop()
 
 /** Очистка в конце работы метода mainLoop(). */
-    private void cleanup ()
-    {
+    private void cleanup () {
         //«… previously submitted tasks are executed, but no new tasks will be accepted.…»
-        if (exeService != null) exeService.shutdown();
+        if (taskExecutorService != null) taskExecutorService.shutdown();
     }
 
 //---------------------------------------------------------------------------
@@ -306,16 +315,8 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
     }
 
 /** Отправлем в УД нашу {@code abilities}. */
-    private void sendAbilities () throws OutOfServiceException
-    {
-        Message m = new Message().setOpCode (CMD_ABILITIES)
-                                 .setData (abilities.copy()) //< см.комментарий в sendState().
-                                 .setDeviceUUID (abilities.getUuid());
-        boolean ok = writeMessage (oos, m);
-//print("_wMa ");
-//if (DEBUG && ok) printf ("\nОтправили %s\n", m);
-        if (!ok)
-            throw new OutOfServiceException (format ("\nНе удалось отправить сообщение : %s.\n", m));
+    private void sendAbilities () throws OutOfServiceException {
+        sendData (CMD_ABILITIES, abilities.copy());
     }
 
 /** Отправлем в УД наш {@code state}.<p>
@@ -323,22 +324,19 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
  не обязывающее действие для некоторых операций. */
     private void sendState () throws OutOfServiceException
     {
-    /*  Делаем копию state и отдаём её в УД. Отсылать оригинал state нельзя,
-        т.к. в УД приходит старое состояние. Наверное, что-то кэширует ссылку на него
+    /*  Делаем копию state и отдаём её в УД. Отсылать оригинал state почему-то нельзя,
+        — в УД приходит старое состояние. Наверное, что-то кэширует ссылку на него
         и, если ссылка не меняется, то в УД уходит старая версия. Стоит только начать
-        отправлять копии, как в УД начинают приходить актуальные данные.
+        отправлять копии, как в УД начинают приходить актуальные данные. Это поведение
+        канала не зависит от final-модификатора отправляемого объекта.
             Похожая ситуация происходит в УД: когда для отправки использовался один и
         тот же экземпляр Message, но с обновлёнными полями, — в УУ приходили устаревшие
         данные. Стоило начать перед отправкой создавать новый экземпляр, как данные,
         приходящие в УУ, стали актуальными.
     */
-        sendData (CMD_STATE, state.safeCopy());
-/*        Message mS = new Message().setOpCode (CMD_STATE)
-                                  .setData (state.safeCopy())
-                                  .setDeviceUUID (abilities.getUuid());
-        boolean ok = writeMessage (oos, mS);
-        if (!ok)
-            throw new OutOfServiceException (format ("\nНе удалось отправить сообщение : %s.\n", mS));*/
+        DeviceState copy = state.safeCopy();
+        //lnprint("sendState() - отправлвет - "+ copy);
+        sendData (CMD_STATE, copy);
     }
 
     private void sendData (OperationCodes opCode, Object data) throws OutOfServiceException
@@ -347,8 +345,6 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
                                   .setData (data)
                                   .setDeviceUUID (abilities.getUuid());
         boolean ok = writeMessage (oos, mS);
-//print("_wMs ");
-//if (DEBUG && ok) printf ("\nОтправили %s\n", mS);
         if (!ok)
             throw new OutOfServiceException (format ("\nНе удалось отправить сообщение: %s.\n", mS));
     }
@@ -360,101 +356,112 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
     {
         Message mS = new Message().setOpCode (opCode);
         boolean ok = writeMessage (oos, mS);
-//print("_wMc ");
-//if (DEBUG && ok) printf ("\nОтправили %s\n", mS);
         if (!ok)
             throw new OutOfServiceException (format ("\nНе удалось отправить код : %s.\n", opCode.name()));
     }
 
-/** Проверяем состояние некоторых особых состояний.
-Сейчас метод реагирует на state.code == CMD_BUSY — проверяет, не завершилась ли задача. */
+/** Проверяем некоторые особые состояния.
+Сейчас метод реагирует на state.code == CMD_BUSY, т.е. проверяет, не завершилась ли задача. */
     private void checkSpecialStates ()
     {
+/*
         OperationCodes statecode = state.getOpCode();
-        if ( ! statecode.greaterThan (CMD_BUSY))
-        {
-        //Если мы здесь, то sate.opCode <= BUSY.
+        if (statecode.equals (CMD_BUSY))  //Если мы здесь, то sate.opCode <= BUSY.
 
-        //Если приоритет текущего состояния выше CMD_BUSY, то завершение задачи не
-        // обрабатываем, даже если задача уже давно завершена, — ждём, когда приоритет понизится
-        // хотя бы до CMD_BUSY. Это упрощение позволит передать в УД результат выполнение задачи,
-        // когда это никому не будет мешать.
-        //    В качестве побочного эффекта, это решение запрещает нам обрабатывать завершение
-        // задачи в аварийной ситуации, т.е. когда state.code == CMD_ERROR.
-
-            if (taskFuture != null && taskFuture.isDone())  // задача звершилась сама или была отменена (canceled)
+    Если приоритет текущего состояния выше CMD_BUSY, то завершение задачи не
+    обрабатываем, даже если задача уже давно завершена, — ждём, когда приоритет понизится
+    хотя бы до CMD_BUSY. Это упрощение позволит передать в УД результат выполнение задачи,
+    когда это никому не будет мешать.
+       В качестве побочного эффекта, это решение запрещает нам обрабатывать завершение
+    задачи в аварийной ситуации, т.е. когда state.code == CMD_ERROR.
+*/
+        //{
+            if (taskFuture != null && taskFuture.isDone()) // задача звершилась сама или была отменена (canceled)
             {
-//boolean success = taskFuture.get(); //TODO: бросается исключениями, если задача завершилсь ненормально.
-                //boolean success = !taskFuture.isCancelled() < если taskFuture имеет тип Future<?>.
                 taskFuture = null;
-                OperationCodes c = (opCodeToReturnTo == null) ? CMD_READY : opCodeToReturnTo;
-                opCodeToReturnTo = null;
-                state.setOpCode (c); //< это уйдёт при первой же отаправке state. Выполненная
-                                     //  задача останется в state.currentTask.
-println("");
-                //Task t = state.getCurrentTask();
-                //if (t != null)
-                //    t.setMessage (format ("Задача «%s» завершена.", t.getName()));
+                statesManager.taskEnds(); // (Выполненная задача останется в state.currentTask.)
             }
-        }
+        //}
     }
+
+/* * Проверка состояний сенсоров. УУ, имеющий на борту сенсоры, должны переопределить
+ этот метод, если они хотят сообщать в УД о состоянии этих сенсоров. * /
+    protected void checkSensors() { }   */
 
 //------------ Методы, используемые в IConsoleReader.runConsole -------------
 
     @Override public void crState () {
+        if (DEBUG)
         synchronized (consoleMonitor) {
             lnprintln (state.toString());
         }
     }   //+
+
     @Override public void crAbilities () {
+        if (DEBUG)
         synchronized (consoleMonitor) {
             lnprintln (abilities.toString());
         }
     }   //+
+
     @Override public void crExit () throws OutOfServiceException {
+        if (DEBUG)
         synchronized (consoleMonitor) {
             state.setOpCode(CMD_EXIT);
             //throw new OutOfServiceException ("Выход из приложения по команде /exit.");
             //crGetSocket().close(); < это не нужно, — сокет закроется в run().
+            threadRun.interrupt();
         }
-        threadRun.interrupt();
     } //+
+
     @Override public boolean crIsDebugMode ()    { return DEBUG; }  //+
+
     @Override public void crEnterErrorState (String errCode)  //+
     {
         boolean setError = errCode != null;
+        if (DEBUG)
         synchronized (consoleMonitor) {
             if (setError) {
-                state.setOpCode(CMD_ERROR).setErrCode(errCode);
+                statesManager.errorOn ();
+                state.setErrCode(errCode);
                 if (taskFuture != null) //< пусть при ошибке задача прерывается назависимо от флага Task.interruptible
                     taskFuture.cancel(true);
             }
-            else state.setOpCode(CMD_READY).setErrCode(null);
+            else {
+                statesManager.errorOff();
+                state.setErrCode(null);
+            }
             lnprintln (state.toString());
         }
     }
-    @Override public void crEnterBusyState () {
+
+/*    @Override public void crEnterBusyState () {
+        if (DEBUG)
         synchronized (consoleMonitor) {
             if (state.getOpCode().lesserThan (CMD_BUSY))
-                state.setOpCode (CMD_BUSY);  //< расчёт на то, что коды в интервале (BUSY; WAKEUP] являются
+                statesManager.taskStarts();
+                //state.setOpCode (CMD_BUSY);  //< расчёт на то, что коды в интервале (BUSY; WAKEUP] являются
                 // командами, а не состояниями, т.е. выполняются почти мгновенно, а устанавливаются только
                 // в потоке кдиента (из конслои их застать нельзя).
             else
                 println("Невозможно установить CMD_BUSY.");
             lnprintln (state.toString());
         }
-    }   //+
+    }   //+*/
+
     @Override public void crEnterReadyState () {
+        if (DEBUG)
         synchronized (consoleMonitor) {
-            state.setOpCode(CMD_READY)
-                 .setErrCode(null); //< считаем, что переход в этот режим сбрасывае ошибку.
+            state.setErrCode(null)
+                 .setOpCode(CMD_READY); //< считаем, что переход в этот режим сбрасывае ошибку.
             lnprintln (state.toString());
         }
     }   //+
 
-    @Override public void crExecuteTask (String taskname) throws InterruptedException
+    @Override public void crExecuteTask (String taskname) throws InterruptedException   //+
     {
         boolean justResetCurrentTaskToIdleState = taskname == null || taskname.isBlank();
+        if (DEBUG)
         synchronized (consoleMonitor) {
             if (justResetCurrentTaskToIdleState)
             {
@@ -473,41 +480,35 @@ println("");
                             // обработать завершение задачи, чтобы его результаты попали в state до вызова
                             // print (state), выполняемого ниже. (Вызова yield() оказалось недостаточно.)
                         }
-                        else {
-                            tcurrent.setTstate(TS_IDLE).setMessage("Задача остановлена из косоли."); //elapsed и remained пока не трогаем.
-                        }
+                        else  //elapsed и remained пока не трогаем.
+                            tcurrent.setTstate(TS_IDLE).setMessage("Задача остановлена из косоли.");
                     }
                     else println("Нет текущей задачи.");
-
-                    if (opCodeToReturnTo != null) {
-                        state.setOpCode(opCodeToReturnTo);
-                        opCodeToReturnTo = null;
-                    }
-                    else state.setOpCode(CMD_READY);
+                    statesManager.taskEnds();
                 }
             }
-            else if (!state.getOpCode().lesserThan (CMD_BUSY))//< расчёт на то, что коды в интервале (BUSY; WAKEUP]
-                // являются командами, а не состояниями, т.е. выполняются почти мгновенно, а устанавливаются только
-                // в потоке кдиента (из конслои их застать нельзя).
+            else if (!state.getOpCode().lesserThan (CMD_BUSY))
+                // расчёт на то, что коды в интервале (BUSY; WAKEUP] являются командами, а не состояниями, т.е.
+                // выполняются почти мгновенно, а устанавливаются в потоке кдиента на короткий период (из конслои
+                // их застать нельзя).
                 println("Невозможно запустить задачу сейчас.");
             else {
                 //Повторяем поведение обработчика команды CMD_TASK, но без информирования хэндлера.
                 Task t = startTask (taskname);
-                if (t == errTask) {
-                    println("Не удалось запустить задачу: "+ errTask);
-                }
+                if (t == errorTask)
+                    println("Не удалось запустить задачу: " + errorTask);
                 else {
-                    state.setOpCode (CMD_BUSY).setCurrentTask(t);
-                }
-            }
+                    statesManager.taskStarts();
+                    state.setCurrentTask (t);
+            }   }
             lnprintln (state.toString());
         }//synchronized
     }
 
-//---------------------------------------------------------------------------
+//-------------------------- про задачи -------------------------------------
 
 /** Используется для ошибок. */
-    static final Task errTask = new Task (DEF_TASK_NAME, DEF_TASK_STATE, DEF_TASK_MESSAGE);
+    final Task errorTask = new Task (DEF_TASK_NAME, DEF_TASK_STATE, DEF_TASK_MESSAGE);
 
 /** Запуск указанной задачи. Запрос на запуск задачи будет проигнориован, если:<br>
 • state.code == CMD_ERROR (эта проверка нужна на случай, если УД ещё не знает об ошике в нашем УУ. Если бы он знал, то не прислал бы CMD_TASK);<br>
@@ -547,88 +548,212 @@ println("");
             else {
         //если задачу можно создать и запустить:
                 TaskExecutor te = new TaskExecutor (newTask = t.safeCopy());
-                taskFuture = exeService.submit (te);
-                opCodeToReturnTo = state.getOpCode();
+                taskFuture = taskExecutorService.submit (te);
             }
         }
         if (newTask == null)
             //Если не удалось запустиь задачу, то заполняем errTask, специально используеый для информирования об ошибках.
-            newTask = errTask.setName (taskName).setTstate (errorTState).setMessage (taskErrorMessage);
+            newTask = errorTask.setName (taskName).setTstate (errorTState).setMessage (taskErrorMessage);
         return newTask;
     }
+//-------------------------- про датчики ------------------------------------
 
-/** Поиск задачи в Abilities.tasks по указаному параметру data.
- @param data может быть типов Task или String. Во втором случае он расценивается как Task.name.  */
-    private Task findTask (Object data)
+    private SensorStates changeSensorState (UUID senUuid, SensorStates to)
     {
-        if (abilities == null)
-            return null;
-        return abilities.getTasks().stream().filter ((tsk)->(tsk.equals (data)))
-                                   .findFirst().orElse (null);
+        Map<UUID, SensorStates> sensors = state.getSensors();
+        SensorStates from    = sensors.get (senUuid),
+                     newStat = SensorStates.calcState (from, to);
+        sensors.put (senUuid, newStat);
+        return newStat;
     }
 
-/** Этот класс изображает запущенную на исполнение задачу. Всё, что он делает, — это
-отсчёт времени до окончания задачи. По истечении этого времени call() возвращает true.
-Если во время «операции» произошла одибка, то call() возвращает false.
-<p>
-    Во время выполнения задачи в структуру state должны вноситься минимальные изменения,
-чтобы было легче синхронизировать их с передачей state в УД. Нельзя заменять структуры, например,
-state, state.currentTask, но можно изменять их Atomic-поля. Сейчас эти изменения следующие:<br>
-• в state.currentTask меняем Atomic-поля remained и elapsed — они обновляются так, чтобы отображать
- прогресс операции.<br>
- • ;<br>
- • ;<br>
- <p>
-Если задача завершилась ошибкой (Task.tstate == TS_ERROR), то мы НЕ считаем это
-ошибкой всего УУ и не устанавливаем state.code == CMD_ERROR.
- */
-    static class TaskExecutor implements Callable<Boolean>
+/** Обработчик команды CMD_SENSOR. Эту команд а приходит с фронта для проверки работоспособности
+ датчика.
+ @param data должен являться экземпляром Sensor, по образцу которого нужно изменить
+ соответствующий датчик УУ. Сейчас у этого Sensor рассматриваются только поля uuid и stype.
+ @return если запрос выполнен, то возвращаем такой же Sensor, какой был в запросе. В
+ противном случае Sensor должен отличаться (например, содержать текущее состояние датчика, или
+ просто быть равным NULL). */
+    protected Sensor onCmdSensor (Object data)
     {
-        private final Task theTask;
-        private final String taskName;
+        try {
+            Sensor sensor = sensorFromObject (data);
+            UUID senUuid = sensor.getUuid();
 
-        public TaskExecutor (@NotNull Task newTask) {
-            theTask = newTask.setTstate (TS_LAUNCHING)
-                             .setMessage (format ("Запускается задача «%s».", newTask.getName()));
-            taskName = newTask.getName();
+            SensorStates newStat = changeSensorState (senUuid, sensor.getState());
+            sensor.setState (newStat);
+
+lnprintln ("onCmdSensor() - "+ sensor.toString());
+
+            if (newStat.alarm)            //< Закомментировать вызов alarmForAWhile(), если кнопка Alarm test
+                alarmForAWhile (senUuid); //  должна работать, как тригер. См.также sensorAlarmTest().
+            return sensor;
         }
+        catch (Exception e) {  return null;  }
+    }
 
-        @Override public Boolean call ()
-        {
-            if (DEBUG) printf("\nНачинает работать задача: %s.", theTask);
-
-            theTask.setTstate(TS_RUNNING)
-                   .setMessage (format ("Выполняется задача «%s»", taskName));
-
-            boolean ok = false;
+/** Выключаем тревожное состояние датчика спустя указаный промежуток времени.
+ @param uuid UUID датчика, который нужно вернуть из тревожного состояния. */
+    protected void alarmForAWhile (UUID uuid)
+    {
+        int millis = Math.max (15000, pollInterval +(pollInterval/2));
+        Thread tr = new Thread (()->{
             try {
-                AtomicLong reminder = theTask.getRemained();
-                while (reminder.get() > 0L) {
-                    TimeUnit.SECONDS.sleep(1);
-                    theTask.tick (1);
-                }
-                ok = reminder.get() == 0L;
-                theTask.setTstate (ok ? TS_DONE : TS_ERROR)
-                       .setMessage ("Задача завершена.");
+                statesManager.sensorAlarmIsOn();
+                TimeUnit.MILLISECONDS.sleep (millis);
             }
-            catch (Exception e) {
-                ok = (e instanceof InterruptedException  &&  theTask.isInterruptible());
-                if (ok)
-                    theTask.setTstate (TS_INTERRUPTED)
-                           .setMessage (format("Задача «%s» прервана.", taskName));
-                else
-                    theTask.setTstate (TS_ERROR)
-                           .setMessage (format("Задача «%s» прервана из-за ошибки «%s».",
-                                               taskName, e.getMessage()));
-            }
+            catch (InterruptedException e) { ; }
             finally {
-                if (DEBUG) printf("\nЗавершилась задача: %s.", theTask);
-            }
-            return ok;
-        }
-    }//class TaskExecutor
+                if (state.getSensors().get(uuid).on)
+                    state.getSensors().put(uuid, SST_ON);
+                statesManager.sensorAlarmOff();
+//println (state.toString());
+            }});
+        tr.start();
+    }
 
-    //TODO: Если УУ продолжает работать даже если связь с УД прервалась, то нужно это
-    // как-то оформить (сделать консольный поток НЕдемоном, сделать поток executor-а недемоном,
-    // применить св-о автономности и иначе реагировать на консольную команду /exit).
+/** В state создаём список, посредством которого мы сможем передавать хэндлеру актуальную информацию
+ о состоянии датчиков. */
+    protected void initSensors ()
+    {
+        state.setSensors (new HashMap<>(sensorsNumber));
+        Map<UUID, SensorStates> sensors = state.getSensors();
+
+        for (Sensor s : abilities.getSensors())
+            sensors.put (s.getUuid(), s.getState());
+    }
+
+/* * Проверяем состояния сенсоров и помещаем результаты проверки в state. Эта проверка
+ выполняется на регулярной основе.
+    protected void checkSensors() { } */
+
+//---------------------------------------------------------------------------
+
+/** Класс заботится о правильном перелючении состояний УУ. */
+    class StatesManager
+    {
+/*      Когда срабатывает датчик, устанавливается состояние CMD_SENSOR.
+        Когда запускается задача, хэндлер сравниветет приоритет текущего состояния с приоритетом CMD_TASK. Если приоритет состония выше, запуск задачи откладывается.
+        Приортет состояния CMD_SENSOR больше приоритета команды CMD_TASK, поэтому задача не может быть запущена во время CMD_SENSOR.
+        Если задачу запустить можно, то она запускается и устанавливается состояние CMD_BUSY.
+        С другой стороны при работающей задаче датчик может сработать, т.к. приоритет CMD_SENSOR > CMD_BUSY.
+        Следовательно, наложение состояний BUSY и SENSOR возможно только, когда датчик сработал во время выполнеия задачи.
+        Перед включением состояний BUSY и SENSOR мы запоминаем код состояния, чтобы венуться к нему по выходе из этих состояний.
+        Ввиду вышеперечисленного имеем два варианта разруливания ситуации с запомненным состоянием:
+        1. состояние BUSY   закончилось до выхода из SENSOR;
+        2. состояние SENSOR закончилось до выхода из BUSY.
+
+        Поскльку состояния накладываются т.с. в порядке приоритета, то можно сделать так:
+        * кадое состояние начинается с помещения в стек кода предыдущего состояния;
+        * если какое-либо состояние закончилось, то оно извлекает из стека самый ближний к вершине код состояния, приоритет которого не превышает его собственный приоритет.
+*/
+/** Стек (список) запомненных кодов состояний. Какое-либо временное событие имеющее приотет, в
+ момент своего начала должно поместить свой код OperationCodes в начало этого списка (на вершину стека),
+ а по завершении забрать код из списка (стека).<p>
+ В обоих случаях событие должно использовать соответствущие методы класса StatesManager, т.к.
+ statesStack не совсем стек. */
+        private final LinkedList<OperationCodes> statesStack = new LinkedList<>();
+
+//TODO: большинство методов очень похожи. Возможно, их стоит как-то объединить.
+
+/** Запоминаем состояние УУ, в котором задача запускается, и устанавливаем состояние CMD_BUSY. */
+        void taskStarts () {
+            statesStack.addFirst (state.getOpCode());
+            state.setOpCode (CMD_BUSY);
+lnprintf("StatesManager.taskStarts() сделала: стек = %s, state.opCode = %s.\n", statesStack.toString(), state.getOpCode());
+        }
+
+/** Обновляем состояние УУ по завершении задачи.<p>
+ Извлекаем из стека самый ближний к вершине код, не превышающий CMD_BUSY. Если приоритет кода
+ состояния УУ также не превышает CMD_BUSY, то меняем его на код, извлечённый из стека. */
+        void taskEnds () {
+            OperationCodes opCode = popOpCodeLike (CMD_BUSY);
+            if (opCode != null && !state.getOpCode().greaterThan (CMD_BUSY))
+            {
+                resetDeviceStateTo (opCode);
+            }
+lnprintf("StatesManager.taskEnds() сделала: стек = %s, state.opCode = %s.\n", statesStack.toString(), state.getOpCode());
+        }
+
+/** Запоминаем состояние УУ, в котором сработал датчик, и устанавливаем состояние CMD_SENSOR.<p>
+ Состояние самого датчика в этот момент уже изменено на alarm. */
+        void sensorAlarmIsOn () {
+            statesStack.addFirst (state.getOpCode());
+            state.setOpCode (CMD_SENSOR);
+lnprintf("StatesManager.sensorAlarmIsOn() сделала: стек = %s, state.opCode = %s.\n", statesStack.toString(), state.getOpCode());
+        }
+
+/** Восстанавливаем состояние УУ после тревожного состояния датчика.<p>
+ Извлекаем из стека самый ближний к вершине код, не превышающий CMD_SENSOR. Если приоритет кода
+ состояния УУ также не превышает CMD_SENSOR, то меняем его на код, извлечённый из стека.<p>
+ Состояние самого датчика в этот момент уже изменено на ON или OFF. */
+        void sensorAlarmOff () {
+            OperationCodes opCode = popOpCodeLike (CMD_SENSOR);
+            if (opCode != null && !state.getOpCode().greaterThan (CMD_SENSOR))
+            {
+                resetDeviceStateTo (opCode);
+            }
+lnprintf("sensorAlarmOff() сделала: стек = %s, state.opCode = %s.\n\n", statesStack.toString(), state.getOpCode());
+        }
+
+/** Запоминаем состояние УУ, в котором сработал датчик, и устанавливаем состояние CMD_ERROR. */
+        void errorOn () {
+            statesStack.addFirst (state.getOpCode());
+            state.setOpCode (CMD_ERROR);
+lnprintf("StatesManager.errorOn() сделала: стек = %s, state.opCode = %s.\n", statesStack.toString(), state.getOpCode());
+        }
+
+/** Восстанавливаем состояние УУ после состояния ошибки.<p>
+ Извлекаем из стека самый ближний к вершине код, не превышающий CMD_ERROR. Если приоритет кода
+ состояния УУ также не превышает CMD_ERROR, то меняем его на код, извлечённый из стека. */
+        void errorOff () {
+            OperationCodes opCode = popOpCodeLike (CMD_ERROR);
+            if (opCode != null && !state.getOpCode().greaterThan (CMD_ERROR))
+            {
+                resetDeviceStateTo (opCode);
+            }
+lnprintf("StatesManager.errorOff() сделала: стек = %s, state.opCode = %s.\n\n", statesStack.toString(), state.getOpCode());
+        }
+
+/** Идём от вершины стека (от начала списка {@code statesStack}) и ищем код, приоритет которого не
+ превышает приоритет образца, извлекаем найденый код из стека и отдаём его в вызывающую ф-цию.
+ @param example Образец, код состояния, на приоритет которого нам нужно ориентироваться во
+ время поисков.
+ @return Извлечённый из стека код, или NULL, если в стеке не нашёлся код, подходящий под example. */
+        private OperationCodes popOpCodeLike (OperationCodes example) {
+/*            ListIterator<OperationCodes> iterator = statesStack.listIterator();
+            while (iterator.hasNext())
+            {
+                OperationCodes code = iterator.next();
+                if (!code.greaterThan (example))
+                {
+                    iterator.remove();
+                    return code;
+                }
+            }*/
+            for (OperationCodes opCode : statesStack)
+                if (!opCode.greaterThan (example))
+                {
+                    statesStack.remove (opCode);
+lnprintf("\nStatesManager.popOpCodeLike(%s) удаляет из стека opCode = %s.", example, opCode);
+lnprintf("StatesManager.popOpCodeLike(%s) сделала: стек = %s, state.opCode = %s.\n", example, statesStack.toString(), state.getOpCode());
+                    return opCode;
+                }
+            if (DEBUG) throw new RuntimeException ("В стеке отсутствует код уровня "+ example.name());
+            return null;
+        }
+
+        private void resetDeviceStateTo (@NotNull OperationCodes opCode) {
+            state.setOpCode (opCode); // это уйдёт при первой же отаправке state.
+        }
+    }
 }
+/*  stack
+        READY   -t
+        BUSY    -t
+        BUSY    -s
+        SENSOR  -s
+        SENSOR  -s
+    state
+        SENSOR
+*/

@@ -2,36 +2,31 @@ package ru.gb.smarthome.homekeeper.dtos;
 
 import lombok.Data;
 import org.jetbrains.annotations.NotNull;
-import ru.gb.smarthome.common.smart.ISmartHandler;
 import ru.gb.smarthome.common.smart.structures.DeviceInfo;
 
-import java.util.Collections;
 import java.util.List;
 
-import static ru.gb.smarthome.common.FactoryCommon.*;
+import static ru.gb.smarthome.common.FactoryCommon.DEF_DEV_DTO_FRIENDLYNAME;
 
 @Data
 public class DeviceDto
 {
-    private AbilitiesDto abilities = AbilitiesDto.nullAbilitiesDto;
-    private StateDto     state     = StateDto.nullStateDto;
-    private String   friendlyName  = DEF_DEV_DTO_FRIENDLYNAME;
-
-    @SuppressWarnings("unchecked")
-    public  static final List<DeviceDto> nullDevices = Collections.EMPTY_LIST;
+    private AbilitiesDto  abilities;
+    private StateDto      state;
+    private String        friendlyName = DEF_DEV_DTO_FRIENDLYNAME;
+    private List<UuidDto> slaveList;         //Здесь не заполняем, — будем запрашивать из фронта.
+    private List<UuidDto> bindableFunctions; //Здесь не заполняем, — будем запрашивать из фронта.
 
     public DeviceDto (){}
 
-    public static @NotNull DeviceDto smartDeviceToDto (DeviceInfo readOnlyInfo)
+    public static @NotNull DeviceDto smartDeviceToDto (DeviceInfo info)
     {
         DeviceDto dto = new DeviceDto();
-        ISmartHandler device;
-        //String s;
-        if (readOnlyInfo != null && (device = readOnlyInfo.device) != null)
+        if (info != null)
         {
-            dto.abilities = readOnlyInfo.getAbilitiesDto();
-            dto.state     = StateDto.deviceStateToDto (device);
-            dto.friendlyName = device.getDeviceFriendlyName();
+            dto.abilities    = info.abilitiesDto;
+            dto.state        = StateDto.deviceStateToDto (info);
+            dto.friendlyName = info.device.getDeviceFriendlyName();
         }
         return dto;
     }

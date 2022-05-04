@@ -18,10 +18,11 @@
 	$scope.uuids = []; //массив UUID-строк всех подключенных устройств. Нужен для обнаружения подключения или
 	//отключения устройств.
 
-
-	$scope.startMain = function () {
+//-------------------------------------------------------------------------------- запуск
+	$scope.startMain = function ()
+	{
+console.log ('***************');
 		$scope.getDevicesList();
-		$scope.stateTimer = setInterval ($scope.updateStates, $rootScope.pollInterval);
 	}
 
 //Загрузка с бэка всего, что нужно для отобажения страницы. Сейчас это всё умещается в $scope.home_dto.
@@ -32,7 +33,8 @@
 		function successCallback (response)
 		{
 			$scope.home_dto = response.data;
-			$rootScope.pollInterval = $scope.home_dto.pollInterval * 1000;
+console.log (response.data);
+			$rootScope.pollInterval = $scope.home_dto.pollInterval;
 			$scope.fillStatesArray();
 		},
 		function failureCallback (response) {
@@ -40,7 +42,9 @@
 			alert ('ОШИБКА: Не удалось загрузить список устройств.');
 			console.log ('Error @ getDevicesList().');
 		});
+		$scope.stateTimer = setInterval ($scope.updateStates, $rootScope.pollInterval);
 	}
+//-------------------------------------------------------------------------------- обновление состояний
 
 //При получении $scope.home_dto вызываем этот метод, чтобы заполнить массив $scope.states.
 	$scope.fillStatesArray = function ()
@@ -65,26 +69,7 @@
 		function readDeviceNews (device) {
 			$scope.showDeviceNews (device.state.lastNews);
 		}
-		console.log ('$scope.states = '+ $scope.states);
-	}
-
-	$scope.showDeviceNews = function (lastNews)
-	{
-		if (lastNews)
-		{
-			let newsPaper = '';
-			let length = lastNews.length;
-			if (length > 0) {
-				for (let i=0; i<length; i++)
-				{
-					newsPaper += lastNews[i];
-					if (i < length-1) {
-						newsPaper += '\r\r';
-					}
-				}
-				alert (newsPaper);
-			}
-		}
+		console.log ('$scope.states = ', $scope.states);
 	}
 
 //Запрашиваем из бэка структуры StateDto для каждого элемента массива $scope.states, и обновляем
@@ -96,22 +81,22 @@
 	//обнаруженых устройств с момента последнего запроса $scope.home_dto. Если набор изменился,
 	//то перезагружаем $scope.home_dto.
 
-		$http.get (contextMainPath + '/uuids')
+		$http.get (contextMainPath + '/all-uuids')
 		.then (
 		function successCallback (response)
 		{
 			if (!$scope.compareStringArrays ($scope.uuids, response.data)) {
 				$scope.getDevicesList();
-				return;
+//				return;
 			}
 		},
 		function failureCallback (response) {
 			console.log ('ОШИБКА в updateStates(): Не удалось получить UUID[].');
-		});//*/
+		});
 
 	//Если набор устройств остался прежним, то запросим из бэка только состояния устройств.
+		$scope.states.forEach (update);
 
-		$scope.states.forEach(update);
 		function update(element)
 		{
 			$http.get (contextMainPath + '/state/'+ element.uuid)
@@ -124,12 +109,13 @@
 				element.state.opCode 	  = response.data.opCode;
 				element.state.errCode     = response.data.errCode;
 				element.state.currentTask = response.data.currentTask;
-				element.state.lastNews	  = response.data.lastNews;
+				//element.state.lastNews    = response.data.lastNews;
+				element.state.sensors	  = response.data.sensors;
 				$scope.showDeviceNews (response.data.lastNews);
 			},
 			function failureCallback (response) {
 				$scope.cleanUp();
-				console.log ('ОШИБКА в getDevicesList(): Не удалось обновить статус устройства '+ element.uuid);
+				console.log ('ОШИБКА в getDevicesList(): Не удалось обновить статус устройства ', element.uuid);
 			});
 		}
 	}
@@ -148,6 +134,7 @@
 		}
 		return false;
 	}
+//-------------------------------------------------------------------------------- мена имени
 
 //Отправлвем на бэк сообщение, что о необходимости изменить поле deviceFriendlyName на указанное значение.
 	$scope.tryNewFriendlyName = function (device, newFriendlyName)
@@ -155,14 +142,17 @@
 		if (device != null && newFriendlyName != null) {
 			var uuid = device.abilities.uuid;
 
-			$http.get (contextMainPath + '/friendly_name/'+ uuid +'/'+ newFriendlyName)
+			$http.get (contextMainPath + '/friendly_name/'+ uuid +'/'+ newFriendlyName.string)
 			.then (
 			function successCallback (response) {
-				device.friendlyName = newFriendlyName;
+				device.friendlyName = newFriendlyName.string;
 			},
-			function failureCallback (response)	{  console.log ('tryNewFriendlyName() resut: '+ response.data);  });
+			function failureCallback (response)	{
+				console.log ('tryNewFriendlyName() resut: '+ response.data);
+			});
 		}
 	}
+//-------------------------------------------------------------------------------- активация УУ
 
 //Отправлвем на бэк сообщение, что о необходимости изменить флаг active для УУ с указаным UUID.
 	$scope.toggleDeviceActiveState = function (uuid)
@@ -170,7 +160,7 @@
 		$http.get (contextMainPath + '/activate/'+ uuid)
 		.then (
 		function successCallback (response) {
-//			device.state.active = response.data;
+			//?
 		},
 		function failureCallback (response)	{
 			console.log ('toggleActiveState() resut: '+ response.data);
@@ -186,13 +176,13 @@
 		if (active)	return "Деактивировать";
 		else		return "Активировать";
 	}
+//-------------------------------------------------------------------------------- открывание панелей
 
 	$scope.getButtonNameShowPanel = function (uuid) {
 		let show = $scope.isPanelOpened (uuid);
 		if (show) return "Скрыть";
 		else      return "Показать";
 	}
-
 //Определяем, открыта ли панель устройства, UUID-стрку которого нам передали в параметре.
 //Если UUID есть в $localStorage.openedPanels, то это означает, что панель открыта. Или
 //была открыта перед разрывом соединения.
@@ -218,14 +208,33 @@
 			else {
 				$localStorage.openedPanels.push(uuid);
 			}
-			console.log ('togglePanelOpenedState() : $localStorage.openedPanels = '+ $localStorage.openedPanels);
+			console.log ('togglePanelOpenedState() : $localStorage.openedPanels = ', $localStorage.openedPanels);
 		}
 	}
-
+//-------------------------------------------------------------------------------- сообщения
+	$scope.showDeviceNews = function (lastNews)
+	{
+		if (lastNews)
+		{
+			let newsPaper = '';
+			let length = lastNews.length;
+			if (length > 0) {
+				for (let i=0; i<length; i++)
+				{
+					newsPaper += lastNews[i];
+					if (i < length-1) {
+						newsPaper += '\r\r';
+					}
+				}
+				alert (newsPaper);
+			}
+		}
+	}
+//-------------------------------------------------------------------------------- запуск задачи
 	$scope.launchTask = function (device, taskName)
 	{
-console.log ('$scope.launchTask(): uuid = '+ device.abilities.uuid);
-console.log ('$scope.launchTask(): taskName = '+ taskName);
+//console.log ('$scope.launchTask(): uuid = ', device.abilities.uuid);
+//console.log ('$scope.launchTask(): taskName = ', taskName);
 		$http.get (contextMainPath + '/launch_task/'+ device.abilities.uuid +'/'+ taskName)
 		.then (
 		function successCallback (response) {
@@ -234,22 +243,104 @@ console.log ('$scope.launchTask(): taskName = '+ taskName);
 		function failureCallback (response)	{
 			alert ('ОШИБКА: не удалось обработать запрос:\r'+ response.data);
 		});
-
 	}
-
+//-------------------------------------------------------------------------------- планирование
 	$scope.scheduleTask = function (device, taskName)
 	{
-console.log ('$scope.scheduleTask(): uuid = '+ device.abilities.uuid);
-console.log ('$scope.scheduleTask(): taskName = '+ taskName);
+console.log ('$scope.scheduleTask(): uuid = ', device.abilities.uuid);
+console.log ('$scope.scheduleTask(): taskName = ', taskName);
 		//...
 	}
 
-/*	$scope.runStateTimer = function(interval) {
-		$scope.stateTimer = setInterval ($scope.updateStates, interval);
-	}*/
-
 	$scope.cleanUp = function () {
 		clearInterval($scope.stateTimer);
+	}
+//-------------------------------------------------------------------------------- связывание
+	$scope.loadDeviceSlaveList = function (device)
+	{
+		$http.get (contextMainPath + '/slave-list/'+ device.abilities.uuid)
+		.then (
+		function successCallback (response) {
+			device.slaveList = response.data;
+		},
+		function failureCallback (response)	{
+			console.log ('ОШИБКА: в loadDeviceSlaveList() бэк вернул: ', response.data);
+		});
+	}
+
+	$scope.requestSlaveBindableFunctions = function (device, uuid)
+	{
+		$http.get (contextMainPath + '/bindable-functions/'+ uuid)
+		.then (
+		function successCallback (response) {
+			device.bindableFunctions = response.data;
+console.log ('$scope.requestSlaveBindableFunctions() получила в ответ:', response.data);
+		},
+		function failureCallback (response)	{
+			console.log ('ОШИБКА: в requestSlaveBindableFunctions() бэк вернул: ', response.data);
+		});
+	}
+
+	$scope.bindSlave = function (device, object)
+	{
+console.log ('bindSlave() получила object: ', object, '\rи device: ', device);
+		let dto =  {
+					"masterTaskName":	object.masterTaskName,
+					"masterUUID":		device.abilities.uuid,
+					"slaveUUID":		object.slaveUUID,
+					"slaveFuctionUUID":	object.slaveFuctionUUID
+//					"slaveTaskName":	object.slaveTaskName
+//					"slaveTask": {
+//							"displayName":object.slaveTask.displayName,
+//							"uuid":object.slaveTask.uuid
+//								 }
+					};
+console.log ('bindSlave() отправляет dto: ', dto);
+
+		$http.post (contextMainPath + '/bind', dto)
+		.then (
+		function successCallback (response) {
+console.log ('bindSlave() получила ответ: ', response.data);
+		},
+		function failureCallback (response)	{
+			console.log ('ОШИБКА: в bindSlave() получила ответ: ', response.data);
+		});
+	}
+
+//-------------------------------------------------------------------------------- датчики
+
+	$scope.turnSensor = function (sn)
+	{
+		$http.post (contextMainPath + '/sensor-turn', sn)
+		.then (
+		function successCallback (response) {
+			sn = response.data;
+console.log ('$scope.turnSensor() получила в ответ:', response.data);
+		},
+		function failureCallback (response)	{
+			console.log ('ОШИБКА: в turnSensor() бэк вернул: ', response.data);
+		});
+	}
+
+	$scope.alarmSensor = function (sn)
+	{
+		$http.post (contextMainPath + '/sensor-alarm', sn)
+		.then (
+		function successCallback (response) {
+			sn = response.data;
+console.log ('$scope.alarmSensor() получила в ответ:', response.data);
+		},
+		function failureCallback (response)	{
+			console.log ('ОШИБКА: в alarmSensor() бэк вернул: ', response.data);
+		});
+	}
+//-------------------------------------------------------------------------------- разрешения
+	$scope.showSlaveBindingForm = function (device) {
+		return device.slaveList != null && device.slaveList.length > 0;
+	}
+
+	$scope.showTasksForm = function (tasklist) {
+		 return tasklist != null;
 	}
 //-------------------------------------------------------------------------------- для отладки
 	$scope.timerStop = function() {

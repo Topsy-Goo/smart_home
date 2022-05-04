@@ -5,10 +5,10 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 import ru.gb.smarthome.common.smart.IConsolReader;
 import ru.gb.smarthome.common.smart.structures.Abilities;
-import ru.gb.smarthome.empty.DeviceClientEmpty;
+import ru.gb.smarthome.empty.complex.DevClientEmptyComplex;
 
 import javax.annotation.PostConstruct;
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.concurrent.Executors;
 
 import static ru.gb.smarthome.common.FactoryCommon.*;
@@ -16,9 +16,8 @@ import static ru.gb.smarthome.common.smart.enums.DeviceTypes.WASHER;
 
 @Component
 @Scope ("prototype")
-public class DeviceClientWasher extends DeviceClientEmpty
+public class DeviceClientWasher extends DevClientEmptyComplex
 {
-
     @Autowired
     public DeviceClientWasher (PropertyManagerWasher pmw) {
         super(pmw);
@@ -30,22 +29,25 @@ public class DeviceClientWasher extends DeviceClientEmpty
                 WASHER,
                 propMan.getName(),
                 propMan.getUuid(),
-                new ArrayList<>(propMan.getAvailableTasks()),
-                CAN_SLEEP);
-        exeService = Executors.newSingleThreadExecutor (r->{
+                CAN_SLEEP)
+                .setSlave (true)
+                .setTasks (propMan.getAvailableTasks())
+                .setSensors (propMan.getAvailableSensors())
+                .setSlaveTypes (propMan.slaveTypes())
+                ;
+        sensorsNumber = abilities.getSensors().size();
+        initSensors();
+
+        taskExecutorService = Executors.newFixedThreadPool (sensorsNumber + 1, r->{
                             Thread t = new Thread (r);
                             t.setDaemon (true);
-                            return t;
-                        });
+                            return t;});
         //if (DEBUG) {
             Thread threadConsole = new Thread (()->IConsolReader.runConsole (this));
             threadConsole.setDaemon(true);
             threadConsole.start();
         //}
     }
-
-    //@Override public void run () {  }
-
-    //TODO: Можно/нужно после стирки выдавать статус CMD_NEED_SERVICE (с сообщением?),
+    //TODO: Можно (нужно?) после стирки выдавать статус CMD_NEED_SERVICE (с сообщением?),
     // который сбрасывается из консоли или какой-нибудь кнопкой Продолжить.
 }

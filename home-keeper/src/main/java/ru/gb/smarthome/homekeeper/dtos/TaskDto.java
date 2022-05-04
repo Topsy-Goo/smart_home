@@ -12,29 +12,26 @@ import static ru.gb.smarthome.common.FactoryCommon.*;
 @Data
 public class TaskDto
 {
-    private String  name = DEF_TASK_NAME;
-    private String  tstate = DEF_TASK_STATE.tsName;
+    private String  name    = DEF_TASK_NAME;
+    private String  tstate  = DEF_TASK_STATE.tsName;
+    private String  message = DEF_TASK_MESSAGE;
     private boolean autonomic;
     private boolean interruptible;
     private long    duration;
     private long    remained;
     private long    elapsed;
-    private String  message = DEF_TASK_MESSAGE;
 
-    @SuppressWarnings("unchecked")
-    public  static final List<TaskDto> nullTasks = Collections.EMPTY_LIST;
+    public  static final List<TaskDto> nullTasks = Collections.emptyList();
 
     public TaskDto () {}
 
-    public static @NotNull TaskDto taskToDto (Task t)
-    {
-        TaskDto dto = new TaskDto();
+    public static @NotNull TaskDto taskToDto (Task t) {
         String s;
+        TaskDto dto = new TaskDto();
         if (t != null)
         {
             if ((s = t.getName()) != null)
                 dto.name = s;
-
             dto.tstate        = t.getTstate().get().tsName;
             dto.autonomic     = t.isAutonomic();
             dto.interruptible = t.isInterruptible();

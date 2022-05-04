@@ -12,7 +12,8 @@
 		<module>smart-fridge</module>	<!-- port 15551 -->
 		<module>smart-sequrity-controller</module>	<!-- port 15552 -->
 		<module>smart-washer</module>				<!-- port 15553 -->
-		<module>smart-weather-station</module>		<!-- port 15554 -->
+		<module>smart-weather-station</module>      <!-- port 15554 -->
+		<module>smart-sequrity-camera</module>      <!-- port 15555 -->
 	</modules>
 
 	<parent>

@@ -43,7 +43,8 @@ public class Task implements Serializable
 @param isAutonomic операция может продолжаться даже при отключении УУ от УД.
 @param durationInSeconds продолжительность операции с секундах.
 */
-    public Task (String taskName, boolean isAutonomic, long durationInSeconds, boolean isInterruptible)
+    public Task (String taskName, boolean isAutonomic, long durationInSeconds,
+                 boolean isInterruptible)
     {
         if (durationInSeconds < 0)
             throw new IllegalArgumentException();
@@ -58,12 +59,13 @@ public class Task implements Serializable
         message       = new AtomicReference<> (DEF_TASK_MESSAGE);
     }
 
-/**
-@param taskName <u>короткое</u> название операции.
-@param isAutonomic операция может продолжаться даже при отключении УУ от УД.
-@param duration продолжительность операции.
-@param timeUnits единицы времени для параметра duration.
-@param isInterruptible выполнение задачи можно прервать без ущерба для результата
+/** Конструктор с возможностью указать любую единицу измерения для duration, — конструктор
+ сам переведёт её в секунды.
+ @param taskName <u>короткое</u> название операции.
+ @param isAutonomic операция может продолжаться даже при отключении УУ от УД.
+ @param duration продолжительность операции.
+ @param timeUnits единицы времени для параметра duration.
+ @param isInterruptible выполнение задачи можно прервать без ущерба для результата
 */
     public Task (String taskName, boolean isAutonomic, long duration, @NotNull TimeUnit timeUnits,
                  boolean isInterruptible)
@@ -73,7 +75,7 @@ public class Task implements Serializable
 
     private Task () {} //< требование сериализации.
 
-    /** Конструктор для экземпляров Task, назначение которых — только информирование. */
+/** Конструктор для «облегчённых» экземпляров Task, назначение которых — только информирование. */
     public Task (@NotNull String tname, TaskStates ts, String tmessage) {
         name     = tname;
         tstate   = new AtomicReference<>(ts);

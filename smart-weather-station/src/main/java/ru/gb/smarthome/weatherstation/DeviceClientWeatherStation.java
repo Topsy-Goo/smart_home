@@ -2,7 +2,7 @@ package ru.gb.smarthome.weatherstation;
 
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
-import ru.gb.smarthome.empty.DeviceClientEmpty;
+import ru.gb.smarthome.empty.client.DeviceClientEmpty;
 
 @Component
 @Scope ("prototype")

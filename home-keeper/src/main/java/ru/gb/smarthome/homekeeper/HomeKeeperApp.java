@@ -1,9 +1,7 @@
 package ru.gb.smarthome.homekeeper;
 
-import org.flywaydb.core.Flyway;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import ru.gb.smarthome.common.PropertyManager;
 import ru.gb.smarthome.common.smart.structures.Port;
 
 import java.util.ArrayList;
@@ -21,7 +19,6 @@ public class HomeKeeperApp
     {
         if (init ()) {
             SpringApplication.run (HomeKeeperApp.class, args);
-            //FactoryHome.startDeviceServer ();
         }
     }
 
@@ -32,8 +29,7 @@ public class HomeKeeperApp
             ports.add (new Port());
         }
         if (initFlyway()) {
-            //if (propMan.readAllProperties ("propertyFile"))
-                ok = true;
+            ok = true;
         }
         return ok;
     }
@@ -53,6 +49,4 @@ public class HomeKeeperApp
         flyway.migrate();*/
         return true;
     }
-
-    //public static Port f () {}
 }

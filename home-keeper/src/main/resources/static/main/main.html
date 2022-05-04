@@ -1,41 +1,37 @@
 <div style="margin: 10px;">
-	<h5>Список устройств, подключеных к Умному дому.</h5>
-	<p>&nbsp;</p>
+<!--	<h5>Список устройств, подключеных к Умному дому.</h5>-->
+<!--	<p>&nbsp;</p>-->
 
-	{{home_dto.string}}
+	{{home_dto.name}}
 	<br>
-	<br><button ng-click="timerStop()">Таймер стоп</button>
+	{{home_dto.string}}
+<!--	<br><button ng-click="timerStop()">Таймер стоп</button>-->
+	<br>
+	home_dto.pollInterval = {{home_dto.pollInterval}}<br>
+	$rootScope.pollInterval = {{pollInterval}}
 	<br>
 
 <br>
 	<div ng-repeat="type_group in home_dto.groups"><!-- HTML-контейнер для устройств одного типа -->
 		<h4 align="center">{{type_group.typeName}}</h4>
-		<div ng-repeat="device in type_group.devices" class="device_panel"><!-- ng-repeat работатет в <div>, но не работает в <table> -->
-<!-- заголовок панели — виден всегда. -->
-			<div><!-- ng-init="deviceState=getState(device.abilities.uuid)"  ng-model="deviceCurrentState=getDeviceState(device.abilities.uuid)" -->
+		<div ng-repeat="device in type_group.devices" class="device_panel">
+<!-- Заголовок панели — виден всегда. -->
+			<div>
 				<table class="table table-striped margin_bottom_0">
-					<tr><td class="col-3">{{device.friendlyName}}</td>
-<!--						<td class="col-2">{{deviceState.opCode}}<br>
-										  {{deviceState.errCode}}</td>-->
+					<tr><td class="col-3">{{device.abilities.vendorString}}<br>{{device.friendlyName}}</td>
+
 						<td class="col-2">{{device.state.opCode}}<br>
 										  {{device.state.errCode}}</td>
-<!--						<td class="col-5">{{getActiveString(deviceState.active)}}<br>
-										  {{deviceState.currentTask.name}} ({{deviceState.currentTask.tstate}})</td>-->
+
 						<td class="col-5">{{getActiveString(device.state.active)}}<br>
-
-
-
-<label for="file">{{device.state.currentTask.name}} ({{device.state.currentTask.tstate}}) :</label><br>
-<progress	id="file" max="100" style="width: 100%;"
-			value="{{device.state.currentTask.elapsed * 100 / device.state.currentTask.duration}}">
-	<!--{{device.state.currentTask.elapsed  / device.state.currentTask.duration}} сек.-->
-</progress>
-
-<!--							<div class="progress">-->
-<!--								<br><input type="range" class="form-range" min="0" max="5" id="customRange2" disabled>-->
-
-<!--							</div>-->
+							<label for="task_progress">{{device.state.currentTask.name}} ({{device.state.currentTask.tstate}}) :</label>
+							<progress	id="task_progress"		style="width: 100%;"
+										value="{{device.state.currentTask.elapsed}}"
+										max="{{device.state.currentTask.duration}}">
+								{{device.state.currentTask.elapsed}} из {{device.state.currentTask.duration}} сек.
+							</progress>
 						</td>
+
 						<td class="col-2">
 							<!-- Кнопка Активировать/Деактивировать устройство. -->
 							<button class="btn btn-outline-primary btn-sm justify-end"
@@ -55,14 +51,35 @@
 					</tr>
 				</table>
 			</div>
-<!-- Часть панели, которая может быть скрыта. -->
+<!-- Основная часть панели, которая может быть скрыта. -->
 			<div class="almost_windows" ng-show="isPanelOpened(device.abilities.uuid)"><!--  -->
 				<!-- <img src="img/Steampunk.jpg" alt="JPG">-->
 				<ul><li>device.abilities.deviceType : {{device.abilities.deviceType}}</li>
-					<li>device.abilities.vendorName : {{device.abilities.vendorName}}</li>
+					<li>device.abilities.vendorString : {{device.abilities.vendorString}}</li>
 					<li>device.abilities.uuid : 	  {{device.abilities.uuid}}</li><!--  -->
 					<li>device.abilities.canSleep :   {{device.abilities.canSleep}}</li>
-					<li style="width: 100%;">
+					<li>device.abilities.master :   {{device.abilities.master}}</li>
+					<li>device.abilities.slave :   {{device.abilities.slave}}</li>
+					<li>device.abilities.tasks :	<span ng-repeat="ts in device.abilities.tasks"><br>	  <b>{{ts.name}}</b>, autonomic:{{ts.autonomic}}, interruptible:{{ts.interruptible}}, duration:{{ts.duration}}сек., message:{{ts.message}}</span></li>
+					<li>device.abilities.sensors :	<span ng-repeat="sen in device.abilities.sensors"><br><b>{{sen.type}}</b>, on:{{sen.on}}, alarm:{{sen.alarm}}</span></li>
+<!-- Состояния датчиков УУ. -->
+					<!--<li>device.state.sensors : <span ng-repeat="sn in device.state.sensors"><br>{{sn}}</span></li>-->
+					<li>device.state.sensors :
+						<span ng-repeat="sn in device.state.sensors"><br>
+							{{sn.type}} ({{sn.name}})
+							<button ng-click="turnSensor(sn)">
+								{{sn.on?"Выключить":"Включить"}}
+							</button>
+							{{sn.on?"Включен":"Выключен"}}
+							<button ng-click="alarmSensor(sn)"><!-- disabled="{{sn.on}}"  -->
+								Тест
+							</button>
+							{{sn.alarm?"ТРЕВОГА":"наблюдение"}}
+							bindable:{{sn.bindable?"bindable":"non bindable"}}•{{sn.uuid}}•{{sn.deviceUuid}}
+						</span>
+					</li>
+					<li>device.slaveList: 			<span ng-repeat="slave in device.slaveList"><br>	  <b>{{slave.displayName}}</b>, {{slave.uuid}}</span></li>
+					<li style="width: 100%;"	ng-if="showTasksForm(device.abilities.tasks)">
 <!-- Форма для выбора задачи из списка доступных задач. -->
 						<form	class="align-middle col-12"
 								ng-submit="launchTask(device,taskToLaunch)">
@@ -70,34 +87,86 @@
 								device.abilities.tasks&nbsp;:&nbsp;
 								<select	id="taskList"	name="taskList"
 										class="form-select-sm"
-                                		style="margin-left: 10px; padding: 2px; border-color: #aaaadd; border-radius: 3px; border-width: 2px;"
+                                		style="margin-left: 10px; padding: 2px; border-color: #aaaadd; border-radius: 3px; border-width: 2px; width: 200px;"
 										required="required"
-										ng-model="taskToLaunch"
-										title="Выберете задачу, которую хотите запустить.">
+										ng-model="taskToLaunch">
 									<option selected></option>
-									<option ng-repeat="tsk in device.abilities.tasks"
-											value="{{tsk.name}}">{{tsk.name}} ({{tsk.duration/60}} мин.)
+									<option ng-repeat="tsk in device.abilities.tasks" value="{{tsk.name}}">
+											{{tsk.name}} ({{tsk.duration/60}} мин.)
 									</option>
 								</select>
 								<button id="taskSubmit"
 										class="btn-sm btn-outline-warning"
 										style="margin-left: 10px;"
-										type="submit"
-										title="Запустить выбраную задачу.">Запустить</button>
+										type="submit">
+										Запустить
+								</button>
 								<button id="taskSchedule"
 										class="btn-sm btn-outline-default"
 										style="margin-left: 10px;"
-										ng-click="scheduleTask(device,taskToLaunch)"
-										title="Запланировать запуск выбраной задачи.">Запланировать</button>
+										ng-click="scheduleTask(device,taskToLaunch)">
+										Запланировать
+								</button>
+							</div>
+						</form>
+					</li>
+					<!-- device.slaveList приходит пустой. Чтобы его заполнить, запрашиваем бэк.
+						 Кажется, ng-if выполняется один раз и раньше, чем ng-init.
+						 Кажется, ng-show выполняется после ng-init.
+						 Кажется, ng-if и ng-show вызываются всякий раз, как на странице что-то обновляется; видимо, поэтому
+						 браузер бесконечно грузит из бэка slaveList, если его запрашивать из showSlavesForm().
+					-->
+<!-- Форма для связывания функций устройств. -->
+					<li style="width: 100%;" ng-init="loadDeviceSlaveList(device);" ng-show="showSlaveBindingForm(device)"><!--	  -->
+						<form	class="align-middle col-12"	ng-submit="bindSlave (device, slaveBindingModel)">
+							<div class="input-group-sm" style="margin-left: -15px;">
+								<!-- Задача мастера: -->
+								device.abilities.tasks :
+								<select	id="taskList-bind"	name="taskList"
+										class="form-select-sm"
+                                		style="margin-left: 10px; padding: 2px; border-color: #aaaadd; border-radius: 3px; border-width: 2px; width: 150px;"
+										required="required"
+										ng-model="slaveBindingModel.masterTaskName">
+									<option selected></option>
+									<option ng-repeat="tskb in device.abilities.tasks" value="{{tskb.name}}">{{tskb.name}}</option>
+								</select>
+								<!-- Слэйв: -->
+								device.slaveList : <!--{{device.slaveList}}-->
+								<select	id="slaveList-bind"
+										class="form-select-sm"
+										style="margin-left: 10px; padding: 2px; border-color: #aaaadd; border-radius: 3px; border-width: 2px; width: 150px;"
+                                		required="required"
+										ng-model="slaveBindingModel.slaveUUID"
+										ng-change="requestSlaveBindableFunctions(device, slaveBindingModel.slaveUUID)">
+										<!-- ng-change реагирует на выбор непустого пункта, что позволяет подгрузить список для
+											 следующего списка, который использует device.bindableFunctions. -->
+									<option selected></option>
+									<option ng-repeat="slave in device.slaveList" value="{{slave.uuid}}">{{slave.displayName}}</option>
+								</select>
+								<!-- ф-ции слэйва -->
+								device.bindableFunctions : <ul><li ng-repeat="f in device.bindableFunctions">{{f.displayName}} | {{f.uuid}}</li></ul>
+								<select	id="slaveTask-bind"
+										class="form-select-sm"
+										style="margin-left: 10px; padding: 2px; border-color: #aaaadd; border-radius: 3px; border-width: 2px; width: 150px;"
+										required="required"
+										ng-model="slaveBindingModel.slaveFuctionUUID">
+									<option selected></option>
+									<option ng-repeat="tsk in device.bindableFunctions" value="{{tsk.uuid}}">&nbsp;{{tsk.displayName}}&nbsp;&nbsp;</option>
+								</select>
+								<button id="slaveBind-bind"
+										class="btn-sm btn-outline-warning"
+										style="margin-left: 10px;"
+										type="submit">
+										Связать
+								</button>
 							</div>
 						</form>
 					</li>
 <!--				<li>device.state.active :  {{device.state.active}}</li>
 					<li>device.state.opCode :  {{device.state.opCode}}</li>
 					<li>device.state.errCode : {{device.state.errCode}}</li>-->
-					<!-- Текущая задача. -->
+<!-- Текущая задача. -->
 					<li>device.state.currentTask :<!--  <span ng-show="device.state.currentTask.remained <= 0">(нет текущих задач)</span> -->
-<!-- Описание состояния УУ. -->
 						<select class="form-select col-12" size="8"><!-- ng-show="device.state.currentTask.remained > 0"  -->
 							<!--<option selected></option>-->
 							<option value="{{device.state.currentTask.name}}"			>device.state.currentTask.name : 		  {{device.state.currentTask.name}}			</option>
@@ -112,14 +181,14 @@
 					</li>
 <!-- Форма для изменения device.friendlyName. -->
 					<li><form	class="align-middle col-12" ng-submit="tryNewFriendlyName(device, newFriendlyName);">
-								<!--   -->
-							<div class="input-group input-group-sm" style="margin-left: -15px;">
+								<!--  style="margin-left: -15px;"  -->
+							<div class="input-group input-group-sm">
 								device.friendlyName&nbsp;:&nbsp;{{device.friendlyName}}&nbsp;
 								<input	id="friendlyNameInput"
                                 		class="form-control form-control-sm"
                                 		style="margin-left: 10px;"
                                 		type="text"
-										ng-model="newFriendlyName"
+										ng-model="newFriendlyName.string"
 										ng-trim="true"
 										required="required"><!--   input-group     -->
 								<button	id="friendlyNameSubmit"
@@ -129,42 +198,9 @@
 							</div>
 						</form>
 					</li>
-<!--				<li><form>
-							<input	id="inp" type="text" required="required">
-							<button>Ok</button>
-						</form>
-					</li>-->
-					<!--<li>device.htmlPanelOpened&nbsp;:&nbsp;{{device.htmlPanelOpened}}</li>-->
 				</ul>
 			</div>
 		</div>
 	</div>
 	<br><br>
-
-<!--	<button class="btn btn-primary btn-sm" >Управление устройствами</button>-->
-
-<!--	<table class="table table-success table-striped margin_bottom_0">
-		<thead class="table-dark">
-			<tr>
-				<th>
-					(заголовок к рабочей области устройства)
-				</th>
-			</tr>
-		</thead>
-		<tbody>
-			<tr><td>
-					(рабочая область)
-				</td>
-			</tr>
-		</tbody>
-		<tfoot class="table-primary">
-			<tr>
-				<td>
-					(футер к рабочей области устройства)
-				</td>
-			</tr>
-		</tfoot>
-	</table>-->
-
-<!-- Конец экспериментальной части. -->
 </div>
