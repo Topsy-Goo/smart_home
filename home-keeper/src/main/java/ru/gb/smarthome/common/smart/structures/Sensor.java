@@ -8,18 +8,16 @@ import ru.gb.smarthome.homekeeper.dtos.SensorDto;
 
 import java.io.Serializable;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static java.lang.String.format;
 import static ru.gb.smarthome.common.FactoryCommon.*;
-import static ru.gb.smarthome.common.smart.enums.SensorStates.SST_OFF;
 
 public class Sensor implements Serializable {
 /** Стандартный тип датчика.<br>Неизменяемый параметр. */
     @Getter private SensorTypes   stype;
 
     //private AtomicReference<SensorStates> state;
-    private SensorStates state;
+    private SensorStates sstate;
 
 /** Изменяемое имя датчика. */
     @Getter private String name;
@@ -36,7 +34,7 @@ public class Sensor implements Serializable {
     public Sensor (@NotNull SensorTypes type, String nAme, SensorStates stat, boolean bindabl, UUID uu) {
         stype = type;
         name  = (nAme == USE_DEF_SENSOR_NAME) ? type.sntName : nAme;
-        state = stat;
+        sstate = stat;
         bindable = bindabl;
         uuid  = uu;
     }
@@ -50,23 +48,23 @@ public class Sensor implements Serializable {
     }
 
     public Sensor copyOf (Sensor sen) {
-        return new Sensor (sen.stype, sen.name, sen.state, sen.bindable, sen.uuid);
+        return new Sensor (sen.stype, sen.name, sen.sstate, sen.bindable, sen.uuid);
     }
 
-    public Sensor setState (SensorStates val) { state = val; return this; }
+    public Sensor setSstate (SensorStates val) { sstate = val; return this; }
     //public Sensor setUuid  (UUID val)         { uuid = val;  return this; }
 
-    public String       getName ()  { return  name; }
-    public SensorStates getState () { return state; }
+    //public String       getName ()   { return  name; }
+    public SensorStates getSstate () { return sstate; }
 
     @Override public String toString () {
         return format ("\n {%s (%s), %s, %s, %s, %s}"//, %s
-                       ,stype.sntName
-                       ,stype.name()
-                       ,name
-                       ,state.name()
+                       , stype.sntName
+                       , stype.name()
+                       , name
+                       , sstate.name()
                        ,bindable == BINDABLE ? "B":"b"
-                       ,uuid.toString()
+                       , uuid.toString()
                       );
     }
 

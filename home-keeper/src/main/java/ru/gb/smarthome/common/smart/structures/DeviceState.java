@@ -52,7 +52,7 @@ public class DeviceState implements Serializable
             t = currentTask.safeCopy();
         return new DeviceState (opCode, errCode)
                         .setCurrentTask (t)
-                        .setSensors (new HashMap<>(sensors)/*Collections.unmodifiableMap (sensors)*/);
+                        .setSensors (new HashMap<>(sensors));
     }
 
     public DeviceState setOpCode (@NotNull OperationCodes val) { opCode = val;    return this; }
@@ -79,4 +79,3 @@ public class DeviceState implements Serializable
                       sb.toString());
     }
 }
-//@param activ отображает текущее состояние активности УУ : ACTIVE или NOT_ACTIVE .

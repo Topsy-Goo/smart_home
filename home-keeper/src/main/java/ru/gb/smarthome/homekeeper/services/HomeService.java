@@ -3,7 +3,6 @@ package ru.gb.smarthome.homekeeper.services;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
-import ru.gb.smarthome.common.smart.ISmartDevice;
 import ru.gb.smarthome.common.smart.ISmartHandler;
 import ru.gb.smarthome.common.smart.enums.DeviceTypes;
 import ru.gb.smarthome.common.smart.enums.SensorStates;
@@ -19,8 +18,7 @@ import java.util.stream.Collectors;
 import static java.lang.String.format;
 import static ru.gb.smarthome.common.FactoryCommon.*;
 import static ru.gb.smarthome.common.smart.enums.BinatStates.BS_CONTRACT;
-import static ru.gb.smarthome.common.smart.enums.OperationCodes.CMD_SENSOR;
-import static ru.gb.smarthome.common.smart.enums.OperationCodes.CMD_TASK;
+import static ru.gb.smarthome.common.smart.enums.OperationCodes.*;
 import static ru.gb.smarthome.common.smart.enums.SensorStates.*;
 import static ru.gb.smarthome.common.smart.enums.TaskStates.TS_IDLE;
 import static ru.gb.smarthome.homekeeper.HomeKeeperApp.DEBUG;
@@ -42,30 +40,11 @@ public class HomeService {
 
 
     {
-printf("\n{нестатическая инициализация} поток: %s\n", Thread.currentThread());
+//printf("\n{нестатическая инициализация} поток: %s\n", Thread.currentThread());
         for (DeviceTypes t : DeviceTypes.values()) {
              typeGroups.put(t, new LinkedList<>());
              typeToUuidSlaves.put(t, new LinkedList<>());
         }
-    }
-
-/**  */
-    public boolean bind (BindRequestDto dto)
-    {
-        UUID masterUuid = UUID.fromString (dto.getMasterUUID());
-        UUID slaveUuid  = UUID.fromString (dto.getSlaveUUID());
-        ISmartHandler master = uuidToHandler.get (masterUuid);
-        ISmartHandler slave  = uuidToHandler.get (slaveUuid);
-        String masterTaskName  = dto.getMasterTaskName();
-        UUID slaveFunctionUuid = UUID.fromString (dto.getSlaveFuctionUUID());
-
-    //Отправляем сообщения ведомому и ведущему устройствм, но мастеру отсылаем новость в первую очередь,
-    // чтобы опередить возможный поток сообщений от слейва:
-        Binate bm = new Binate (BS_CONTRACT, MASTER, slaveUuid, masterTaskName);
-        master.pair(bm);
-        Binate bs = new Binate (BS_CONTRACT, SLAVE, masterUuid, slaveFunctionUuid);
-        slave.pair(bs);
-        return true;
     }
 
 /** Добавление УУ в список обнаруженых устройств. */
@@ -81,6 +60,7 @@ printf("\n{нестатическая инициализация} поток: %s
             if (info.slave) {
                 LinkedList<UUID> sg = typeToUuidSlaves.get (info.deviceType);
                 addIfAbsent (sg, info.uuid);
+                info.abilities.addBindableFunctions (friendlyNames);
             } //добавляем в слэйвы
 
             List<ISmartHandler> handGroup = typeGroups.get (info.deviceType);
@@ -103,11 +83,12 @@ printf("\n{нестатическая инициализация} поток: %s
 
             if (info.slave) {
                 LinkedList<UUID> sg = typeToUuidSlaves.get (info.deviceType);
-                while (sg.remove(info.uuid));
+                while (sg.remove (info.uuid)); //sg.removeIf ((e)->e.equals (info.uuid)); //
+                info.abilities.removeBindableFunctions (friendlyNames);
             } //удаляем из слэйвов
 
             List<ISmartHandler> hanGroup = typeGroups.get (info.deviceType);
-            while (hanGroup.remove(device));
+            while (hanGroup.remove(device)); //hanGroup.removeIf ((d)->d.equals (device)); //
 
             printf ("\nУдалено УУ: %s (%s, %s, %s).\n",
 //TODO: лучше сделать аналог lastNews для УД и пулять такие сообщения туда.
@@ -133,17 +114,16 @@ printf("\n{нестатическая инициализация} поток: %s
     }
 
     public boolean sensorAlarmTest (SensorDto senDto) {
-        //return sensorSetState (senDto, senDto.isAlarm() ? SST_ON : SST_ALARM); //< Alarm test включает/выключает сигнал тревоги.
-        return sensorSetState (senDto, SST_ALARM);    //< Alarm test включает сигнал тревоги на время. (см.также DeviceClientEmpty.onCmdSensor())
+        return sensorSetState (senDto, SST_ALARM);
     }
 
     private boolean sensorSetState (SensorDto senDto, SensorStates state)
     {
         UUID deviceUuid = UUID.fromString (senDto.getDeviceUuid());
         ISmartHandler device = uuidToHandler.get(deviceUuid);
-        if (device != null) {
-            Sensor sensor = new Sensor(senDto).setState (state);
-
+        if (device != null)
+        {
+            Sensor sensor = new Sensor(senDto).setSstate(state);
             Message message = new Message().setOpCode(CMD_SENSOR)
                                            .setData (sensor);
             return device.offerRequest (message);  //(о результате запроса узнаем позже)
@@ -206,18 +186,11 @@ printf("\n{нестатическая инициализация} поток: %s
 
 /** Переключаем состояние DeviceState.active по команде из фронта.
  @param uuidStr строковое представление UUID устрйоства, активное состояние которого нужно изменить.
- @return новое состояние DeviceState.active указанного устройства. */
+ @return TRUE, если удалось изменить активность УУ. */
     public boolean toggleActiveState (String uuidStr)
     {
-        boolean result = false;
         ISmartHandler device = deviceByUuidString (uuidStr);
-
-        if (device != null) {
-            DeviceInfo info = handlerToInfo.get(device);
-            result = device.activate (!info.device.isActive());
-            info.device.activate (result);
-        }
-        return result;
+        return (device != null) && device.activate (!device.isActive());
     }
 
 /** Пробуем запустить задачу, имя которой пришло от фронта.
@@ -230,10 +203,8 @@ printf("\n{нестатическая инициализация} поток: %s
         ISmartHandler device = deviceByUuidString (uuidStr);
         if (device != null)
         {
-            if (device.isActive())
-            {
-                Task t = new Task(taskname, TS_IDLE, DEF_TASK_MESSAGE);
-                Message message = new Message().setOpCode(CMD_TASK).setData(t);
+            if (device.isActive()) {
+                Message message = new Message().setOpCode(CMD_TASK).setData (taskname);
 
                 if (device.offerRequest (message))
                     result = FORMAT_LAUNCHING_TASK_;
@@ -254,9 +225,6 @@ printf("\n{нестатическая инициализация} поток: %s
     {
         ISmartHandler device = deviceByUuidString (uuidStr);
         boolean ok = (device != null  &&  device.setDeviceFriendlyName (newFriendlyName));
-/*        DeviceInfo info;
-        if (ok && (info = handlerToInfo.get(device)) != null)
-            info.setDeviceFriendlyName (newFriendlyName);*/
         return ok;
 //TODO: лучше сделать аналог lastNews для УД и пулять сообщения туда.
     }
@@ -299,9 +267,10 @@ printf("\n{нестатическая инициализация} поток: %s
     }
 
 /** По UUID УУ возвращаем список имён его связываеых ф-ций. */
+    //@SuppressWarnings("all")
     public @NotNull List<UuidDto> getBinableFunctionNames (String uuidStr)
     {
-        List<UuidDto> list = new ArrayList<>();
+        List<UuidDto> list = Collections.emptyList();
         ISmartHandler device;
         DeviceInfo info;
 
@@ -309,8 +278,69 @@ printf("\n{нестатическая инициализация} поток: %s
         &&  (info   = handlerToInfo.get (device)) != null)
         {
             List<UuidDto> functions = info.abilities.getBindableFunctionNames (friendlyNames);
-            list.addAll (functions);
+            if (functions != null)
+                list = functions;
         }
         return list;
     }
+
+/** Собираем в один список dto-шки мастер-контрактов устройства. */
+    public List<BinateDto> getContracts (String strUuid)
+    {
+        try {
+            UUID masterUuid = UUID.fromString (strUuid);
+            ISmartHandler master = uuidToHandler.get (masterUuid);
+            return master.getMasterContractsDto();
+        }
+        catch (Exception e) { return null; }
+    }
+
+/** Вызывается хэндлером ведомого УУ для передачи хэндлеру ведущего УУ информацию о событии.
+ @param masterUuid UUID ведущего УУ, которому адресована информация о событии.
+ @param signal Описание события. */
+    public void slaveCallback (UUID masterUuid, Signal signal)
+    {
+        ISmartHandler master = uuidToHandler.get (masterUuid);
+        if (master != null && master.isActive())
+            master.offerRequest (new Message (CMD_SIGNAL, /*masterUuid,*/ signal));
+        //Неактивное УУ не должно принимать сигналы.
+    }
+
+/** Связываем два хэндлера контрактом типа ведущий-ведомый, или прекращаем их контаркт.
+ @param dto запрос, описывающий характеристики контракта, будущего или существующего.
+ @param bind указывает, что именно нужно сделать: создать контракт или удалить. */
+    public boolean bind (BindRequestDto dto, boolean bind)
+    {
+        try {
+            UUID masterUuid = UUID.fromString (dto.getMasterUUID());
+            UUID slaveUuid  = UUID.fromString (dto.getSlaveUUID());
+            ISmartHandler master = uuidToHandler.get (masterUuid);
+            ISmartHandler slave  = uuidToHandler.get (slaveUuid);
+            String masterTaskName  = dto.getMasterTaskName();
+            UUID slaveFunctionUuid = UUID.fromString (dto.getSlaveFuctionUUID());
+
+            Binate bm = new Binate (BS_CONTRACT, MASTER, slaveUuid, slaveFunctionUuid, masterTaskName, null); //< нельзя вместо slaveUuid      передавать null, а то не будет работать equals().
+            Binate bs = new Binate (BS_CONTRACT, SLAVE, masterUuid, slaveFunctionUuid, masterTaskName, null); //< нельзя вместо masterTaskName передавать null, а то не будет работать equals().
+            if (bind == BIND) {
+                //Отправляем сообщения ведомому и ведущему устройствм, но мастеру отсылаем
+                // новость в первую очередь, чтобы опередить возможный поток сообщений от слейва:
+                if (master.pair(bm)) {
+                    if (slave.pair(bs)) {
+                        BinateDto binateDto = new BinateDto (masterTaskName, slave.getDeviceFriendlyName(),
+                                                             friendlyNames.get (slaveFunctionUuid),
+                                                             slaveUuid, slaveFunctionUuid);
+                        bm.setDto (binateDto);
+                        return true;
+                    }
+                    master.unpair (bm);
+            }   }
+            else return slave.unpair(bs) & master.unpair(bm); //< должны выполниться оба метода.
+                //Отправляем сообщения ведомому и ведущему устройствм, но слейву отсылаем
+                // новость в первую очередь, чтобы он не слал мастеру сообщения, когда мы будем
+                // мастера отключать.
+        }
+        catch (Exception e){ e.printStackTrace(); }
+        return false;
+    }
+
 }

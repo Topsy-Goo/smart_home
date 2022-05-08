@@ -26,11 +26,11 @@ public interface IConsolReader extends ISmartDevice {
 /** Включение/выключение в УУ режима CMD_ERROR. */
     void crEnterErrorState (String errCode);
 
-/** Включение в УУ режима CMD_BUSY. */
+/* * Включение в УУ режима CMD_BUSY. */
     //void crEnterBusyState ();
 
-/** Включение в УУ режима CMD_READY. */
-    void crEnterReadyState ();
+/* * Включение в УУ режима CMD_READY. */
+    //void crEnterReadyState ();
 
 /** Выполнить указанную задачу. */
     void crExecuteTask (String taskname) throws InterruptedException;
@@ -82,8 +82,8 @@ public interface IConsolReader extends ISmartDevice {
                 {
                 //case CMD_SLEEP:
                 //    break;
-                case CMD_READY: device.crEnterReadyState();
-                    break;
+                //case CMD_READY: device.crEnterReadyState();
+                //    break;
                 case CMD_STATE: device.crState();
                     break;
                 case CMD_TASK:  device.crExecuteTask (param1);
@@ -92,7 +92,7 @@ public interface IConsolReader extends ISmartDevice {
                 //    break;
                 case CMD_ABILITIES: device.crAbilities();
                     break;
-                case CMD_ERROR: device.crEnterErrorState(param1); //< отсутствие параметра сбрасывет ошибку (также см.case CMD_READY).
+                case CMD_ERROR: device.crEnterErrorState(param1); //< отсутствие параметра сбрасывет ошибку.
                     break;
                 //case CMD_SENSOR:    device.crSetSensorState (param1, param2);
                 //    break;

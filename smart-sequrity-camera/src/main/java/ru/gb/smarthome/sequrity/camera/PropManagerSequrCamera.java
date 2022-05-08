@@ -23,9 +23,8 @@ public class PropManagerSequrCamera extends PropManagerComplex
 
     @PostConstruct
     @Override public void init() {
-        tasks.add (new Task ("регистратор",                AUTONOMIC, 0L, TimeUnit.SECONDS, INTERRUPTIBLE).setMessage("Начать запись."));
-        tasks.add (new Task ("включение по датчику",       AUTONOMIC, 0L, TimeUnit.SECONDS, INTERRUPTIBLE).setMessage("Начать дежурство."));
-        tasks.add (new Task ("режим просмотра (стриминг)", AUTONOMIC, 0L, TimeUnit.SECONDS, INTERRUPTIBLE).setMessage("Начать передачу видео."));
+        tasks.add (new Task ("режим просмотра", AUTONOMIC, 3600L, TimeUnit.SECONDS, INTERRUPTIBLE).setMessage("Начать передачу видео."));
+//      tasks.add (new Task ("регистратор",     AUTONOMIC,    0L, TimeUnit.SECONDS, INTERRUPTIBLE).setMessage("Начать запись."));
         slaveTypes.add (SEQURITY_CONTROLLLER);
         slaveTypes.add (WASHER);
     }

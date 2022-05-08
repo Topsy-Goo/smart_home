@@ -33,7 +33,7 @@ public class SensorDto {
             dto.name     = sensor.getName();
             dto.uuid     = sensor.getUuid().toString();
             dto.bindable = sensor.isBindable();
-            SensorStates sstate = sensor.getState();
+            SensorStates sstate = sensor.getSstate();
             dto.on    = sstate.on;
             dto.alarm = sstate.alarm;
         }

@@ -1,16 +1,17 @@
 package ru.gb.smarthome.common.smart.enums;
 
-public enum TaskStates {
-     TS_IDLE         (true,  false, false, "Бездействует")  //< не выполняется (умолчальное значение; задача может быть запущена)
-    ,TS_DONE         (true,  false, false, "Готово")  //< выполнено
+public enum TaskStates
+{
+     TS_IDLE         ( true, false, false, "Бездействует")  //< не выполняется (умолчальное значение; задача может быть запущена)
+    ,TS_DONE         ( true, false, false, "Готово")  //< выполнено
     ,TS_LAUNCHING    (false,  true, false, "Запуск…") //< готовится к запуску
     ,TS_RUNNING      (false,  true, false, "Выполняется")
     ,TS_NEED_SERVICE (false,  true, false, "Ждёт обслуживания") //< выполняется, но требуется участие юзера для продолжение выполнения
-    ,TS_INTERRUPTED  (true,  false, false, "Выполнение прервано") //< прерываемая задача остановлена (прерываемая == может быть остановлена в любое время)
+    ,TS_INTERRUPTED  ( true, false, false, "Выполнение прервано") //< прерываемая задача остановлена (прерываемая == может быть остановлена в любое время)
     ,TS_ERROR        (false, false,  true, "Ошибка.") //< неустранимая ошибка (задача не может продолжиться)
-    ,TS_NOT_SUPPORTED(true,  false,  true, "Не поддерживается")
-    ,TS_REJECTED     (true,  false,  true, "Запуск невозможен")  //< отказано в выполнении задачи
-    ,TS_NONE         (true,  false,  true, "—")
+    ,TS_NOT_SUPPORTED( true, false,  true, "Не поддерживается")
+    ,TS_REJECTED     ( true, false,  true, "Запуск невозможен")  //< отказано в выполнении задачи
+    ,TS_NONE         ( true, false,  true, "—")
     ;//               repl   runn    lerr   tsNm
 /** Количество элементов в TaskStates. */
     public static final int length = values().length;
@@ -42,6 +43,4 @@ public enum TaskStates {
         launchingError = launchErr;
         tsName = tsN;
     }
-    //public boolean greaterThan (TaskStates other) { return (other == null) || this.compareTo (other) > 0; }
-    //public boolean lesserThan (TaskStates other) { return (other == null) || this.compareTo (other) < 0; }
 }

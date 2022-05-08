@@ -45,10 +45,7 @@ public class DevClientSequrController extends DevClientEmptyComplex
         sensorsNumber = abilities.getSensors().size();
         initSensors();
 
-        taskExecutorService = Executors.newFixedThreadPool (sensorsNumber +1, r->{ // +1 — на выполнение
-                        // задач (т.к. задачи не могут выполняться параллельно друг с другом,  им хватит
-                        // одного потока на всех). Остальные потоки будут изображать тревожные состояния
-                        // датчиков — спать в течение некоторого промежутка времени.
+        taskExecutorService = Executors.newSingleThreadExecutor (r->{
                         Thread t = new Thread (r);
                         t.setDaemon (true);
                         return t;});

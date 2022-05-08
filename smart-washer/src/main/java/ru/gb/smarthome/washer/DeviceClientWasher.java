@@ -38,7 +38,7 @@ public class DeviceClientWasher extends DevClientEmptyComplex
         sensorsNumber = abilities.getSensors().size();
         initSensors();
 
-        taskExecutorService = Executors.newFixedThreadPool (sensorsNumber + 1, r->{
+        taskExecutorService = Executors.newSingleThreadExecutor (r->{
                             Thread t = new Thread (r);
                             t.setDaemon (true);
                             return t;});

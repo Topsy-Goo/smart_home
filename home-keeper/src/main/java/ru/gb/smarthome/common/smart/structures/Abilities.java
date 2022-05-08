@@ -84,10 +84,10 @@ public final class Abilities implements Serializable
                      .setSlaveTypes (PropertyManager.copyDeviceTypesList (slaveTypes));
     }
 
-    public Abilities setTasks   (Set<Task> val)    { tasks = val;   return this; }
-    public Abilities setMaster       (boolean val)          { master = val;      return this; }
-    public Abilities setSlave        (boolean val)          { slave = val;       return this; }
-    public Abilities setSlaveTypes   (Set<DeviceTypes> val) { slaveTypes = val;  return this; }
+    public Abilities setTasks   (Set<Task> val) { tasks = val;   return this; }
+    public Abilities setMaster  (boolean val)   { master = val;  return this; }
+    public Abilities setSlave   (boolean val)   { slave = val;   return this; }
+    public Abilities setSlaveTypes (Set<DeviceTypes> val) { slaveTypes = val;  return this; }
     public Abilities setSensors (List<Sensor> val) {
         sensors = (val != null) ? val : Collections.emptyList();
         return this;
@@ -99,32 +99,49 @@ public final class Abilities implements Serializable
         List<UuidDto> collection = new LinkedList<>();
         String name;
         for (Sensor s : sensors)
-            if (s.isBindable()) {
-                name = friendlyNames.get(s.getUuid());
-                if (name == null)
+            if (s.isBindable())
+            {
+                name = friendlyNames.computeIfAbsent (s.getUuid(), k->s.getName());
+            /*  if (name == null) {
                     name = s.getName();
+                    friendlyNames.put (s.getUuid(), name);
+                }*/
                 collection.add (new UuidDto (name, s.getUuid().toString()));
             }
         return collection;
     }
 
-    public boolean isTaskName (String taskName) {
-        if (isStringsValid (taskName))
-            if (tasks != null)
-                for (Task t : tasks)
-                    if (t.getName().equals(taskName))
-                        return true;
-        return false;
+    public void addBindableFunctions (ConcurrentMap<UUID, String> friendlyNames) {
+        if (friendlyNames != null)
+            for (Sensor s : sensors)
+                if (s.isBindable())
+                    friendlyNames.put (s.getUuid(), s.getName());
+    }
+
+    public void removeBindableFunctions (ConcurrentMap<UUID, String> friendlyNames) {
+        if (friendlyNames != null)
+            for (Sensor s : sensors)
+                if (s.isBindable())
+                    friendlyNames.remove (s.getUuid());
+    }
+
+    public boolean isTaskName (String taskName) {    return taskByName (taskName) != null;    }
+
+    public Task taskByName (String taskName) {
+        if (tasks != null && isStringsValid (taskName))
+            for (Task t : tasks)
+                if (t.getName().equals(taskName))
+                    return t;
+        return null;
     }
 
     public boolean isSensorUuid (UUID sensorUuid) {   return sensorByUuid (sensorUuid) != null;   }
 
     public Sensor sensorByUuid (UUID sensorUuid) {
-        if (sensorUuid != null) {
+        if (sensorUuid != null && sensors != null)
             for (Sensor s : sensors)
                 if (s.getUuid().equals (sensorUuid))
                     return s;
-        }
         return null;
     }
 
@@ -145,8 +162,8 @@ public final class Abilities implements Serializable
               .append("\n\t\t\tduration:\t").append(t.getDuration())
               .append(    "\t\tremained:\t").append(t.getRemained().get())
               .append(    "\t\telapsed:\t").append(t.getElapsed().get())
-              .append("\n\t\t\ttstate:\t").append(t.getTstate().get().name()).append(" (").append(t.getTstate().get().tsName).append(")")
-              .append("\n\t\t\tmessage:\t").append(t.getMessage().get())
+              .append("\n\t\t\ttstate:\t").append(t.getTstate().name()).append(" (").append(t.getTstate().tsName).append(")")
+              .append("\n\t\t\tmessage:\t").append(t.getMessage())
               .append('.');
 
         sb.append("\n\tДатчики : ");

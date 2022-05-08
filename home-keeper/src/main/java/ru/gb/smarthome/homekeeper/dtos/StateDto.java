@@ -3,7 +3,6 @@ package ru.gb.smarthome.homekeeper.dtos;
 import lombok.Data;
 import org.jetbrains.annotations.NotNull;
 import ru.gb.smarthome.common.smart.ISmartHandler;
-import ru.gb.smarthome.common.smart.enums.OperationCodes;
 import ru.gb.smarthome.common.smart.enums.SensorStates;
 import ru.gb.smarthome.common.smart.structures.DeviceInfo;
 import ru.gb.smarthome.common.smart.structures.DeviceState;
@@ -77,11 +76,3 @@ public class StateDto
         return dto;
     }
 }
-/*  state.sensors   abilities.sensors
-    -------------   -----------------
-    uuid            uuid
-    SensorStates    state
-                    stype
-                    name
-                    bindable
-*/

@@ -5,6 +5,8 @@ import ru.gb.smarthome.common.smart.enums.OperationCodes;
 import ru.gb.smarthome.common.smart.enums.SensorStates;
 import ru.gb.smarthome.common.smart.enums.TaskStates;
 import ru.gb.smarthome.common.smart.structures.Sensor;
+import ru.gb.smarthome.common.smart.structures.Signal;
+import ru.gb.smarthome.common.smart.structures.Task;
 
 import java.lang.reflect.Constructor;
 import java.util.List;
@@ -33,8 +35,10 @@ final public class FactoryCommon
     public static final boolean INTERRUPTIBLE = true, NON_INTERRUPTIBLE = false;
     public static final boolean FAIR  = true;
     //public static final boolean ALARM = true, WATCHING = false;
+    //public static final boolean IF_INTERRUTIBLE = true, INTERRUT_ANYWAY = false;
     public static final boolean LIP = true, EVENT = false;
     public static final boolean BINDABLE = true;
+    public static final boolean BIND = true, UNBIND = false;
 
     public static final OperationCodes DEF_STATE_DTO_OPCODE  = CMD_INVALID;
     public static final DeviceTypes DEF_DEVICETYPE = SMART;
@@ -90,6 +94,7 @@ final public class FactoryCommon
     public static void errprintln (String s) { System.err.println(s); }
     public static void errprint (String s) { System.err.print(s); }
     public static void errprintf (String s, Object... args) { System.err.printf(s, args); }
+    public static void lnerrprintln (String s) { System.err.println("\n"+ s+ "\n"); }
 
 /** Проверка условия с выбрасыванием указанного исключения. Вынесена в отдельный метод, чтобы не загромождать
 код проверочными конструкциями.
@@ -120,12 +125,16 @@ final public class FactoryCommon
         }
     }
 
-/** Добавляем элемент в список, если он там отсутствует. */
-    public static <T> void addIfAbsent (List<T> list, T t)
+/** Добавляем элемент в список, если он там отсутствует.
+ @param list список.
+ @param t элемент, который нужно добавить в список list.
+ @return TRUE, если элемент t добавлен в список list. */
+    public static <T> boolean addIfAbsent (List<T> list, T t)
     {
         int index = list.indexOf(t);
         if (index < 0)
-            list.add(t);
+            return list.add(t);
+        return false;
     }
 
 /*    public static <K,V> void addIfAbsent (Map<K, LinkedList<V>> map, K k, V v)
@@ -145,12 +154,30 @@ final public class FactoryCommon
         return null;
     }
 
+/** Убеждаемся, что объект является Signal.
+ @param o исследуемый объект.
+ @return Объект o, преобразованный к типу Signal, или NULL, если о не является объектом Signal. */
+    public static Signal signalFromObject (Object o) {
+        if (o instanceof Signal)
+            return (Signal) o;
+        return null;
+    }
+
 /** Убеждаемся, что объект является строкой, и возвращаем его же, но с правильным типом.
  @param o исследуемый объект.
  @return Объект o, преобразованный к типу String, или NULL, если о не является объектом String. */
     public static String stringFromObject (Object o) {
         if (o instanceof String)
             return (String) o;
+        return null;
+    }
+
+/** Убеждаемся, что объект является задачей, и возвращаем его же, но с правильным типом.
+ @param o исследуемый объект.
+ @return Объект o, преобразованный к типу Task, или NULL, если о не является объектом Task. */
+    public static Task taskFromObject (Object o) {
+        if (o instanceof Task)
+            return (Task) o;
         return null;
     }
 

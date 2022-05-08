@@ -32,10 +32,10 @@ public enum OperationCodes implements Serializable {
 
 /** Комада: перевести УУ в состоянии готовности. (В это состояние УУ можно описать
 как «бодрое бездействие», и УУ может возвращаться в него из любого состояния, если
-это уместно.)<br>
-    Состояние: УУ ничего не делает, даже не спит.<br>
-    Ответ: текущее состояние УУ. */
-    CMD_READY ("/ready",  "Перевод УУ в состояние готовности.", null),
+это уместно.)<p>
+    Ответ: текущее состояние УУ.<p>
+    Состояние: УУ ничего не делает, даже не спит. */
+    CMD_READY (),
 
 /** Комада: отправить УУ в сон.<br>
     Состояние: УУ спит.<br>
@@ -54,23 +54,31 @@ public enum OperationCodes implements Serializable {
     CMD_TASK  ("/task", "Выполнять/отменить задачу.", "/task NAME - выполнить. /task - остановить. Повторный /task отменит остановленную задачу."),
 
 /** Состояние: УУ занято выполнением запроса CMD_TASK.<br> */
-    CMD_BUSY  (/*"/busy", "Вкл. сотсояние «занято» в УУ", null*/), //< Теперь нельзя просто так взять и установить BUSY, — нет способа его снять.
+    CMD_BUSY  (),
 
-/** Состояние: УУ находится в неисправном состоянии + CODE (код ошибки).
-<p>
+/** Команда: прервать текущую задачу, если её поле interruptible == true.<br>
+ Ответ: Message (currentTask). Если задача была успешно прервана, то currentTask.tstate должно
+ быть == TS_INTERRUPTED. В любом случае currentTask должена быть копией state.currentTask, т.е. отражать
+ фактическое состояние задачи. */
+    CMD_INTERRUPT (),
+
+/** Команда: уведомление ведущему УУ от ведомого УУ о событии, на которое ведущее у-во подписалось ранее.<p>
+ Для передачи сигналов используем не CMD_SENSOR, а отдельный код, т.к., теоретически
+ события могут происходить не только от сенсоров. Кроме того, логично назначить такому
+ коду приоритет ниже, чем CMD_ERROR. */
+    CMD_SIGNAL (),
+
+/** Состояние: УУ находится в неисправном состоянии + CODE (код ошибки).<p>
  При управлении из консоли параметр CODE может быть любым или отсутствовать. CODE будет интерпретироваться как
  строка. Если ошибка произошла при работе УУ, то CODE выбирает и устанавливает УУ. Отсутствие CODE расценивается
- как отсутствие ошибки, и УУ переводится в состояние CMD_READY, т.е. команда {@code /err} аналогична команде
- {@code /ready}.
-<p>
- Если ошибку исправить, то УУ перейдёт в состояние CMD_READY. (Пока нет никаких рекомендаций по выводу УУ из состояния ошибки — можно сделать это при пом. /err без параметра, или прямым переводом в состояние READY.) */
+ как отсутствие ошибки, и УУ переводится в рабочее состояние.<p>
+ Если ошибку исправить, то УУ перейдёт в состояние CMD_READY. (Пока нет никаких рекомендаций по выводу УУ из
+ состояния ошибки — можно сделать это при пом. /err без параметра, или прямым переводом в состояние READY.) */
     CMD_ERROR  ("/err", "Вкл./выкл. состояния ошибки в УУ.", "/err CODE (отсутствие CODE сбросывает состоние ошибки)."),
 
 /** Команда: изменить состояние датчика.<p>
-    Ответ: отдать текущее состояние датчика: изменённое или прежнее.<p>
-    Состояние: УУ находится в этом состоянии, если сработал датчик, и УУ хочет донести этот
-    факт до УД. Время пребывания в этом состоянии УУ определяет само. */
-    CMD_SENSOR (/*"/sen", "Переключене датчика", "/sen UUID STATE (переключить)"*/),
+    Ответ: отдать текущее состояние датчика: изменённое или прежнее. */
+    CMD_SENSOR (),
 //TODO: Подумать, нужен ли для CMD_SENSOR приоритет выше CMD_ERROR. Доводы:
 // * у стиралки датчик протечки должен срабатывать даже при ERROR, если мы хотим вешать на него связанные ф-ции. Например, сообщение юзеру о протечке полезно при любом состоянии УУ;
 // * если приортет SENSOR > ERROR, то завершение задачи: либо невозможно при тревожном датчике, либо возможно при ошибке (оба варианта выглядят нелогично хотя и противоречат друг другу);
@@ -85,7 +93,7 @@ public enum OperationCodes implements Serializable {
     Ответ: Message с CMD_ABILITIES + Abilities. */
     CMD_ABILITIES ("/abil", "Список возможностей УУ.", null),
 
-    /** Состояние: Это умолчальное состояние: УУ исправно, нет подключения к УД. Его код имеет приоритет ниже, чем
+/** Состояние: Это умолчальное состояние: УУ исправно, нет подключения к УД. Его код имеет приоритет ниже, чем
     CMD_CONNECTED для того, чтобы поступление команды CMD_CONNECTED смогло пройти «фильтр приоритетов». */
     CMD_NOT_CONNECTED,
 
@@ -112,12 +120,6 @@ public enum OperationCodes implements Serializable {
     public final String ckey, ckeyDescription, ckeyUsage; //< консольная команда, её краткое описание и использование.
     private static final HashMap<String, OperationCodes> mapConKeys; //< для быстрого сопоставления консольных команд с соотв.им кодами операций.
 
-//параметры команд:
-    private boolean onOff; //<  ON (сон) или OFF (не сон)
-    private UUID uuid;
-    private DeviceTypes deviceType;
-    private Task task;
-    private String errCode; //< код ошибки, специфичный для УУ
     /** Количество элементов в OperationCodes. */
     public static final int length = values().length;
 
@@ -133,38 +135,18 @@ public enum OperationCodes implements Serializable {
 
     OperationCodes () { ckey = null;   ckeyDescription = null;   ckeyUsage = null; }
     OperationCodes (String ck, String desc, String us) {
-    ckey = ck;   ckeyDescription = desc;    ckeyUsage = us;
+        ckey = ck;
+        ckeyDescription = desc;
+        ckeyUsage = us;
     }
 
 //---------------------------- Статические методы: -----------------------------
-
-/* * Получаем код операции по его имени <i>name</i>. * /
-    public static OperationCodes byName (String name)
-    {
-        есть valueOf()
-        return mapNames.get (name.trim().toUpperCase());
-    }//*/
 /** Получаем код операции по его консольному ключу-строке. */
     public static OperationCodes byCKey (String ckey) {
         return mapConKeys.get (ckey.trim().toLowerCase());
     }
 
-//---------------- Геттеры и сеттеры для параметров команд: --------------------
-
-    public boolean getOnOff ()            { return onOff; }
-    public void    setOnOff (boolean val) { onOff = val; }
-
-    public UUID getUuid ()         { return uuid; }
-    public void setUuid (UUID val) { uuid = val; }
-
-    public Task getTask ()         { return task; }
-    public void setTask (Task val) { task = val; }
-
-    public String getErrCode ()         { return errCode; }
-    public void setErrCode (String val) { errCode = val; }
-
-    public DeviceTypes getDeviceType ()         { return deviceType; }
-    public void setDeviceType (DeviceTypes val) { deviceType = val; }
+//------------------------------------------------------------------------------
 
     public boolean greaterThan (OperationCodes other) { return (other == null) || this.compareTo (other) > 0; }
     public boolean lesserThan (OperationCodes other) { return (other == null) || this.compareTo (other) < 0; }

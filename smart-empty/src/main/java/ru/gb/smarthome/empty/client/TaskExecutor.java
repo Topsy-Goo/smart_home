@@ -42,8 +42,7 @@ public class TaskExecutor implements Callable<Boolean>
     public Boolean call () {
         if (DEBUG) printf ("\nTaskExecutor.call(): начинает работать задача: %s.\n", theTask);
 
-        theTask.setTstate(TS_RUNNING)
-               .setMessage (format ("Выполняется задача «%s»", taskName));
+        theTask.setTstate (TS_RUNNING).setMessage (format ("Выполняется задача «%s»", taskName));
 
         boolean ok = false;
         try {
@@ -59,12 +58,9 @@ public class TaskExecutor implements Callable<Boolean>
         catch (Exception e) {
             ok = (e instanceof InterruptedException && theTask.isInterruptible());
             if (ok)
-                theTask.setTstate (TS_INTERRUPTED)
-                       .setMessage (format ("TaskExecutor.call().catch: задача «%s» прервана.", taskName));
+                theTask.setTstate (TS_INTERRUPTED).setMessage ("Задача прервана.");
             else
-                theTask.setTstate (TS_ERROR)
-                       .setMessage (format ("TaskExecutor.call().catch: задача «%s» прервана из-за ошибки «%s».",
-                                            taskName, e.getMessage()));
+                theTask.setTstate (TS_ERROR).setMessage ("Задача прервана из-за ошибки.");
         }
         finally {
             if (DEBUG) printf ("\nTaskExecutor.call().finally: Завершилась задача: %s.", theTask);

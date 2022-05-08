@@ -7,23 +7,26 @@ import ru.gb.smarthome.common.exceptions.RWCounterException;
 import ru.gb.smarthome.common.smart.ISmartHandler;
 import ru.gb.smarthome.common.smart.SmartDevice;
 import ru.gb.smarthome.common.smart.enums.OperationCodes;
+import ru.gb.smarthome.common.smart.enums.SensorStates;
 import ru.gb.smarthome.common.smart.enums.TaskStates;
 import ru.gb.smarthome.common.smart.structures.*;
+import ru.gb.smarthome.homekeeper.dtos.BinateDto;
 
-import java.io.*;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.*;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 import static java.lang.String.format;
-import static ru.gb.smarthome.common.FactoryCommon.sensorFromObject;
+import static ru.gb.smarthome.common.FactoryCommon.*;
 import static ru.gb.smarthome.common.smart.enums.BinatStates.BS_CONTRACT;
 import static ru.gb.smarthome.common.smart.enums.OperationCodes.*;
 import static ru.gb.smarthome.homekeeper.HomeKeeperApp.DEBUG;
-import static ru.gb.smarthome.common.FactoryCommon.*;
 
 public class ClientHandler extends SmartDevice implements ISmartHandler
 {
@@ -65,7 +68,7 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
 /** Очередь запросов, поступающих извне. Хэндлер извлекает запросы из этой очереди в порядке
  приортетности и выполняет в меру возможностей. */
     private final PriorityBlockingQueue<Message> priorityQueue =
-        new PriorityBlockingQueue<> (10); //< Естественный способ сравнения приоритетов нам подходит.
+        new PriorityBlockingQueue<>(10, Comparator.reverseOrder()); //< Обратный порядок сравнения приоритетов.
     //* предоставляет блокирующие операции извлечения
     //* не допускает пустых элементов
     //* iterator и spliterator не гарантируют порядок обхода элементов. Если нужен упорядоченный обход,
@@ -73,8 +76,11 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
     //* drainTo() — для переноса элементов в другую коллекцию в порядке приоритета.
     //* никаких гарантий относительно упорядочения элементов с равным приоритетом.
 
+    private ISignalCallback slaveCallback;
 
-    public ClientHandler (Socket s, Port p, SynchronousQueue<Boolean> helloSQ, IDeviceServer srv)
+
+    public ClientHandler (Socket s, Port p, SynchronousQueue<Boolean> helloSQ,
+                          IDeviceServer srv, ISignalCallback slaveCallback)
     {
         if (DEBUG && (s == null || p == null))
             throw new IllegalArgumentException();
@@ -85,6 +91,7 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
         server = srv;
         slaveContracts  = new LinkedList<>();
         masterContracts = new LinkedList<>();
+        this.slaveCallback = slaveCallback;
     }
 
 /** Конструктор используется для создания временного хэндлера, назначение которого только
@@ -156,69 +163,60 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
         int len;
 
         rwCounter.set(0L);
+        {
+        //Первый контакт с клиентом:
+            mA = requestClient (CMD_CONNECTED, null); //< mA.opCode содержит код состояния УУ, но нам пока нечего извлечь из этого факта.
+            if (mA == null) {
+                errprint ("\nEmpty.mainLoop(): не удалось пообщаться с УУ.");
+                return;
+            }
 
-    //Первый контакт с клиентом:
-        mA = requestClient (CMD_CONNECTED, null); //< mA.opCode содержит код состояния УУ, но нам пока нечего извлечь из этого факта.
-        if (mA == null) {
-            errprint ("\nEmpty.mainLoop(): не удалось пообщаться с УУ.");
-            return;
+            if (!updateAbilities()  ||  !updateState()) {
+                errprint ("\nEmpty.mainLoop(): не удалось получить первые CMD_ABILITIES и CMD_STATE.");
+                return;
+            }
+            deviceFriendlyName.set (abilities.getVendorString()); //< потом юзер сможет это изменить.
+            uuid = abilities.getUuid();
+
+            if (DEBUG) check(rwCounter.get() == 0L, RuntimeException.class, "блок mainLoop(){перед getIntoDetectedList()}");
+            else return;
         }
-
-        if (!updateAbilities()  ||  !updateState()) {
-            errprint ("\nEmpty.mainLoop(): не удалось получить первые CMD_ABILITIES и CMD_STATE.");
-            return;
-        }
-        deviceFriendlyName.set (abilities.getVendorString()); //< потом юзер сможет это изменить.
-        uuid = abilities.getUuid();
-
-        if (DEBUG)
-            check(rwCounter.get() == 0L, RuntimeException.class, "блок mainLoop(){перед getIntoDetectedList()}");
-        else
-            return;
-
     //если первый контакт удался, переходим к стадии, выход из которой должен обрабатываться в cleanup().
 
-        if (getIntoDetectedList())  //< это приведёт к добавлению нас в список обнаруженых УУ.
+        if (getIntoDetectedList())  //< это приведёт к добавлению нас в список обнаруженых УУ, и о нас узнаеют объекты УД.
         try {
-    //Всё, что происходит дальше, происходит с обнаруженным устройством, т.е. теперь о нас знаеют объекты, которые могут вызывать наши public-методы.
             while (!threadRun.isInterrupted())
-            try
             {
-            //Пауза между проверками состояния УУ и очереди запросов:
-                TimeUnit.MILLISECONDS.sleep (pollInterval);
+                TimeUnit.MILLISECONDS.sleep (pollInterval); //< Пауза между проверками состояния УУ и очереди запросов.
 
-            //Проверяем, соблюдение условия: «Клиент только отвечает на наши запросы», —
-            // вычитываем из стрима всё, что клиент прислал без спроса, и «выбрасываем»:
+            //Проверяем, соблюдение условия: «Клиент только отвечает на наши запросы»; при необходимости вычитываем из
+            // стрима всё, что клиент прислал без спроса, и «выбрасываем»:
+                if (DEBUG)
                 while ((len = ois.available()) > 0) {
                     errprintf ("\nEmpty.mainLoop(): клиент прислал что-то без запроса (%d байтов).\n", len);
                     while (len > 0)
                         len -= ois.skipBytes (len);
                 }
-
             //Обновляем state, чтобы понять, как обрабатывать запросы из очереди:
                 synchronized (stateMonitor)
                 {
                     if (!updateState())
                         throw new OutOfServiceException ("\nEmpty.mainLoop(): Не удалось прочитать состояние УУ.");
-
                     if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок updateState");
 
             //Читаем очередь запросов от УД к нашему подопечному клиенту (если state.code == CMD_ERROR, то
             // очередь сбрасывается и устанавливается active == NOT_ACTIVE):
-                    if (!state.getOpCode().equals (CMD_ERROR))
-                        dispatchHadlerTaskQueue(); //< выбираем из очереди задачи и обрабатываем их, если их приоритет
-                    else                       //  больше приоритета state.code.
+                    if (state.getOpCode().equals (CMD_ERROR))
                         treatErrorState();
+                    else
+            //Выбираем из очереди задачи и обрабатываем их, если их приоритет больше приоритета state.code.
+                        dispatchHadlerTaskQueue();
                 }
                 check (rwCounter.get() == 0L, RWCounterException.class, "блок mainLoop.while"); //< общая проверка остаётся в чистовой версии.
-            }
-            catch (RWCounterException rwe) {
-                if (DEBUG) {
-                    errprintf ("\n[rwCounter:%d][%s]\n", rwCounter.get(), rwe.getMessage());
-                    rwCounter.set(0L); //< не знаем, как ещё можно обработать.
-                }
-                else throw new OutOfServiceException("Нарушение протокола обмена данными.", rwe);
             }//while
+        }
+        catch (RWCounterException rwe) {
+            errprintf ("\n[rwCounter:%d][%s]\n", rwCounter.get(), rwe.getMessage());
         }
         catch (OutOfServiceException e) {  println ("\n" + e.getMessage());  }
         catch (Exception e) { e.printStackTrace(); }
@@ -231,7 +229,7 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
 /** Очистка в конце работы метода mainLoop(). */
     private void cleanup () {
         getOutOfDetectedList(); //< делаем это из mainLoop() потому, что в mainLoop() делали getIntoDetectedList().
-        //priorityQueue.clear();
+        priorityQueue.clear();
     }
 
 /** Ряд действий, которые повлекут добавление нас в список обнаруженых устройств и которые
@@ -253,70 +251,37 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
 Выполняем только те задачи, приоритет которых больше приоритета текущего состояния УУ.Остальные задачи оставляем в очереди на потом.  */
     private void dispatchHadlerTaskQueue () throws Exception
     {
-        OperationCodes messageOpCode, stateCode;
+    //Если мы здесь, то у клиента НЕТ состояния ошибки.
+        OperationCodes messageOpCode;
         Message peekedMsg, mR;
         boolean ok;
         Object obj;
-        Task task;
-        DeviceState dState;
-    //Если мы здесь, то у клиента НЕТ состояния ошибки.
-        while ((peekedMsg = priorityQueue.peek()) != null)
+    //Выполняем запрошенную операцию, только если её приоритет БОЛЬШЕ приоритета текущего состояния УУ.
+        while ((peekedMsg = priorityQueue.peek()) != null   &&
+        (!state.getOpCode().greaterThan (messageOpCode = peekedMsg.getOpCode())))
         {
-            //Сравниваем код запрошеной операции с кодом текущего состония УУ и выполняем
-            // операцию только, если её приоритет БОЛЬШЕ приоритета текущего состояния УУ.
-            messageOpCode = peekedMsg.getOpCode();
-            stateCode = state.getOpCode();
-            if (messageOpCode.greaterThan (stateCode))
+            switch (messageOpCode)
             {
-        //Если мы попали в dispatchTaskQueue(), то ошибки в УУ нет.
-                switch (messageOpCode)
-                {
-                    //case CMD_READY:
-                    //    break;
-                    //case CMD_SLEEP:
-                    //    break;
-
-                    case CMD_TASK:
-                        treatTaskRequest (peekedMsg);
-                        priorityQueue.poll();
-                        break;
-
-                    case CMD_SENSOR:
-                        treatSensorRequest (peekedMsg);
-                        priorityQueue.poll();
-                        break;
-
-                    case CMD_STATE: if (!updateState()) throw new OutOfServiceException (); //TODO: Удалить?
-                        priorityQueue.poll();
-                        break;
-
-                    case CMD_ABILITIES: if (!updateAbilities()) throw new OutOfServiceException (); //TODO: Удалить?
-                        priorityQueue.poll();
-                        break;
-
-                    default:         //TODO: default-код является черновиком.
-                        ok = false;
-                        mR = requestClient (peekedMsg);
-                        if (null != mR)
-                        {
-                            priorityQueue.poll();
-                            ok = true;
-
-                            obj = mR.getData();
-                        /*  В качестве ответа на запрос УУ-во может прислать DeviceState, описывающий
-                            текущее состояние УУ. В этом случае заменяем наш текущий state на присланый
-                            DeviceState, но переносим в него значение active. */
-                            if (obj instanceof DeviceState)
-                            {
-                                updateState ((DeviceState) obj);
-                                if (state.getOpCode().equals (CMD_ERROR))
-                                    treatErrorState();
-                            }
-                        }
-                        if (!ok) throw new OutOfServiceException (
-                            format("\n****** ClientHandler: на запрос \n\t%s\n****** пришёл ответ\n\t%s\n", peekedMsg, mR));
-                }
-            } else break; //< остальные будут ждать, когда приоритет state понизится.
+                //case CMD_READY:
+                //    break;
+                //case CMD_SLEEP:
+                //    break;
+                case CMD_TASK:   treatTaskRequest (peekedMsg);
+                    break;
+                case CMD_SIGNAL: treatSignalRequest (peekedMsg);
+                    break;
+                case CMD_SENSOR: treatSensorRequest (peekedMsg);
+                    break;
+                case CMD_STATE:  if (!updateState()) throw new OutOfServiceException (); //TODO: Удалить?
+                    break;
+                case CMD_ABILITIES: if (!updateAbilities()) throw new OutOfServiceException (); //TODO: Удалить?
+                    break;
+                default: if (DEBUG) throw new OutOfServiceException(
+                    format ("ClientHandler.dispatchHadlerTaskQueue():switch:default: Message: %s.", peekedMsg));
+            }
+            //priorityQueue.poll(); < Удивительная Java не гарантирует порядок для однаранговых элементов!…  o_O  А кто будет гарантировать?…
+            Message finalPeekedMsg = peekedMsg;
+            priorityQueue.removeIf (message->message == finalPeekedMsg);
             if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок readHadlerTaskQueue.while "+ messageOpCode.name());
         }//while try
     }
@@ -332,24 +297,23 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
         Message mR;
         Object obj;
         Task answer;
-        String error = null;
+        String taskName = stringFromObject (peekedMsg.getData()),
+               error = format (FORMAT_REQUEST_ERROR, deviceFriendlyName.get());
 
-        if (peekedMsg != null
-        &&  (mR = requestClient (peekedMsg)) != null
-        &&  ((obj = mR.getData()) instanceof Task))
+        if (taskName != null
+        &&  (mR = requestClient (CMD_TASK, taskName)) != null
+        &&  ((answer = taskFromObject (mR.getData())) != null))
         {
-            answer = (Task) obj;
-            TaskStates answerTstate = answer.getTstate().get();
-
+            TaskStates answerTstate = answer.getTstate();
             if (answerTstate.launchingError)
+            {
                 error = format (rejectedTaskMessageFormat,
                                   deviceFriendlyName.get(),
                                   answer.getName(),
-                                  answer.getTstate().get().tsName, //< стандартное (очень) краткое описание результата
-                                  answer.getMessage().get());   //< строка-сообщение о результате выполнения.
+                                  answer.getTstate().tsName, //< стандартное (очень) краткое описание результата
+                                  answer.getMessage());      //< строка-сообщение о результате выполнения.
+            } else error = null;
         }
-        else error = format (FORMAT_REQUEST_ERROR, deviceFriendlyName.get());
-
         if (error != null && !error.isBlank())
             lastNews.add (error);
     }
@@ -379,6 +343,80 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
         }
     }
 
+    private void treatSignalRequest (Message peekedMsg)
+    {
+        Signal signal;
+        ISmartHandler originSmart = null;
+        UUID sourceUuid;
+        String contractTaskName, currentTaskName;
+        boolean putIntoTaskQueue;
+        Task taskCurrent;
+        TaskStates tstate;
+        StringBuilder sb = new StringBuilder();
+
+        if (peekedMsg != null
+        &&  (signal = signalFromObject (peekedMsg.getData())) != null
+        &&  (originSmart = signal.getOriginHandler()) != null
+        &&   originSmart != this
+        &&  (sourceUuid = signal.getSource()) != null) //< датчик
+        {
+            for (Binate bin : searchMasterContracts (sourceUuid))
+            {
+                contractTaskName = bin.taskName();
+                putIntoTaskQueue = false;
+
+                if (abilities.isTaskName (contractTaskName))
+                {
+                    if ((taskCurrent = state.getCurrentTask()) == null)
+                        putIntoTaskQueue = true;    /* нет текущей задачи */
+                    else
+                    if ((tstate = taskCurrent.getTstate()).canReplace)
+                        putIntoTaskQueue = true;    /* нет текущей задачи */
+                    else
+                    if (tstate.runningState)
+                    {
+                        if ((currentTaskName = taskCurrent.getName()).equals (contractTaskName))
+                            continue;               /* contractTaskName уже запущена */
+
+                        if (taskCurrent.isInterruptible())
+                        {                           /* текущую задачу можно прервать */
+                            putIntoTaskQueue = interruptCurrentTask();
+                            if (!putIntoTaskQueue)
+                                sb.append (format ("Не удалось остановить задачу %s.\r", currentTaskName));
+                        }
+                        else
+                        sb.append (format ("Задача %s не может быть запущена, — выполняется задача %s.\r",
+                                          contractTaskName, currentTaskName));
+                    }
+                    else sb.append (format ("Нельзя запустить задачу %s.\r", contractTaskName));
+
+                    if (putIntoTaskQueue)
+                        offerRequest (new Message().setOpCode (CMD_TASK).setData (contractTaskName));
+                }
+                else sb.append ("Контракт не на выполнение задачи.\r");
+            }//for
+        }
+        else sb.append ("переданы некорректные данные.");
+
+        String errStr = sb.toString();
+        if (!errStr.isBlank())
+        {
+            lastNews.add (format ("Устройство %s\rне смогло обработать сигнал от устройства\r%s:\r\r%s",
+                deviceFriendlyName,
+                (originSmart != null) ? originSmart.getDeviceFriendlyName() : originSmart,
+                errStr));
+    }   }
+
+    private boolean interruptCurrentTask ()
+    {
+        Message mR = requestClient (CMD_INTERRUPT, null);
+        if (mR != null) {
+            Task t = taskFromObject (mR.getData());
+            return (t == null) || t.getTstate().canReplace;
+        }
+        return false;
+    }
+
 //---------------------- Реализации методов --------------------------------
 
     @Override public @NotNull Abilities getAbilities () {
@@ -393,16 +431,17 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
         }
     }
 
-    @Override public boolean offerRequest (Message mR) {
+    @Override public boolean offerRequest (Message mR)
+    {
         boolean ok = false;
         String err = null;
         if (mR != null)
         {
-            if (state.getOpCode().lesserThan (CMD_ERROR))
+            //if (state.getOpCode().lesserThan (CMD_ERROR))
                 ok = priorityQueue.offer(mR);
-            else
-                err = format ("Устройство %s неисправно, — запрос %s не может быть обработан.",
-                               deviceFriendlyName.get(), mR.getOpCode().name());
+            //else
+            //    err = format ("Устройство %s неисправно, — запрос %s не может быть обработан.",
+            //                   deviceFriendlyName.get(), mR.getOpCode().name());
         }
         else err = format ("Некорректный запрос: %s.", mR);
 
@@ -423,16 +462,16 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
             if (state.getOpCode().equals (CMD_ERROR))
             {
                 error = promptActivationDuringErrorState;
-                active = NOT_ACTIVE;
+                changeActiveState (NOT_ACTIVE);
             }
             else if (active == ACTIVE)
             {
                 if (isItSafeToDeactivate())
-                    active = NOT_ACTIVE;
+                    changeActiveState (NOT_ACTIVE);
                 else
                     error = promptDeactivationIsNotSafeNow;
             }
-            else active = ACTIVE;
+            else changeActiveState (ACTIVE);
 
             boolean ok = active == value;
             if (!ok)
@@ -470,37 +509,79 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
     }
 
     @Override public String toString () {
-        return format ("Handler[«%s»,\n\t%s  state:\t%s]"
+        return format ("Handler[«%s»,\n\t%s]"//  state:	%s
                        ,deviceFriendlyName.get()
-                       ,abilities
-                       ,state
+                       ,abilities.getUuid()
+                       //,state
                        );
     } //< для отладки
 
-    @Override public void pair (Binate binate) {
+    @Override public boolean pair (Binate binate)
+    {
         boolean ok = false;
+        String errCause = "Некорректные данные.";
         synchronized (stateMonitor)
         {
             if (binate != null && binate.bstate().equals (BS_CONTRACT))
             {
                 if (binate.role() == SLAVE) {
-                    UUID slaveFunctionUuid = uuidFromObject (binate.data());
-                    if (abilities.isSensorUuid (slaveFunctionUuid))
-                        ok = slaveContracts.add (binate);
+                    if (abilities.isSlave())
+                    {
+                        if (!abilities.isSensorUuid (uuidFromObject (binate.source())))
+                            errCause = "Нет такой функции.";
+                        else
+                        if (!(ok = addIfAbsent (slaveContracts, binate)))
+                            errCause = "Контракт уже существует.";
+                    }
+                    else errCause = "Устройство не может быть ведомым.";
                 }
                 else {
-                    String masterTaskName = stringFromObject (binate.data());
-                    if (abilities.isTaskName (masterTaskName)) {
-                        ok = masterContracts.add (binate);
+                    if (abilities.isMaster())
+                    {
+                        if (!abilities.isTaskName (/*stringFromObject*/ (binate.taskName())))
+                            errCause = "Нет такой задачи.";
+                        else
+                        if (!(ok = addIfAbsent (masterContracts, binate)))
+                            errCause = "Контракт уже существует.";
                     }
+                    else errCause = "Устройство не может быть ведущим.";
                 }
             }
             if (!ok)
-                lastNews.add (format ("Не удалось выполнть связывание для устройства\r%s.",
-                                      deviceFriendlyName.get()));
-        }
+                lastNews.add (format ("Не удалось выполнть связывание для устройства\r%s.\r%s",
+                                      deviceFriendlyName.get(), errCause));
+        }return ok;
     }
 
+    @Override public boolean unpair (Binate binate)
+    {
+        String errCause = "Некорректные данные.";
+        Binate contract;
+        boolean ok = false;
+        synchronized (stateMonitor)
+        {
+            if (binate != null && binate.bstate().equals (BS_CONTRACT))
+            {
+                if (binate.role() == SLAVE)
+                    ok = slaveContracts.removeIf ((c)->c.equals (binate));
+                else
+                    ok = masterContracts.removeIf ((c)->c.equals (binate));
+
+                if (!ok)
+                    errCause = "Возможно, устройство уже отвязано.";
+            }
+        }
+        if (!ok) lastNews.add (format ("Не удалось отвязывание для устройства\r%s.\r%s",
+                                       deviceFriendlyName.get(), errCause));
+        return ok;
+    }
+
+    @Override public List<BinateDto> getMasterContractsDto ()
+    {
+        if (masterContracts != null && !masterContracts.isEmpty())
+            return masterContracts.stream().map(BinateDto::binateToDto).collect(Collectors.toList());
+        return null;
+    }
 //---------------------- Другие полезные методы: ---------------------------
 
 /** Перезаписываем this.abilities экземпляром, считаным из клиента нашего подопечного УУ. */
@@ -515,7 +596,7 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
     private Abilities requestClientAbilities ()
     {
         Abilities abilities = null;
-        Message m = null; Message mA = new Message (CMD_ABILITIES, null, null);
+        Message m = null; Message mA = new Message (CMD_ABILITIES, /*null,*/ null);
         boolean ok = false;
         Object data = null;
 
@@ -538,38 +619,80 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
         return abilities;
     }
 
-/** Запрашиваем DeviceState у нашего подопечного УУ и перезаписываем им наш state.<br>Делаем
- {@link #updateState(DeviceState) updateState (requestClientState())}<br>
- См. также {@link #requestClientState() requestClientState()} */
+/** Запрашиваем DeviceState у нашего подопечного УУ и перезаписываем им наш state. */
     private boolean updateState () {
-        return updateState (requestClientState());
+        return overideCurrentState (requestClientState());
     }
 
-/** Если {@code newState != null}, то перезаписываем this.state указаным экземпляром newState.
-При этом состояние {@code state.active} сохраняем — переносим из прежнего экземпляра в новый.
-Если {@code newState == null}, то делаем себе «искусственный» this.state с кодом CMD_ERROR.
-<p>
-    Если в результате этих действий state.code окажется == CMD_ERROR, то устанавливаем
-state.active в значение NOT_ACTIVE. (Неисправное УУ не может быть активным.)
-<p>
-    При любом исходе прежний экземпляр this.state окажется перезаписан.
-<br>
-@param newState экземпляр DeviceState, которым требуется заменить {@code this.state}. (Может быть == null.)
-@return TRUE, если параметр {@code newState != null};<br>
-        FALSE, если state пришлось заменить «искусственным».
-*/
-    private boolean updateState (DeviceState newState) //< TODO: иногда в этот метод удобно передавать Object. Может проверку на (o instanceof DeviceState) перенести сюда?
+/** Если {@code newState != null}, то перезаписываем this.state указаным экземпляром newState.<p>
+ Если в результате этих действий state.code окажется == CMD_ERROR, то устанавливаем active в значение
+ NOT_ACTIVE. (Неисправное УУ не может быть активным.)<br>
+ @param newState экземпляр DeviceState, которым требуется заменить {@code this.state}.
+ @return TRUE, если state удалось обновить.    */
+    private boolean overideCurrentState (DeviceState newState)
     {
         final boolean ok = newState != null;
-        if (!ok) {
-            state.setOpCode(CMD_ERROR);
-            if (DEBUG) throw new RuntimeException("ClientHandler.updateState(newState==null).");
-        }
-        else state = newState;
+        if (ok) {
+            state = newState;
 
-        if (state.getOpCode().equals (CMD_ERROR))
-            active = NOT_ACTIVE;
+            if (state.getOpCode().equals (CMD_ERROR))
+                changeActiveState (NOT_ACTIVE);
+
+            readSensors();
+        }
+        else if (DEBUG) throw new RuntimeException ("ClientHandler.updateState(newState==null).");
         return ok;
+    }
+
+/** Обрабатываем состояния сенсоров, пришедшие от нашего клиента. */
+    private void readSensors ()
+    {
+        Map<UUID, SensorStates> sensors = state.getSensors();
+        for (Map.Entry<UUID, SensorStates> e : sensors.entrySet())
+        {
+            if (e.getValue().alarm) {
+                UUID uuSensor = e.getKey();
+
+                List<Binate> contracts = searchSlaveContracts (uuSensor);
+                if (!contracts.isEmpty())
+                for (Binate bin : contracts) {
+                    slaveCallback.callback (bin.mateUuid(), new Signal (this, uuSensor, null));
+                }
+                //TODO: Кроме того УУ в ответ на ALARM тут может запустить какую-то свою задачу или обработчик.
+            }
+        }
+    }
+
+/** По указанному UUID события ищем контракты ведомых УУ, — контракты, по которым мы как ведомое УУ должны
+ сообщать ведущим УУ о событии UUID.
+ @param event UUID события. */
+    private @NotNull List<Binate> searchSlaveContracts (UUID event)
+    {
+        List<Binate> binList = new LinkedList<>();
+        if (slaveContracts != null && !slaveContracts.isEmpty())
+            for (Binate bin : slaveContracts)
+                if (event.equals (uuidFromObject (bin.source())))
+                    binList.add (bin);
+        return binList;
+    }
+
+/** По указанному UUID события ищем контракты, по которым мы как ведущее УУ
+ должны выполнить какую-то задачу, если, конечно, у нас такие контракты есть.
+ @param event UUID события. */
+    private @NotNull List<Binate> searchMasterContracts (UUID event)
+    {
+        List<Binate> binList = new LinkedList<>();
+        if (event != null && masterContracts != null && !masterContracts.isEmpty())
+        {
+            for (Binate bin : masterContracts)
+                if (event.equals (uuidFromObject (bin.source())))
+                    binList.add (bin);
+        }
+        return binList;
+    }
+
+    private void changeActiveState (boolean value) {
+        active = value;
     }
 
 /** Запрашиваем state у нашего подопечного УУ. (Планируем вызывать этот метод очень часто.)
@@ -577,7 +700,7 @@ state.active в значение NOT_ACTIVE. (Неисправное УУ не �
     private DeviceState requestClientState ()
     {
         DeviceState newState = null;
-        Message mW = new Message (CMD_STATE, null, null);
+        Message mW = new Message (CMD_STATE, /*null,*/ null);
         Message mR = null;
         boolean ok = false;
         Object data = null;
@@ -613,7 +736,7 @@ state.active в значение NOT_ACTIVE. (Неисправное УУ не �
 @return сообщение (Message), плученое от клиента, или NULL, если обмен данными с клиентом не удался.  */
     private Message requestClient (@NotNull OperationCodes opCodeQ, Object dataQ)
     {
-        Message mQ = new Message().setDeviceUUID (null);
+        Message mQ = new Message()/*.setDeviceUUID (null)*/;
         Message mA = null;
         boolean sent = writeMessage (oos, mQ.setOpCode (opCodeQ).setData (dataQ));
 
@@ -634,22 +757,16 @@ state.active в значение NOT_ACTIVE. (Неисправное УУ не �
 /** Обрабатываем состояние CMD_ERROR: деактивируем УУ и сбрасываем очередь задач пришедших от УД. */
     private void treatErrorState () throws Exception
     {
-        active = NOT_ACTIVE;
+        if (active)
+            changeActiveState (NOT_ACTIVE);
         priorityQueue.clear();
         if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок treatErrorState");
     }
 
     private boolean isItSafeToDeactivate ()
     {
-        boolean running = false;
         Task t = state.getCurrentTask();
-        boolean ok = t == null;
-
-        if (!ok) {
-            TaskStates tstate = t.getTstate().get();
-            ok = t.isAutonomic() || !tstate.runningState;
-        }
-        return ok;
+        return t == null || t.isAutonomic() || !t.getTstate().runningState;
     }
 
     //void f () {        ;    }

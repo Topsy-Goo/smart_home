@@ -16,6 +16,7 @@ public class DeviceDto
     private String        friendlyName = DEF_DEV_DTO_FRIENDLYNAME;
     private List<UuidDto> slaveList;         //Здесь не заполняем, — будем запрашивать из фронта.
     private List<UuidDto> bindableFunctions; //Здесь не заполняем, — будем запрашивать из фронта.
+    private List<BinateDto> contracts;
 
     public DeviceDto (){}
 
@@ -27,6 +28,7 @@ public class DeviceDto
             dto.abilities    = info.abilitiesDto;
             dto.state        = StateDto.deviceStateToDto (info);
             dto.friendlyName = info.device.getDeviceFriendlyName();
+            dto.contracts    = info.device.getMasterContractsDto();
         }
         return dto;
     }

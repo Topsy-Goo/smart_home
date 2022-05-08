@@ -2,13 +2,12 @@ package ru.gb.smarthome.common.smart.enums;
 
 public enum BinatStates {
 
-     BS_ (false, "")
-    ,BS_CONTRACT      (false, "Запрос")
-    ,BS_ERROR         ( true, "Ошибка")
-    ,BS_NOT_SUPPORTED ( true, "Не поддерживается")
-    ,BS_REJECTED      ( true, "?")
+    //BS_SIGNAL        (false, "Сигнал"),             //< TODO:не используется
+    BS_CONTRACT      (false, "Контракт"),
+    //BS_ERROR         ( true, "Ошибка"),             //< TODO:не используется
+    //BS_NOT_SUPPORTED ( true, "Не поддерживается"),  //< TODO:не используется
+    //BS_REJECTED      ( true, "?")                   //< TODO:не используется
     ;
-
 /** Помечает коды состояний, которые являются индикаторами ошибки {…}. Например,
  клиент с пом. BinatStates-кодов может информирвать хэндлер о {…}, а
  хэндлеру достаточно проверить истинность поля BinatStates.launchingError полученного кода, чтобы понять,

@@ -11,7 +11,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static java.lang.String.format;
 import static ru.gb.smarthome.common.FactoryCommon.*;
-import static ru.gb.smarthome.common.smart.enums.TaskStates.TS_IDLE;
 
 public class Task implements Serializable
 {
@@ -21,7 +20,12 @@ public class Task implements Serializable
     /** операция может продолжаться даже при отключении УУ от УД. */
     @Getter private boolean autonomic;
 
-    /** выполнение задачи можно прервать без ущерба для результата */
+/** выполнение задачи можно прервать без ущерба для результата.<p>
+ Юзер не должен иметь возможность пользоваться этим флагом — запуском одной задачи прерывать
+ выполнение другой задачи, — пусть остановит текущую, и запустит желаемую.<p>
+ Этот флаг используется только для сигналов, когда по контракту УУ должно запустить задачу
+ как ответ на сигнал, — в этом случае interruptible-задача должна быть прервана и уступить
+ место контрактной задаче. */
     @Getter private boolean interruptible;
 
     /** продолжительность операции */
@@ -33,9 +37,10 @@ public class Task implements Serializable
     /** осталось времени до конца операции. На стороне клиента это значение будет обновляться в реальном времени. */
     @Getter private AtomicLong elapsed;
 
-    @Getter private AtomicReference<TaskStates> tstate;
+    private AtomicReference<TaskStates> tstate;
 
-    @Getter private AtomicReference<String> message;
+/** Короткое сообщение без символов \n. */
+    private AtomicReference<String> message;
 
 
 /**
@@ -101,22 +106,15 @@ public class Task implements Serializable
     public Task setTstate (@NotNull TaskStates val) { tstate.set(val);   return this; }
     public Task setMessage (@NotNull String val) { message.set(val);   return this; }
 
+    public TaskStates getTstate ()  { return tstate.get(); }
+    public String     getMessage () { return message.get(); }
+
 /** Уменьшаем remained, увеличиваем elapsed.
 @param delta шаг. */
     public void tick (long delta) {
         long rem = Math.max(0, remained.get() - delta);
         remained.set(rem);
         elapsed.set(duration - rem);
-    }
-
-    @Override public String toString () {
-        return format ("[%s: %d/%d сек, %s%s | %s | %s]",
-                        name
-                       ,elapsed.get()    ,duration
-                       ,autonomic ? "A" : "a"   ,interruptible ? "I" : "i"
-                       ,tstate.get().name()
-                       ,message.get()
-                       );
     }
 
 /** Сравнение задач выполняется только по их имени. Основание — юзер будет выбирать задачи по их имени,
@@ -134,5 +132,14 @@ public class Task implements Serializable
 
         return false;
     }
+
+    @Override public String toString () {
+        return format ("[%s: %d/%d сек, %s%s | %s | %s]",
+                        name
+                       ,elapsed.get()    ,duration
+                       ,autonomic ? "A" : "a"   ,interruptible ? "I" : "i"
+                       ,tstate.get().name()
+                       ,message.get()
+                       );
+    }
 }
-//@param cod код операции (см. {@link ru.gb.smarthome.common.smart.enums.OperationCodes OperationCodes}).

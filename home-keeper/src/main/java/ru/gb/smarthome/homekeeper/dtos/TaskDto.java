@@ -21,7 +21,8 @@ public class TaskDto
     private long    remained;
     private long    elapsed;
 
-    public  static final List<TaskDto> nullTasks = Collections.emptyList();
+    //public  static final List<TaskDto> nullTasks = Collections.emptyList();
+    public static final TaskDto nullTaskDto = TaskDto.taskToDto (null);
 
     public TaskDto () {}
 
@@ -32,18 +33,16 @@ public class TaskDto
         {
             if ((s = t.getName()) != null)
                 dto.name = s;
-            dto.tstate        = t.getTstate().get().tsName;
+            dto.tstate        = t.getTstate().tsName;
             dto.autonomic     = t.isAutonomic();
             dto.interruptible = t.isInterruptible();
             dto.duration      = t.getDuration();
             dto.remained      = t.getRemained().get();
             dto.elapsed       = t.getElapsed().get();
 
-            if ((s = t.getMessage().get()) != null)
+            if ((s = t.getMessage()) != null)
                 dto.message = s;
         }
         return dto;
     }
-
-    public static final TaskDto nullTaskDto = TaskDto.taskToDto (null);
 }

@@ -24,8 +24,6 @@ public class AbilitiesDto {
     private boolean master;
     private boolean slave;
 
-    //public  static final AbilitiesDto nullAbilitiesDto = AbilitiesDto.abilitiesToDto(null); //TODO:удалить
-
     public AbilitiesDto (){}
 
     public static @NotNull AbilitiesDto abilitiesToDto (Abilities a)

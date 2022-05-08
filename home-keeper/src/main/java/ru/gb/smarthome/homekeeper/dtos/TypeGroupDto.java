@@ -6,8 +6,8 @@ import java.util.List;
 
 @Data
 public class TypeGroupDto {
-    private String          typeName/* = DEF_TYPEGROUP_DTO_DEVICETYPE*/;
-    private List<DeviceDto> devices/*  = DeviceDto.nullDevices*/;
+    private String          typeName;
+    private List<DeviceDto> devices;
 
     public TypeGroupDto () {}
 

@@ -72,15 +72,16 @@ console.log (response.data);
 		console.log ('$scope.states = ', $scope.states);
 	}
 
-//Запрашиваем из бэка структуры StateDto для каждого элемента массива $scope.states, и обновляем
-// у них поля (именно поля, а не целые StateDto, чтобы не потерять связи этих StateDto с таковыми
-// в $scope.home_dto).
+/*	Запрашиваем из бэка структуры StateDto для каждого элемента массива $scope.states, и обновляем
+ у них поля (именно поля, а не целые StateDto, чтобы не потерять связи этих StateDto с таковыми
+ в $scope.home_dto).
+*/
 	$scope.updateStates = function ()
 	{
-	//Сперва запрашиваем у бэка массив UUID-строк, чтобы определить, не изменился ли набор
-	//обнаруженых устройств с момента последнего запроса $scope.home_dto. Если набор изменился,
-	//то перезагружаем $scope.home_dto.
-
+/*	Сперва запрашиваем у бэка массив UUID-строк, чтобы определить, не изменился ли набор
+ обнаруженых устройств с момента последнего запроса $scope.home_dto. Если набор изменился,
+ то перезагружаем $scope.home_dto.
+*/
 		$http.get (contextMainPath + '/all-uuids')
 		.then (
 		function successCallback (response)
@@ -113,6 +114,10 @@ console.log (response.data);
 				element.state.sensors	  = response.data.sensors;
 				$scope.showDeviceNews (response.data.lastNews);
 			},
+	/*	Эту часть, наверное, можно удалить, а то яндекс-браузер, чтоб его… перестали дебилы делать,
+	сколько раз ошибку встретит, столько раз её и напечатает. Пока отлаживаешь бэк, может
+	накопиться не одна тысяча одинаковых ошибок. Типа одного сообщения недостаточно.
+	*/
 			function failureCallback (response) {
 				$scope.cleanUp();
 				console.log ('ОШИБКА в getDevicesList(): Не удалось обновить статус устройства ', element.uuid);
@@ -160,7 +165,8 @@ console.log (response.data);
 		$http.get (contextMainPath + '/activate/'+ uuid)
 		.then (
 		function successCallback (response) {
-			//?
+			if (response.data == false)
+				alert ('Не удалось (де)активировать устройство.');
 		},
 		function failureCallback (response)	{
 			console.log ('toggleActiveState() resut: '+ response.data);
@@ -183,9 +189,10 @@ console.log (response.data);
 		if (show) return "Скрыть";
 		else      return "Показать";
 	}
-//Определяем, открыта ли панель устройства, UUID-стрку которого нам передали в параметре.
-//Если UUID есть в $localStorage.openedPanels, то это означает, что панель открыта. Или
-//была открыта перед разрывом соединения.
+/*	Определяем, открыта ли панель устройства, UUID-стрку которого нам передали в параметре.
+ Если UUID есть в $localStorage.openedPanels, то это означает, что панель открыта. Или
+ была открыта перед разрывом соединения.
+*/
 	$scope.isPanelOpened = function (uuid)
 	{
 		let opened = true;	//< на случай, если что-то пойдёт не так (все панели будут открыты без возможности их закрыть.
@@ -283,27 +290,60 @@ console.log ('$scope.requestSlaveBindableFunctions() получила в отв�
 
 	$scope.bindSlave = function (device, object)
 	{
-console.log ('bindSlave() получила object: ', object, '\rи device: ', device);
-		let dto =  {
-					"masterTaskName":	object.masterTaskName,
+//console.log ('bindSlave() получила object: ', object, '\rи device: ', device);
+		let dto =  {"masterTaskName":	object.masterTaskName,
 					"masterUUID":		device.abilities.uuid,
 					"slaveUUID":		object.slaveUUID,
-					"slaveFuctionUUID":	object.slaveFuctionUUID
-//					"slaveTaskName":	object.slaveTaskName
-//					"slaveTask": {
-//							"displayName":object.slaveTask.displayName,
-//							"uuid":object.slaveTask.uuid
-//								 }
-					};
-console.log ('bindSlave() отправляет dto: ', dto);
+					"slaveFuctionUUID":	object.slaveFuctionUUID };
+		//console.log ('bindSlave() отправляет dto: ', dto);
 
 		$http.post (contextMainPath + '/bind', dto)
 		.then (
 		function successCallback (response) {
-console.log ('bindSlave() получила ответ: ', response.data);
+			console.log ('bindSlave() получила ответ: ', response.data);
+			if (response.data)
+				$scope.getContracts(device);
 		},
 		function failureCallback (response)	{
 			console.log ('ОШИБКА: в bindSlave() получила ответ: ', response.data);
+		});
+	}
+
+	$scope.getContracts = function (device)
+	{
+		$http.get (contextMainPath + '/contracts/'+ device.abilities.uuid)
+		.then (
+		function successCallback (response) {
+			device.contracts = response.data;
+//console.log ('$scope.getContracts() получила в ответ:', response.data);
+		},
+		function failureCallback (response)	{
+			console.log ('ОШИБКА: в getContracts() бэк вернул: ', response.data);
+		});
+	}
+
+	$scope.deleteContract = function (device, contractToRemove)
+	{
+//console.log ('$scope.deleteContract() получила contractToRemove: ', contractToRemove);
+
+		let obj = JSON.parse (contractToRemove.data);
+//console.log ('$scope.deleteContract() obj = JSON.parse(contractToRemove) >>', obj);
+
+		let dto =  {"masterTaskName":	obj.taskName,
+					"masterUUID":		device.abilities.uuid,
+					"slaveUUID":		obj.mateUuid,
+					"slaveFuctionUUID":	obj.functionUuid };
+//console.log ('$scope.deleteContract() - dto-шка: ', dto);
+
+		$http.post (contextMainPath + '/unbind', dto)
+		.then (
+		function successCallback (response) {
+			console.log ('deleteContract() получила ответ: ', response.data);
+			if (response.data)
+				$scope.getContracts(device);
+		},
+		function failureCallback (response)	{
+			console.log ('ОШИБКА: в deleteContract() получила ответ: ', response.data);
 		});
 	}
 
@@ -315,7 +355,7 @@ console.log ('bindSlave() получила ответ: ', response.data);
 		.then (
 		function successCallback (response) {
 			sn = response.data;
-console.log ('$scope.turnSensor() получила в ответ:', response.data);
+//console.log ('$scope.turnSensor() получила в ответ:', response.data);
 		},
 		function failureCallback (response)	{
 			console.log ('ОШИБКА: в turnSensor() бэк вернул: ', response.data);
@@ -328,7 +368,7 @@ console.log ('$scope.turnSensor() получила в ответ:', response.dat
 		.then (
 		function successCallback (response) {
 			sn = response.data;
-console.log ('$scope.alarmSensor() получила в ответ:', response.data);
+//console.log ('$scope.alarmSensor() получила в ответ:', response.data);
 		},
 		function failureCallback (response)	{
 			console.log ('ОШИБКА: в alarmSensor() бэк вернул: ', response.data);

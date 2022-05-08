@@ -118,7 +118,8 @@
 					-->
 <!-- Форма для связывания функций устройств. -->
 					<li style="width: 100%;" ng-init="loadDeviceSlaveList(device);" ng-show="showSlaveBindingForm(device)"><!--	  -->
-						<form	class="align-middle col-12"	ng-submit="bindSlave (device, slaveBindingModel)">
+						<form	class="align-middle col-12">
+						<!--	ng-submit="bindSlave (device, slaveBindingModel)"  -->
 							<div class="input-group-sm" style="margin-left: -15px;">
 								<!-- Задача мастера: -->
 								device.abilities.tasks :
@@ -153,11 +154,39 @@
 									<option selected></option>
 									<option ng-repeat="tsk in device.bindableFunctions" value="{{tsk.uuid}}">&nbsp;{{tsk.displayName}}&nbsp;&nbsp;</option>
 								</select>
-								<button id="slaveBind-bind"
+								<button id="slaveBindButton"
 										class="btn-sm btn-outline-warning"
 										style="margin-left: 10px;"
-										type="submit">
+										type="button"
+										ng-click="bindSlave (device, slaveBindingModel)"><!-- submit -->
 										Связать
+								</button>
+<!--								<button id="slaveUnBindButton"
+										class="btn-sm btn-outline-default"
+										style="margin-left: 10px;"
+										type="button"
+										ng-click="unbindSlave (device, slaveBindingModel)">&lt;!&ndash;  &ndash;&gt;
+										Отвязать
+								</button>-->
+							</div>
+						</form>
+					</li>
+<!-- Список контрактов (есть только у мастера). -->
+					<li ng-show="device.contracts">device.contracts :
+						<form	class="align-middle col-12"  ng-submit="deleteContract (device, contractToRemove)">
+							<div class="input-group-sm" style="margin-left: -15px;"><!--  -->
+								<select class="form-select col-10" size="5"
+										ng-show="device.contracts"
+										ng-model="contractToRemove.data">
+									<option ng-repeat="contract in device.contracts" value="{{contract}}"><!--  -->
+										{{contract.taskName}} — {{contract.mateFriendlyName}} ({{contract.functionFriendlyName}})
+									</option>
+								</select>
+								<button id="unBindButton"
+										class="btn-sm btn-outline-default"
+										style="margin-left: 10px;"
+										type="submit"><!--  -->
+										Отвязать
 								</button>
 							</div>
 						</form>

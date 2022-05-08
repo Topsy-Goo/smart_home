@@ -5,7 +5,7 @@ import ru.gb.smarthome.common.smart.structures.Abilities;
 import ru.gb.smarthome.common.smart.structures.Binate;
 import ru.gb.smarthome.common.smart.structures.DeviceState;
 import ru.gb.smarthome.common.smart.structures.Message;
-import ru.gb.smarthome.homekeeper.dtos.SensorDto;
+import ru.gb.smarthome.homekeeper.dtos.BinateDto;
 
 import java.util.List;
 
@@ -48,8 +48,11 @@ public interface ISmartHandler extends ISmartDevice
  подопечного УУ с другим УУ. (На самом деле связывание происходит между хэндлерами,
  а сами УУ ничего про связывание не знают.)
  @param binate содержит необходимую инфорацию для связывания. */
-    void pair (Binate binate);
+    boolean pair (Binate binate);
 
-/* * Отдаём состояния датчиков, в каком бы состоянии они не были: OFF/ON/ALARM. */
-    //List<SensorDto> reportSensorsState ();
+/** Удалить контаркт. */
+    boolean unpair (Binate binate);
+
+/** Отдаём список dto-шек, срисованных с мастер-контрактов УУ. */
+    List<BinateDto> getMasterContractsDto ();
 }
