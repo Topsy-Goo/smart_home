@@ -27,4 +27,3 @@ public class PropertyManagerFridge extends PropertyManagerEmpty
     @Override public UUID getUuid ()   { return uuid; }
     @Override public String getName () { return name; }
 }
-//холодильник Понарошку-1

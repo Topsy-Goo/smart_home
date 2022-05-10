@@ -36,6 +36,7 @@ console.log ('***************');
 console.log (response.data);
 			$rootScope.pollInterval = $scope.home_dto.pollInterval;
 			$scope.fillStatesArray();
+			$scope.getHomeNews();
 		},
 		function failureCallback (response) {
 			$scope.cleanUp();
@@ -55,19 +56,17 @@ console.log (response.data);
 
 		function walkThroughGroup(group) {
 			group.devices.forEach(extractAndStoreDeviceState);
-			group.devices.forEach (readDeviceNews);
 		}
 		function extractAndStoreDeviceState(device) {
 			let uu = device.abilities.uuid;
+
 		/*	Тонкий момент: мы сохраняем в массиве ссылку на state. Её же ангуляр использует для
 			обновления данных на странице. Если при работе с массивом мы ссылку не профукаем, то
 			можем рассчитывать на правильное обновление полей state на странице при изменении
-			полей state в массиве.	*/
+			полей state в массиве.
+		*/
 			$scope.states.push({uuid: uu, state: device.state});
 			$scope.uuids.push(uu);
-		}
-		function readDeviceNews (device) {
-			$scope.showDeviceNews (device.state.lastNews);
 		}
 		console.log ('$scope.states = ', $scope.states);
 	}
@@ -88,7 +87,6 @@ console.log (response.data);
 		{
 			if (!$scope.compareStringArrays ($scope.uuids, response.data)) {
 				$scope.getDevicesList();
-//				return;
 			}
 		},
 		function failureCallback (response) {
@@ -102,17 +100,16 @@ console.log (response.data);
 		{
 			$http.get (contextMainPath + '/state/'+ element.uuid)
 			.then (
-			function successCallback (response)
-			{	/*	если обновить целиком структуру StateDto, то в $scope.home_dto и в $scope.states ссылки на
-					state будут указывать на разные экземпляры, и ангуляр не сможет обновлять данные на странице.
-				*/
+			function successCallback (response) {
+			/*	если обновить целиком структуру StateDto, то в $scope.home_dto и в $scope.states ссылки на
+				state будут указывать на разные экземпляры, и ангуляр не сможет обновлять данные на странице.
+			*/
 				element.state.active 	  = response.data.active;
 				element.state.opCode 	  = response.data.opCode;
 				element.state.errCode     = response.data.errCode;
 				element.state.currentTask = response.data.currentTask;
-				//element.state.lastNews    = response.data.lastNews;
 				element.state.sensors	  = response.data.sensors;
-				$scope.showDeviceNews (response.data.lastNews);
+				$scope.getHomeNews();
 			},
 	/*	Эту часть, наверное, можно удалить, а то яндекс-браузер, чтоб его… перестали дебилы делать,
 	сколько раз ошибку встретит, столько раз её и напечатает. Пока отлаживаешь бэк, может
@@ -153,7 +150,8 @@ console.log (response.data);
 				device.friendlyName = newFriendlyName.string;
 			},
 			function failureCallback (response)	{
-				console.log ('tryNewFriendlyName() resut: '+ response.data);
+				let text = "Не удалось изменить имя устройства:\r" + device.friendlyName;
+				alert (text);
 			});
 		}
 	}
@@ -237,11 +235,23 @@ console.log (response.data);
 			}
 		}
 	}
+
+	$scope.getHomeNews = function ()
+	{
+		$http.get (contextMainPath + '/home_news')
+		.then (
+		function successCallback (response) {
+			if (response.data)
+				$scope.showDeviceNews (response.data);
+		},
+		function failureCallback (response)	{
+			let text = 'ОШИБКА в $scope.getHomeNews(): не удалось обработать запрос:\r'+ response.data;
+			alert (text);
+		});
+	}
 //-------------------------------------------------------------------------------- запуск задачи
 	$scope.launchTask = function (device, taskName)
 	{
-//console.log ('$scope.launchTask(): uuid = ', device.abilities.uuid);
-//console.log ('$scope.launchTask(): taskName = ', taskName);
 		$http.get (contextMainPath + '/launch_task/'+ device.abilities.uuid +'/'+ taskName)
 		.then (
 		function successCallback (response) {
@@ -281,7 +291,7 @@ console.log ('$scope.scheduleTask(): taskName = ', taskName);
 		.then (
 		function successCallback (response) {
 			device.bindableFunctions = response.data;
-console.log ('$scope.requestSlaveBindableFunctions() получила в ответ:', response.data);
+//console.log ('$scope.requestSlaveBindableFunctions() получила в ответ:', response.data);
 		},
 		function failureCallback (response)	{
 			console.log ('ОШИБКА: в requestSlaveBindableFunctions() бэк вернул: ', response.data);
@@ -295,7 +305,7 @@ console.log ('$scope.requestSlaveBindableFunctions() получила в отв�
 					"masterUUID":		device.abilities.uuid,
 					"slaveUUID":		object.slaveUUID,
 					"slaveFuctionUUID":	object.slaveFuctionUUID };
-		//console.log ('bindSlave() отправляет dto: ', dto);
+//console.log ('bindSlave() отправляет dto: ', dto);
 
 		$http.post (contextMainPath + '/bind', dto)
 		.then (
@@ -325,10 +335,9 @@ console.log ('$scope.requestSlaveBindableFunctions() получила в отв�
 	$scope.deleteContract = function (device, contractToRemove)
 	{
 //console.log ('$scope.deleteContract() получила contractToRemove: ', contractToRemove);
-
 		let obj = JSON.parse (contractToRemove.data);
-//console.log ('$scope.deleteContract() obj = JSON.parse(contractToRemove) >>', obj);
 
+//console.log ('$scope.deleteContract() obj = JSON.parse(contractToRemove) >>', obj);
 		let dto =  {"masterTaskName":	obj.taskName,
 					"masterUUID":		device.abilities.uuid,
 					"slaveUUID":		obj.mateUuid,

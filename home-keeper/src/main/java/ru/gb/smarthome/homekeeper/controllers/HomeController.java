@@ -26,7 +26,6 @@ public class HomeController
     @GetMapping ("/home_dto")
     public HomeDto getDevicesList ()
     {
-//printf("/home_dto, поток: %s\n", Thread.currentThread());
         return homeService.getHomeDto();
     }
 
@@ -35,9 +34,7 @@ public class HomeController
     @GetMapping ("/state/{uuid}")
     public StateDto getState (@PathVariable(name="uuid") String strUuid)
     {
-        StateDto dto = homeService.getStateDto(strUuid);
-//printf("/state/{%s}   >>>  %s\n\n", strUuid, /*objectToJsonString*/(dto));
-        return dto;
+        return homeService.getStateDto(strUuid);
     }
 
     //Активация/деактивация УУ по UUID.
@@ -45,9 +42,7 @@ public class HomeController
     @GetMapping ("/activate/{uuid}")
     public boolean toggleActiveState (@PathVariable(name="uuid") String strUuid)
     {
-        boolean result = homeService.toggleActiveState (strUuid);
-printf("/activate/{%s}, result = %s\n", strUuid, result);
-        return result;
+        return homeService.toggleActiveState (strUuid);
     }
 
     //Изменение пользовательского имени УУ, имеющего указаный UUID.
@@ -55,7 +50,6 @@ printf("/activate/{%s}, result = %s\n", strUuid, result);
     @GetMapping ("/friendly_name/{uuid}/{newFriendlyName}")
     public boolean changeFriendlyName (@PathVariable(name="uuid") String strUuid, @PathVariable String newFriendlyName)
     {
-//printf("/friendly_name/{%s}/{newFriendlyName=%s}, поток: %s\n", strUuid, newFriendlyName, Thread.currentThread());
         return homeService.changeFriendlyName (strUuid, newFriendlyName);
     }
 
@@ -63,10 +57,8 @@ printf("/activate/{%s}, result = %s\n", strUuid, result);
     //http://localhost:15550/home/v1/main/all-uuids
     @GetMapping ("/all-uuids")
     public String[] getUuids ()
-    {   //printf("\n/uuids , поток: %s\t", Thread.currentThread());
-        String[] arr = homeService.getUuidStrings();
-        //print(Arrays.toString(arr)+"\n");
-        return arr;
+    {
+        return homeService.getUuidStrings();
     }
 
     //Запрос на запуск указанной задачи указанного устройства.
@@ -74,27 +66,22 @@ printf("/activate/{%s}, result = %s\n", strUuid, result);
     @GetMapping ("/launch_task/{uuid}/{taskname}")
     public StringDto launchTask (@PathVariable(name="uuid") String strUuid, @PathVariable String taskname)
     {
-        StringDto dto = new StringDto (homeService.launchTask (strUuid, taskname));
-//printf("/task/{%s}/{%s} >>> %s, поток: %s\n", strUuid, taskname, dto, Thread.currentThread());
-        return dto;
+        return new StringDto (homeService.launchTask (strUuid, taskname));
     }
 
     //http://localhost:15550/home/v1/main/slave-list/{uuid}
     @GetMapping ("/slave-list/{uuid}")
     public List<UuidDto> getSlavesList (@PathVariable(name="uuid") String strUuid)
     {
-//printf("\n/slave-list/{%s}", strUuid);
-        List<UuidDto> dto = homeService.getSlavesList (strUuid);
-//println("\nслэйв-лист: "+ dto);
-        return dto;
+        return homeService.getSlavesList (strUuid);
     }
 
     //Запрос ф-ций указанного УУ, которые могут использоваться сторонним связанным УУ.
     //http://localhost:15550/home/v1/main/bindable-functions/{uuid}
     @GetMapping ("/bindable-functions/{uuid}")
-    public List<UuidDto> getBinableFunctionNames (@PathVariable(name="uuid") String strUuid)
+    public List<UuidDto> getBindableFunctionNames (@PathVariable(name="uuid") String strUuid)
     {
-        List<UuidDto> list = homeService.getBinableFunctionNames (strUuid);
+        List<UuidDto> list = homeService.getBindableFunctionNames(strUuid);
 //lnprintf ("/bindable-functions/{%s} >>> %s\n", strUuid, list);
         return list;
     }
@@ -104,9 +91,7 @@ printf("/activate/{%s}, result = %s\n", strUuid, result);
     @PostMapping ("/bind")
     public boolean bind (@RequestBody BindRequestDto dto)
     {
-        boolean ok = homeService.bind (dto, BIND);
-lnprintf ("/bind парам:\n%s.\nрезультат = %b\n", dto.toString(), ok);
-        return ok;
+        return homeService.bind (dto, BIND);
     }
 
 /** запрос на расторжение контракта между устрйоствами.  */
@@ -114,9 +99,7 @@ lnprintf ("/bind парам:\n%s.\nрезультат = %b\n", dto.toString(), o
     @PostMapping ("/unbind")
     public boolean unbind (@RequestBody BindRequestDto dto)
     {
-        boolean ok = homeService.bind (dto, UNBIND);
-lnprintf ("/unbind парам:\n%s.\nрезультат = %b\n", dto.toString(), ok);
-        return ok;
+        return homeService.bind (dto, UNBIND);
     }
 
 /** Вкл./выкл указаный датчик. */
@@ -124,7 +107,6 @@ lnprintf ("/unbind парам:\n%s.\nрезультат = %b\n", dto.toString(),
     @PostMapping ("/sensor-turn")
     public boolean sensorTurn (@RequestBody SensorDto senDto)
     {
-lnprintf ("/sensor-turn парам:%s.", senDto);
         return (senDto != null) && homeService.sensorTurn (senDto);
     }
 
@@ -133,7 +115,6 @@ lnprintf ("/sensor-turn парам:%s.", senDto);
     @PostMapping ("/sensor-alarm")
     public boolean sensorAlarmTest (@RequestBody SensorDto senDto)
     {
-lnprintf ("/sensor-alarm парам:\n%s.\n", senDto);
         return (senDto != null) && homeService.sensorAlarmTest (senDto);
     }
 
@@ -141,7 +122,16 @@ lnprintf ("/sensor-alarm парам:\n%s.\n", senDto);
     @GetMapping ("/contracts/{uuid}")
     public List<BinateDto> getContracts (@PathVariable(name="uuid") String strUuid)
     {
-        return homeService.getContracts (strUuid);
+        return homeService.getContractsDto(strUuid);
+    }
+
+    //http://localhost:15550/home/v1/main/home_news
+    @GetMapping ("/home_news")
+    public List<String> getHomeNews ()
+    {
+        List<String> list = homeService.getHomeNews();
+if (list != null) lnprintf ("/home_news - ответ: %s.\n", list);
+        return list;
     }
 
 //Используется только в отладочных целях. Переводит объект в JSON-строку.

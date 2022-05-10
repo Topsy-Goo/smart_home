@@ -19,18 +19,13 @@ public class Message implements Serializable, Comparable<Message> {
         opCode = oc;
         data = o;
     }
-    public Message copy () {
-        return new Message (opCode, /*deviceUUID,*/ data);
-    }
+
+    public Message copy () {    return new Message (opCode, /*deviceUUID,*/ data);    }
 
 /*  public OperationCodes getOpCode () { return opCode; }
     public Object getData () { return data; }*/
-    public Message setOpCode (OperationCodes val) { opCode = val;   return this; }
-    public Message setData (Object val)           { data = val;   return this; }
-
-    @Override public String toString () {
-        return format ("Message[%s | data:%s]", opCode.name(), data);
-    }
+    public Message setOpCode (OperationCodes val) { opCode = val;  return this; }
+    public Message setData (Object val)           { data = val;    return this; }
 
     @Override public int compareTo (@NotNull Message other)
     {
@@ -38,6 +33,8 @@ public class Message implements Serializable, Comparable<Message> {
             return opCode.compareTo(other.opCode);
         throw new RuntimeException("Message.opCode == null !!!");
     }
+
+    @Override public String toString () {    return format ("Message[%s | data:%s]", opCode.name(), data);    }
 }
 //Если при сериализации А таже сериализуются подтипы несериализуемых классов, то такие
 // подтипы нужно снабжать умолчальными конструкторами, доступными из А.

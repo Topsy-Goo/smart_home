@@ -1,9 +1,6 @@
 package ru.gb.smarthome.homekeeper.dtos;
 
 import lombok.Data;
-import ru.gb.smarthome.common.smart.structures.Binate;
-
-import java.util.UUID;
 
 /** BinateDto делаем только для ведущего УУ (т.е. для мастера). */
 @Data
@@ -24,20 +21,12 @@ public class BinateDto
            functionUuid;
 
     public BinateDto (){}
-    public BinateDto (String tskName, String matName, String srcName, UUID matUuid, UUID srcUuid)
+    public BinateDto (String tskName, String matName, String matUuid, String srcName, String srcUuid)
     {
         taskName = tskName;
         mateFriendlyName = matName;
-        mateUuid         = matUuid.toString();
+        mateUuid         = matUuid;
         functionFriendlyName = srcName;
-        functionUuid         = srcUuid.toString();
-    }
-
-/** Извлекаем из Binate заранее заготовленную dto-шку. Этот фокус пройдёт только
- с мастер-контрактом, — у слэйв-контракта поле dto == null. */
-    public static BinateDto binateToDto (Binate bin) {
-        if (bin != null)
-            return bin.getDto();
-        return null;
+        functionUuid         = srcUuid;
     }
 }

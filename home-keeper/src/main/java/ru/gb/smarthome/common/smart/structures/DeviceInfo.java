@@ -17,9 +17,9 @@ public class DeviceInfo
     public  final boolean slave;
     private final Set<DeviceTypes> slaveTypes;
     public  final AbilitiesDto     abilitiesDto;
-    public  final String vendorString;
-    public  final UUID   uuid;
-    public  final String uuidstr;
+    public  final String   vendorString;
+    public  final UUID     uuid;
+    public  final String   uuidstr;
     public  final DeviceTypes deviceType;
     public  final Abilities   abilities;
     //@Getter @Setter private boolean active;

@@ -1,6 +1,8 @@
 package ru.gb.smarthome.common.smart.structures;
 
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import ru.gb.smarthome.common.smart.ISmartHandler;
 
 import java.time.LocalDateTime;
@@ -9,36 +11,43 @@ import java.util.UUID;
 import static java.lang.String.format;
 
 /** Используется для передачи инфорации между связанными УУ. */
-@Data
 public class Signal
 {
-    /** УУ, на борту которого находится источнк сигнала. Этот параметр может служить для
+/** Временная метка возникновения события, описываемого этим сигналом. */
+    @Getter private LocalDateTime timeStamp;
+
+/** УУ, на борту которого находится источнк сигнала. Этот параметр может служить для
      предотвращения бесконечных циклов передачи сигнала, если в результате связывания УУ
      образовалась замкнутая цепочка. */
-    ISmartHandler originHandler;
+    @Getter private ISmartHandler slaveHandler;
 
-    /** Временная метка возникновения события, описываемого этим сигналом. */
-    LocalDateTime timeStamp;
+/**  */
+    @Getter private UUID slaveUuid;
 
 /** Источник сигнала. Этим источником должен быть какой-то узел УУ, например, датчик. */
-    UUID source;
+    @Getter private UUID functionUuid;
 
-    /** Информация о событии или иная инфорация, которую ожидает принимающее УУ. */
-    Object data;
+    @Getter private Object data;
+
 
     public Signal (){}
-    public Signal (ISmartHandler orgnSmart, UUID src, Object dat)
+    public Signal (ISmartHandler slave, UUID uuSlave, UUID uuFunction, Object dat)
     {
         timeStamp = LocalDateTime.now();
-        originHandler = orgnSmart;
-        source = src;
+        slaveHandler = slave;
+        slaveUuid    = uuSlave;
+        functionUuid = uuFunction;
         data = dat;
     }
 
+    public Signal setData (Object val) { data = val;  return this; }
+
     @Override public String toString () {
-        return format ("signal[sm:%s (%tH:%tM:%tS.%tL)(%s) | sr:%s | dt:%s]", originHandler,
-                       timeStamp, timeStamp, timeStamp, timeStamp, timeStamp,
-                       source,
-                       (data != null) ? data.toString() : null);
+        return format ("signal[sm:%s (%s) (%s) | fn:%s | dat:%s]" //(%tH:%tM:%tS.%tL)
+                       , slaveHandler.getDeviceFriendlyName()
+                       , slaveUuid.toString()
+                       , /*timeStamp, timeStamp, timeStamp, timeStamp,*/ timeStamp
+                       , functionUuid
+                       , data);
     }
 }

@@ -25,12 +25,12 @@ public class StateDto
     private String  opCode      = DEF_STATE_DTO_OPCODE.name();
     private String  errCode     = DEF_STATE_DTO_ERRCODE;
     private TaskDto currentTask = TaskDto.nullTaskDto; //TODO: удалить?
-    private List<String> lastNews;
     private List<SensorDto> sensors;
 
     public StateDto() {}
 
-    @Override public String toString () {
+    @Override public String toString ()
+    {
         StringBuilder sb = new StringBuilder("датчики: ");
         for (SensorDto v : sensors) {
             sb.append (v.isOn()?"ON_":"OFF_").append(v.isAlarm()?"ALARM":"WATCH").append(" • ");
@@ -38,7 +38,8 @@ public class StateDto
         return format ("%s %s %s\n", opCode, active?"A":"a", sensors);
     }
 
-    public static @NotNull StateDto deviceStateToDto (DeviceInfo info) {
+    public static @NotNull StateDto deviceStateToDto (DeviceInfo info)
+    {
         Task t;
         DeviceState ds;
         ISmartHandler device;
@@ -49,7 +50,6 @@ public class StateDto
             ds = device.getState();
             dto.opCode = ds.getOpCode().name();
             dto.active = info.device.isActive();
-            dto.lastNews  = device.getLastNews();
 
             if ((errCode = ds.getErrCode()) != null)
                 dto.errCode = errCode;

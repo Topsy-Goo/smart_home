@@ -30,15 +30,13 @@ public class Sensor implements Serializable {
 
 
     public Sensor (){} //< для сериализации
-
     public Sensor (@NotNull SensorTypes type, String nAme, SensorStates stat, boolean bindabl, UUID uu) {
-        stype = type;
-        name  = (nAme == USE_DEF_SENSOR_NAME) ? type.sntName : nAme;
+        stype  = type;
+        name   = isStringsValid (nAme) ? nAme : type.sntName;
         sstate = stat;
         bindable = bindabl;
-        uuid  = uu;
+        uuid     = uu;
     }
-
     public Sensor (SensorDto dto) {
         this (SensorTypes.valueOf (dto.getRawTypeName()),
               dto.getName(),

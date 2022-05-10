@@ -59,7 +59,7 @@ public final class Abilities implements Serializable
     @Getter private Set<DeviceTypes> slaveTypes;
 
 
-    private Abilities () {} //< для сериализации
+    private Abilities (){} //< для сериализации
 
 /**
 @param dt Как бы стандартизированный тип устройства. Берём из {@link ru.gb.smarthome.common.smart.enums.DeviceTypes DeviceTypes}.
@@ -75,7 +75,8 @@ public final class Abilities implements Serializable
         canSleep = sleepable;
     }
 
-    public Abilities copy () {
+    public Abilities copy ()
+    {
         return new Abilities (type, vendorString, uuid, canSleep)
                      .setTasks (tasks)
                      .setSensors(sensors)
@@ -88,46 +89,16 @@ public final class Abilities implements Serializable
     public Abilities setMaster  (boolean val)   { master = val;  return this; }
     public Abilities setSlave   (boolean val)   { slave = val;   return this; }
     public Abilities setSlaveTypes (Set<DeviceTypes> val) { slaveTypes = val;  return this; }
-    public Abilities setSensors (List<Sensor> val) {
+    public Abilities setSensors (List<Sensor> val)
+    {
         sensors = (val != null) ? val : Collections.emptyList();
         return this;
     }
 
-/** Отдать список связываемых функций. */
-    public List<UuidDto> getBindableFunctionNames (ConcurrentMap<UUID, String> friendlyNames)
-    {
-        List<UuidDto> collection = new LinkedList<>();
-        String name;
-        for (Sensor s : sensors)
-            if (s.isBindable())
-            {
-                name = friendlyNames.computeIfAbsent (s.getUuid(), k->s.getName());
-            /*  if (name == null) {
-                    name = s.getName();
-                    friendlyNames.put (s.getUuid(), name);
-                }*/
-                collection.add (new UuidDto (name, s.getUuid().toString()));
-            }
-        return collection;
-    }
-
-    public void addBindableFunctions (ConcurrentMap<UUID, String> friendlyNames) {
-        if (friendlyNames != null)
-            for (Sensor s : sensors)
-                if (s.isBindable())
-                    friendlyNames.put (s.getUuid(), s.getName());
-    }
-
-    public void removeBindableFunctions (ConcurrentMap<UUID, String> friendlyNames) {
-        if (friendlyNames != null)
-            for (Sensor s : sensors)
-                if (s.isBindable())
-                    friendlyNames.remove (s.getUuid());
-    }
-
     public boolean isTaskName (String taskName) {    return taskByName (taskName) != null;    }
 
-    public Task taskByName (String taskName) {
+    public Task taskByName (String taskName)
+    {
         if (tasks != null && isStringsValid (taskName))
             for (Task t : tasks)
                 if (t.getName().equals(taskName))
@@ -137,7 +108,8 @@ public final class Abilities implements Serializable
 
     public boolean isSensorUuid (UUID sensorUuid) {   return sensorByUuid (sensorUuid) != null;   }
 
-    public Sensor sensorByUuid (UUID sensorUuid) {
+    public Sensor sensorByUuid (UUID sensorUuid) //TODO:удалить?
+    {
         if (sensorUuid != null && sensors != null)
             for (Sensor s : sensors)
                 if (s.getUuid().equals (sensorUuid))

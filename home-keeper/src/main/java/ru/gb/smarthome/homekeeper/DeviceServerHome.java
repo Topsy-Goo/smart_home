@@ -60,7 +60,8 @@ public class DeviceServerHome implements IDeviceServer
                 {
                     SynchronousQueue<Boolean> helloSynQue = new SynchronousQueue<>();
                     ISmartHandler device = createClientHandler (
-                                                socket, port, helloSynQue, this, homeService::slaveCallback);
+                                                socket, port, helloSynQue, this,
+                                                homeService::slaveCallback, homeService::addNews);
                     exeService.execute (device);
                     if (helloSynQue.take())
                         homeService.smartDeviceDetected (device);
@@ -81,17 +82,19 @@ public class DeviceServerHome implements IDeviceServer
         homeService.smartDeviceIsOff (device);
     }
 
-    private static ISmartHandler createClientHandler (Socket socket, Port port,
-                                              SynchronousQueue<Boolean> helloSynQue,
-                                              IDeviceServer srv, ISignalCallback slaveCallback)
+    private static ISmartHandler createClientHandler (
+                                    Socket socket, Port port,
+                                    SynchronousQueue<Boolean> helloSynQue,
+                                    IDeviceServer srv, ISignalCallback slaveCallback
+                                    , IAddNewsCallback addNewsCallbac)
     {
-        return new ClientHandler (socket, port, helloSynQue, srv, slaveCallback);
+        return new ClientHandler (socket, port, helloSynQue, srv, slaveCallback, addNewsCallbac);
     }
 
 /** Конструктор используется для создания временного хэндлера, назначение которого только
 в том, чтобы сообщить клиенту об отсутствии свободных портов.<p>
 Этот конструктор гасит все исключения, чтобы вызывающая ф-ция могла закрыть socket. */
-    static void temporaryClientHandler (Socket socket) /*throws IOException*/ {
+    static void temporaryClientHandler (Socket socket) {
         new ClientHandler (socket);
     }
 }

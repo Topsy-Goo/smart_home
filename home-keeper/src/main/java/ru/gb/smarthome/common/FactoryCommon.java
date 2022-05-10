@@ -56,7 +56,7 @@ final public class FactoryCommon
     public static final String FORMAT_CANNOT_LAUNCH_TASK_ = "Не удалось запустить задачу: «%s».";
     public static final String FORMAT_ACTIVATE_DEVICE_FIRST_ = "Устройство «%s» неактивно.\rАктивизируйте его и повторите попытку.";
     public static final String FORMAT_REQUEST_ERROR = "Устройство %s\rне смогло обработать запрос.";
-    public static final String USE_DEF_SENSOR_NAME  = null;
+    //public static final String USE_DEF_SENSOR_NAME  = null;
 
     public static final String
         promptActivationDuringErrorState = "Активация неисправного устройства невозможна.",
@@ -101,8 +101,7 @@ final public class FactoryCommon
 @param condition условие, проверка выполнения которого выполняется.
 @param exclass класс исключения, которое нужно бросить при невыполнении условия condition.
 */
-    public static void check (boolean condition,
-                              Class<? extends Exception> exclass)
+    public static void check (boolean condition, Class<? extends Exception> exclass) //< TODO: не используется.
                        throws Exception
     {
         check (condition, exclass, "Не выполнено необходимое условие.");
@@ -148,7 +147,7 @@ final public class FactoryCommon
 /** Убеждаемся, что объект является UUID.
  @param o исследуемый объект.
  @return Объект o, преобразованный к типу UUID, или NULL, если о не является объектом UUID. */
-    public static UUID uuidFromObject (Object o) {
+    public static UUID uuidFromObject (Object o) { //< TODO: не используется.
         if (o instanceof UUID)
             return (UUID) o;
         return null;
@@ -190,7 +189,7 @@ final public class FactoryCommon
         return null;
     }
 
-    public static SensorStates sensorStateFromString (String str) {
+    public static SensorStates sensorStateFromString (String str) { //< TODO: не используется.
         try {
             return SensorStates.valueOf (str);
         }
@@ -200,7 +199,7 @@ final public class FactoryCommon
         }
     }
 
-    public static UUID uuidFromString (String strUuid) {
+    public static UUID uuidFromString (String strUuid) { //< TODO: не используется.
         try {
             return UUID.fromString (strUuid);
         }

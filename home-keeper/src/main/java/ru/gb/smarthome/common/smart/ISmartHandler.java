@@ -2,12 +2,10 @@ package ru.gb.smarthome.common.smart;
 
 import org.jetbrains.annotations.NotNull;
 import ru.gb.smarthome.common.smart.structures.Abilities;
-import ru.gb.smarthome.common.smart.structures.Binate;
 import ru.gb.smarthome.common.smart.structures.DeviceState;
 import ru.gb.smarthome.common.smart.structures.Message;
-import ru.gb.smarthome.homekeeper.dtos.BinateDto;
 
-import java.util.List;
+import java.util.UUID;
 
 public interface ISmartHandler extends ISmartDevice
 {
@@ -20,8 +18,10 @@ public interface ISmartHandler extends ISmartDevice
 /** Геттер на ClientHandler.active. */
     boolean isActive ();
 
+    UUID getUuid();
+
 /** Сеттер на поле deviceFriendlyName. Юзер может присвоить УУ удобное название. Этот метод имеет смысл использовать только на стороне УД. */
-    boolean setDeviceFriendlyName (String name);
+    void setDeviceFriendlyName (String name);
 
 /** Геттер на поле deviceFriendlyName. */
     String getDeviceFriendlyName ();
@@ -41,18 +41,4 @@ public interface ISmartHandler extends ISmartDevice
     OperationCodes} выстроены в порядке увеличения приортета. */
     boolean offerRequest (Message mRequest);
 
-/** Собираем собщения, которые хэндлер успел собрать для юзера. */
-    List<String> getLastNews ();
-
-/** Реагируя на этот вызов, хэндлер должен обработтать запрос на связывание своего
- подопечного УУ с другим УУ. (На самом деле связывание происходит между хэндлерами,
- а сами УУ ничего про связывание не знают.)
- @param binate содержит необходимую инфорацию для связывания. */
-    boolean pair (Binate binate);
-
-/** Удалить контаркт. */
-    boolean unpair (Binate binate);
-
-/** Отдаём список dto-шек, срисованных с мастер-контрактов УУ. */
-    List<BinateDto> getMasterContractsDto ();
 }

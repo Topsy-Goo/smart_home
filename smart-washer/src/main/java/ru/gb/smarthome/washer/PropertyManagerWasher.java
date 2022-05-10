@@ -30,7 +30,7 @@ public class PropertyManagerWasher extends PropManagerComplex
         tasks.add (new Task ("Замачивание",       AUTONOMIC, 60, TimeUnit.SECONDS, NON_INTERRUPTIBLE));
         tasks.add (new Task ("Отжим",             AUTONOMIC, 10, TimeUnit.SECONDS, NON_INTERRUPTIBLE));
         tasks.add (new Task ("Полоскание",        AUTONOMIC, 15, TimeUnit.SECONDS, NON_INTERRUPTIBLE));
-        sensors.add (new Sensor (SNT_LEAK, USE_DEF_SENSOR_NAME, SST_ON, BINDABLE, UUID.fromString("b29dbbae-dc6a-454e-9f5d-9aaeeec47801")));  //встроенный датчик протечки (пока некуда его прикрутить, но он есть)
+        sensors.add (new Sensor (SNT_LEAK, "Датчик протечки", SST_ON, BINDABLE, UUID.fromString("b29dbbae-dc6a-454e-9f5d-9aaeeec47801")));  //встроенный датчик протечки (пока некуда его прикрутить, но он есть)
     }
 
     @Override public UUID getUuid ()   { return uuid; }

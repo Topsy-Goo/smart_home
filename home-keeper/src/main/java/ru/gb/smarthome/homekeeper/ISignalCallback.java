@@ -6,5 +6,5 @@ import java.util.UUID;
 
 @FunctionalInterface
 public interface ISignalCallback {
-    void callback (UUID masterUuid, Signal signal);
+    void callback (/*UUID masterUuid,*/ Signal signal);
 }

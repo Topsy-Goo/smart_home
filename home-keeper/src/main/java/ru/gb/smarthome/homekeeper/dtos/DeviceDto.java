@@ -5,6 +5,7 @@ import org.jetbrains.annotations.NotNull;
 import ru.gb.smarthome.common.smart.structures.DeviceInfo;
 
 import java.util.List;
+import java.util.function.Function;
 
 import static ru.gb.smarthome.common.FactoryCommon.DEF_DEV_DTO_FRIENDLYNAME;
 
@@ -20,7 +21,7 @@ public class DeviceDto
 
     public DeviceDto (){}
 
-    public static @NotNull DeviceDto smartDeviceToDto (DeviceInfo info)
+    public static @NotNull DeviceDto smartDeviceToDto (DeviceInfo info, Function<String, List<BinateDto>> getContractsDto)
     {
         DeviceDto dto = new DeviceDto();
         if (info != null)
@@ -28,7 +29,8 @@ public class DeviceDto
             dto.abilities    = info.abilitiesDto;
             dto.state        = StateDto.deviceStateToDto (info);
             dto.friendlyName = info.device.getDeviceFriendlyName();
-            dto.contracts    = info.device.getMasterContractsDto();
+            dto.contracts    = getContractsDto.apply (info.uuidstr);
+            ;
         }
         return dto;
     }

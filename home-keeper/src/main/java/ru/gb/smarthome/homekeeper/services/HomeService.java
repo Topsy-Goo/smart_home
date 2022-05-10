@@ -3,12 +3,17 @@ package ru.gb.smarthome.homekeeper.services;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.gb.smarthome.common.smart.ISmartHandler;
 import ru.gb.smarthome.common.smart.enums.DeviceTypes;
 import ru.gb.smarthome.common.smart.enums.SensorStates;
 import ru.gb.smarthome.common.smart.structures.*;
 import ru.gb.smarthome.homekeeper.PropertyManagerHome;
 import ru.gb.smarthome.homekeeper.dtos.*;
+import ru.gb.smarthome.homekeeper.entities.Contract;
+import ru.gb.smarthome.homekeeper.entities.FriendlyName;
+import ru.gb.smarthome.homekeeper.repos.IContractsRepo;
+import ru.gb.smarthome.homekeeper.repos.IFriendlyNamesRepo;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -17,26 +22,23 @@ import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 import static ru.gb.smarthome.common.FactoryCommon.*;
-import static ru.gb.smarthome.common.smart.enums.BinatStates.BS_CONTRACT;
 import static ru.gb.smarthome.common.smart.enums.OperationCodes.*;
 import static ru.gb.smarthome.common.smart.enums.SensorStates.*;
-import static ru.gb.smarthome.common.smart.enums.TaskStates.TS_IDLE;
-import static ru.gb.smarthome.homekeeper.HomeKeeperApp.DEBUG;
 
 @Service
 @RequiredArgsConstructor
 public class HomeService {
-/*    private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock(FAIR);
-    private final Lock rLock  = rwLock.readLock();
-    private final Lock wLock  = rwLock.writeLock();*/
 
     private final ConcurrentMap<UUID, ISmartHandler>       uuidToHandler = new ConcurrentHashMap<>(SMART_PORTS_COUNT);
     private final ConcurrentMap<ISmartHandler, DeviceInfo> handlerToInfo = new ConcurrentHashMap<>(SMART_PORTS_COUNT);
     private final ConcurrentMap<DeviceTypes, LinkedList<ISmartHandler>> typeGroups = new ConcurrentHashMap<>();
     private final ConcurrentMap<DeviceTypes, LinkedList<UUID>>    typeToUuidSlaves = new ConcurrentHashMap<>();
-    private final ConcurrentMap<UUID, String> friendlyNames = new ConcurrentHashMap<>();
+
     private final PropertyManagerHome propMan;
-    //private final
+    private final IFriendlyNamesRepo  friendlyNamesRepo;
+    private final IContractsRepo      contractsRepo;
+    private final List<String> lastNews        = new LinkedList<>();
+    private final Object       lastNewsMonitor = new Object();
 
 
     {
@@ -47,7 +49,18 @@ public class HomeService {
         }
     }
 
+    private String friendlyNameByUuid (String key) { //-----------db
+        FriendlyName fName = friendlyNamesRepo.findByUuid (key);
+        return fName != null ? fName.getName() : null;
+    }
+
+    private String friendlyNameByUuid (UUID uuid) { //-----------db
+        FriendlyName fName = friendlyNamesRepo.findByUuid (uuid.toString());
+        return fName != null ? fName.getName() : null;
+    } //TODO: не используется.
+
 /** Добавление УУ в список обнаруженых устройств. */
+    @Transactional
     public void smartDeviceDetected (ISmartHandler device)
     {
         if (device != null)
@@ -60,14 +73,36 @@ public class HomeService {
             if (info.slave) {
                 LinkedList<UUID> sg = typeToUuidSlaves.get (info.deviceType);
                 addIfAbsent (sg, info.uuid);
-                info.abilities.addBindableFunctions (friendlyNames);
             } //добавляем в слэйвы
 
             List<ISmartHandler> handGroup = typeGroups.get (info.deviceType);
             addIfAbsent (handGroup, device);
 
             printf ("\nHomeService: обнаружено УУ: %s.\n", device.toString());
+//-----------db<
+        //Помещаем в friendlyNamesRepo пользовательское имя устройства, если его там нет (его начальным
+        // значением будет Abilities.vendorString, а позже юзер сможет его изменить):
+            String name = readFriendlyNameOrDefault (info.uuidstr, info.vendorString);
+            device.setDeviceFriendlyName (name);
+
+        //Помещаем сенсоры во friendlyNamesRepo (переименования сесорос у нас пока нет, но держать их имена
+        // в базе всё равно удобно):
+            List<Sensor> sensors = info.abilities.getSensors();
+            if (sensors != null)
+                for (Sensor s : sensors)
+                    readFriendlyNameOrDefault (s.getUuid().toString(), s.getName());
+//-----------db>
         }
+    }
+
+    private String readFriendlyNameOrDefault (String uuid, String nameDefault)
+    {
+        //friendlyNamesRepo.existsById (uuid);
+        String name = friendlyNameByUuid (uuid);
+        if (name == null)
+            name = friendlyNamesRepo.save (new FriendlyName (uuid, nameDefault))
+                                    .getName();
+        return name;
     }
 
 /** Удаление УУ из списка обнаруженых устройств. */
@@ -84,29 +119,18 @@ public class HomeService {
             if (info.slave) {
                 LinkedList<UUID> sg = typeToUuidSlaves.get (info.deviceType);
                 while (sg.remove (info.uuid)); //sg.removeIf ((e)->e.equals (info.uuid)); //
-                info.abilities.removeBindableFunctions (friendlyNames);
+                //info.abilities.removeBindableFunctions (friendlyNames);
             } //удаляем из слэйвов
 
             List<ISmartHandler> hanGroup = typeGroups.get (info.deviceType);
             while (hanGroup.remove(device)); //hanGroup.removeIf ((d)->d.equals (device)); //
 
-            printf ("\nУдалено УУ: %s (%s, %s, %s).\n",
-//TODO: лучше сделать аналог lastNews для УД и пулять такие сообщения туда.
-                    device.getDeviceFriendlyName(),
-                    info.deviceType,
-                    info.vendorString,
-                    info.uuid);
-            if (DEBUG) {
-                print("\nHomeService: оставшиеся устройства: \n");
-                for (UUID uu : uuidToHandler.keySet())
-                {
-                    ISmartHandler h = uuidToHandler.get(uu);
-                    DeviceInfo inf = handlerToInfo.get(h);
-                    printf ("%s (%s), UUID: %s\n",
-                            h.getDeviceFriendlyName(),
-                            inf.vendorString,
-                            inf.uuid);
-        }   }   }
+            addNews (format ("Удалено устройство:\r%s\r%s\n%s\n%s"
+                        ,friendlyNameByUuid (info.uuidstr)
+                        ,info.deviceType.typeName
+                        ,info.vendorString
+                        ,info.uuid));
+        }
     }
 
     public boolean sensorTurn (SensorDto senDto) {
@@ -142,8 +166,8 @@ public class HomeService {
 
 /** Составляем dto-список всех обнаруженых УУ, отсортированный по типам устройств
  (см. {@link DeviceTypes DeviceTypes}).
- @return TypeGroupDto это — список списков. Он содержащий DeviceDto, рассортированные по типам.
-*/
+ @return TypeGroupDto это — список списков. Он содержащий DeviceDto, рассортированные по типам. */
+    @Transactional
     public List<TypeGroupDto> getTypeGroupDtos ()
     {
         List<TypeGroupDto> typeGroupsDto = new ArrayList<> (DeviceTypes.length);
@@ -153,11 +177,34 @@ public class HomeService {
             if (group.isEmpty())
                 continue;
             List<DeviceDto> groupDto = group.stream()
-                                            .map(h->DeviceDto.smartDeviceToDto (handlerToInfo.get(h)))
+                                            .map (h->DeviceDto.smartDeviceToDto (handlerToInfo.get(h), this::getContractsDto))
                                             .collect (Collectors.toList());
             typeGroupsDto.add (new TypeGroupDto (type.typeNameMultiple, groupDto));
         }
         return typeGroupsDto;
+    }
+
+/** Собираем в один список dto-шки мастер-контрактов устройства. */
+    @Transactional
+    public List<BinateDto> getContractsDto (String strUuid)
+    {
+        List<BinateDto> contractsDto = null;
+        try {
+            List<Contract> all = contractsRepo.findAllByMasterUuid (strUuid);
+            if (all != null && !all.isEmpty())
+                contractsDto = all.stream().map (this::contractToDto).collect (Collectors.toList());
+        }
+        catch (Exception e) { e.printStackTrace(); }
+        finally { return contractsDto; }
+    }
+
+    public BinateDto contractToDto (Contract contract)
+    {
+        return new BinateDto (contract.getTaskName(),
+                              friendlyNameByUuid (contract.getSlaveUuid()),
+                              contract.getSlaveUuid(),
+                              friendlyNameByUuid (contract.getFunctionUuid()),
+                              contract.getFunctionUuid());
     }
 
 /** Меняем строковое представление UUID на хэндлер УУ, которму этот UUID соответствует.
@@ -178,9 +225,8 @@ public class HomeService {
         StateDto stateDto = null;
         ISmartHandler device = deviceByUuidString (uuidStr);
 
-        if (device != null) {
+        if (device != null)
             stateDto = StateDto.deviceStateToDto (handlerToInfo.get(device));
-        }
         return stateDto;
     }
 
@@ -196,6 +242,7 @@ public class HomeService {
 /** Пробуем запустить задачу, имя которой пришло от фронта.
  @param uuidStr строковое представление UUID устрйоства, которое будет выполнять задачу.
  @param taskname название задачи из списка задач, которые УУ может выполнить. */
+    @Transactional
     public String launchTask (String uuidStr, String taskname)
     {
         String param = taskname;
@@ -211,7 +258,7 @@ public class HomeService {
             }
             else { // нельзя запустить задачу, т.к. УУ неактивно.
                 result = FORMAT_ACTIVATE_DEVICE_FIRST_;
-                param = device.getDeviceFriendlyName();
+                param = friendlyNameByUuid (uuidStr);
             }
         }
         return format (result, param);
@@ -221,12 +268,18 @@ public class HomeService {
 @param uuidStr строковое представление UUID устрйоства.
 @param newFriendlyName новое значение для ISmartHandler.deviceFriendlyName.
 @return обновлённое значение ISmartHandler.deviceFriendlyName, или NULL в случае неудачи. */
+    @Transactional
     public boolean changeFriendlyName (String uuidStr, String newFriendlyName)
     {
-        ISmartHandler device = deviceByUuidString (uuidStr);
-        boolean ok = (device != null  &&  device.setDeviceFriendlyName (newFriendlyName));
-        return ok;
-//TODO: лучше сделать аналог lastNews для УД и пулять сообщения туда.
+        if (isStringsValid (uuidStr, newFriendlyName)) {
+            friendlyNamesRepo.save (new FriendlyName (uuidStr, newFriendlyName));
+
+            ISmartHandler device = uuidToHandler.get(UUID.fromString(uuidStr));
+            if (device != null)
+                device.setDeviceFriendlyName (newFriendlyName);
+            return true;
+        }
+        return false;
     }
 
 /** Составляем список строковых представлений UUID-ов всех обнаруженных УУ и отдаём его на фронт.
@@ -243,9 +296,10 @@ public class HomeService {
  @param uuidStr строковое представление UUID умного устройства.
  @return список dto-шек, каждая из которых содержит строку-UUID и название УУ. Название — для пункта
  списка, а UUID-строка — для идентификации этого пункта, если юзер его выберет. */
+    @Transactional
     public List<UuidDto> getSlavesList (String uuidStr)
     {
-        LinkedList<UuidDto> list = null;                list = new LinkedList<>();
+        LinkedList<UuidDto> list = new LinkedList<>();
         ISmartHandler device;
         DeviceInfo info;
 
@@ -259,16 +313,18 @@ public class HomeService {
                 LinkedList<UUID> uuids = typeToUuidSlaves.get(type);
                 for (UUID uu : uuids)
                 {
-                    ISmartHandler slave = uuidToHandler.get(uu);
-                    if (device != slave) //< Чтобы самих себя не добавить (можно обойтись без equals()).
-                        list.add (new UuidDto(slave.getDeviceFriendlyName(), uu.toString()));
-        }   }   }
-        return (list != null && !list.isEmpty()) ? list : null;
+                    ISmartHandler slave = uuidToHandler.get (uu);
+                    if (device != slave)  //< Чтобы самих себя не добавить (можно обойтись без equals()).
+                    {
+                        String uuidStrSlave = uu.toString();
+                        list.add (new UuidDto (friendlyNameByUuid (uuidStrSlave), uuidStrSlave));
+        }   }   }   }
+        return (!list.isEmpty()) ? list : null;
     }
 
 /** По UUID УУ возвращаем список имён его связываеых ф-ций. */
-    //@SuppressWarnings("all")
-    public @NotNull List<UuidDto> getBinableFunctionNames (String uuidStr)
+    @Transactional
+    public @NotNull List<UuidDto> getBindableFunctionNames (String uuidStr)
     {
         List<UuidDto> list = Collections.emptyList();
         ISmartHandler device;
@@ -277,70 +333,100 @@ public class HomeService {
         if ((device = uuidToHandler.get (UUID.fromString(uuidStr))) != null
         &&  (info   = handlerToInfo.get (device)) != null)
         {
-            List<UuidDto> functions = info.abilities.getBindableFunctionNames (friendlyNames);
-            if (functions != null)
+            List<Sensor> sensors = info.abilities.getSensors();
+            if (sensors != null && !sensors.isEmpty())
+            {
+                List<UuidDto> functions = new LinkedList<>();
+                for (Sensor s : sensors)
+                {
+                    String uuid = s.getUuid().toString();
+                    functions.add (new UuidDto (friendlyNameByUuid (uuid), uuid));
+                }
                 list = functions;
+            }
         }
         return list;
     }
 
-/** Собираем в один список dto-шки мастер-контрактов устройства. */
-    public List<BinateDto> getContracts (String strUuid)
-    {
-        try {
-            UUID masterUuid = UUID.fromString (strUuid);
-            ISmartHandler master = uuidToHandler.get (masterUuid);
-            return master.getMasterContractsDto();
-        }
-        catch (Exception e) { return null; }
-    }
-
-/** Вызывается хэндлером ведомого УУ для передачи хэндлеру ведущего УУ информацию о событии.
- @param masterUuid UUID ведущего УУ, которому адресована информация о событии.
- @param signal Описание события. */
-    public void slaveCallback (UUID masterUuid, Signal signal)
-    {
-        ISmartHandler master = uuidToHandler.get (masterUuid);
-        if (master != null && master.isActive())
-            master.offerRequest (new Message (CMD_SIGNAL, /*masterUuid,*/ signal));
-        //Неактивное УУ не должно принимать сигналы.
-    }
 
 /** Связываем два хэндлера контрактом типа ведущий-ведомый, или прекращаем их контаркт.
  @param dto запрос, описывающий характеристики контракта, будущего или существующего.
  @param bind указывает, что именно нужно сделать: создать контракт или удалить. */
+    @Transactional
     public boolean bind (BindRequestDto dto, boolean bind)
     {
         try {
-            UUID masterUuid = UUID.fromString (dto.getMasterUUID());
-            UUID slaveUuid  = UUID.fromString (dto.getSlaveUUID());
-            ISmartHandler master = uuidToHandler.get (masterUuid);
-            ISmartHandler slave  = uuidToHandler.get (slaveUuid);
-            String masterTaskName  = dto.getMasterTaskName();
-            UUID slaveFunctionUuid = UUID.fromString (dto.getSlaveFuctionUUID());
+            if (dto != null)
+            {
+                String masterUuid   = dto.getMasterUUID();
+                String taskName     = dto.getMasterTaskName();
+                String slaveUuid    = dto.getSlaveUUID();
+                String functionUuid = dto.getSlaveFuctionUUID();
+                List<Contract> list2 = contractsRepo.findAllByMasterUuidAndTaskNameAndSlaveUuidAndFunctionUuid (
+                                                               masterUuid, taskName, slaveUuid, functionUuid);
+                boolean exists = !list2.isEmpty();
+                Contract contract = new Contract (masterUuid, taskName, slaveUuid, functionUuid);
 
-            Binate bm = new Binate (BS_CONTRACT, MASTER, slaveUuid, slaveFunctionUuid, masterTaskName, null); //< нельзя вместо slaveUuid      передавать null, а то не будет работать equals().
-            Binate bs = new Binate (BS_CONTRACT, SLAVE, masterUuid, slaveFunctionUuid, masterTaskName, null); //< нельзя вместо masterTaskName передавать null, а то не будет работать equals().
-            if (bind == BIND) {
-                //Отправляем сообщения ведомому и ведущему устройствм, но мастеру отсылаем
-                // новость в первую очередь, чтобы опередить возможный поток сообщений от слейва:
-                if (master.pair(bm)) {
-                    if (slave.pair(bs)) {
-                        BinateDto binateDto = new BinateDto (masterTaskName, slave.getDeviceFriendlyName(),
-                                                             friendlyNames.get (slaveFunctionUuid),
-                                                             slaveUuid, slaveFunctionUuid);
-                        bm.setDto (binateDto);
-                        return true;
-                    }
-                    master.unpair (bm);
-            }   }
-            else return slave.unpair(bs) & master.unpair(bm); //< должны выполниться оба метода.
-                //Отправляем сообщения ведомому и ведущему устройствм, но слейву отсылаем
-                // новость в первую очередь, чтобы он не слал мастеру сообщения, когда мы будем
-                // мастера отключать.
+                if (bind == BIND) {
+                    if (!exists)
+                        contractsRepo.save (contract);
+                    else
+                        addNews (format ("Устройства уже связаны:\r%s\rи\r%s."
+                                         ,friendlyNameByUuid (masterUuid), friendlyNameByUuid (slaveUuid)));
+                    return !exists;
+                }
+                else {
+                    if (exists)
+                        for (Contract c : list2)
+                            contractsRepo.delete (c);
+                    return exists;
+                }
+            }
         }
-        catch (Exception e){ e.printStackTrace(); }
+        catch (Exception e) { e.printStackTrace(); }
         return false;
     }
+//----------------------- Сообщения ------------------------------------
 
+    public List<String> getHomeNews ()
+    {
+        synchronized (lastNewsMonitor) {
+            if (lastNews.isEmpty())
+                return null;
+            List<String> list = new ArrayList<>(lastNews);
+            lastNews.clear();
+            return list;
+        }
+    }
+
+    public void addNews (String... news)
+    {
+        if (news != null && news.length > 0)
+        synchronized (lastNewsMonitor) {
+            lastNews.addAll (Arrays.asList (news));
+        }
+    }
+
+//----------------------- Колбэки --------------------------------------
+
+/** Вызывается хэндлером ведомого УУ для поиска и исполнения контрактов, созданых для реагирования
+ на событие, описанное в signal.
+ @param signal Описание события. */
+    public void slaveCallback (Signal signal)
+    {
+        List<Contract> contracts = null;
+        if (signal != null)
+            contracts = contractsRepo.findAllByFunctionUuid (signal.getFunctionUuid().toString());
+
+        if (contracts != null && !contracts.isEmpty())
+        for (Contract c : contracts)
+        {
+            ISmartHandler master = uuidToHandler.get (UUID.fromString (c.getMasterUuid()));
+            if (master != null && master.isActive())
+            {
+                master.offerRequest (new Message (CMD_SIGNAL, signal.setData (c.getTaskName())));
+                //Неактивное УУ не должно принимать сигналы.
+            }
+        }
+    }
 }
