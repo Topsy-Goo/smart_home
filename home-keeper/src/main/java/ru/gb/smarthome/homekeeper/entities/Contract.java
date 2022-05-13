@@ -15,16 +15,16 @@ public class Contract {
     @GeneratedValue (strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column (name="master_uuid")
+    @Column (name="master_uuid", nullable=false)
     private String masterUuid;
 
-    @Column (name="master_task")
+    @Column (name="master_task", nullable=false)
     private String taskName;
 
     @Column (name="slave_uuid")
     private String slaveUuid;
 
-    @Column (name="function_uuid")
+    @Column (name="function_uuid", nullable=false)
     private String functionUuid;
 
     private Contract (){}
@@ -36,7 +36,7 @@ public class Contract {
     }
 
     @Override public String toString () {
-        return format ("contract:[%s (%s) | %s (%s)]"
+        return format ("Contract:[%s (%s) | %s (%s)]"
                       ,masterUuid
                       ,taskName
                       ,slaveUuid

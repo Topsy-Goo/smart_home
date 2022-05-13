@@ -1,5 +1,9 @@
 package ru.gb.smarthome.common.smart.enums;
 
+import java.util.Arrays;
+
+import static ru.gb.smarthome.common.FactoryCommon.isStringsValid;
+
 public enum TaskStates
 {
      TS_IDLE         ( true, false, false, "Бездействует")  //< не выполняется (умолчальное значение; задача может быть запущена)
@@ -42,5 +46,15 @@ public enum TaskStates
         runningState = runnState;
         launchingError = launchErr;
         tsName = tsN;
+    }
+
+    public static TaskStates byTsName (String tsname)
+    {
+        if (!isStringsValid (tsname))
+            return null;
+        return Arrays.stream (values())
+                     .filter (ts->ts.tsName.equals(tsname))
+                     .findFirst()
+                     .orElse (null);
     }
 }

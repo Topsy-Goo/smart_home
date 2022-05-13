@@ -31,14 +31,6 @@ spring:
         dialect: org.hibernate.dialect.MySQL5InnoDBDialect # мля!..
         # диалекты: https://docs.jboss.org/hibernate/orm/3.5/javadocs/org/hibernate/dialect/package-summary.html#package_description
 
-
-#  h2: # < необязательная настройка БД (Спринг дружит с h2 и позволяет делать такую настройку)
-#    console:
-#      enabled: true # < поддержка H2-консоли
-#      settings:
-#        web-allow-others: false # < закрыть доступ к этой консоли из других WEB-приложений
-#        #(только из браузера можно)
-
 jwt:
   secret: $2a$12$c4HYjryn7vo1bYQfSzkUDe8jPhYIpInbUKZmv5lGnmcyrQPLIWnVu
   lifetime: 36000000 #10ч

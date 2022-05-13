@@ -49,16 +49,6 @@ public class HomeService {
         }
     }
 
-    private String friendlyNameByUuid (String key) { //-----------db
-        FriendlyName fName = friendlyNamesRepo.findByUuid (key);
-        return fName != null ? fName.getName() : null;
-    }
-
-    private String friendlyNameByUuid (UUID uuid) { //-----------db
-        FriendlyName fName = friendlyNamesRepo.findByUuid (uuid.toString());
-        return fName != null ? fName.getName() : null;
-    } //TODO: не используется.
-
 /** Добавление УУ в список обнаруженых устройств. */
     @Transactional
     public void smartDeviceDetected (ISmartHandler device)
@@ -79,7 +69,7 @@ public class HomeService {
             addIfAbsent (handGroup, device);
 
             printf ("\nHomeService: обнаружено УУ: %s.\n", device.toString());
-//-----------db<
+
         //Помещаем в friendlyNamesRepo пользовательское имя устройства, если его там нет (его начальным
         // значением будет Abilities.vendorString, а позже юзер сможет его изменить):
             String name = readFriendlyNameOrDefault (info.uuidstr, info.vendorString);
@@ -91,7 +81,6 @@ public class HomeService {
             if (sensors != null)
                 for (Sensor s : sensors)
                     readFriendlyNameOrDefault (s.getUuid().toString(), s.getName());
-//-----------db>
         }
     }
 
@@ -386,6 +375,38 @@ public class HomeService {
         catch (Exception e) { e.printStackTrace(); }
         return false;
     }
+
+    public FriendlyName findFriendlyNameByUuid (String key)
+    {
+        return friendlyNamesRepo.findById (key).orElse(null);
+    }
+
+    private String friendlyNameByUuid (String key)
+    {
+        FriendlyName fName = findFriendlyNameByUuid(key);
+        return fName != null ? fName.getName() : null;
+    }
+
+    private String friendlyNameByUuid (UUID uuid) {
+        FriendlyName fName = findFriendlyNameByUuid (uuid.toString());
+        return fName != null ? fName.getName() : null;
+    } //TODO: не используется.
+
+    @Transactional
+    public boolean isTaskName (UUID uuid, String taskName)
+    {
+        ISmartHandler device = uuidToHandler.get (uuid);
+        DeviceInfo info;
+        if (device != null && ((info = handlerToInfo.get (device))) != null)
+            return info.abilities.isTaskName (taskName);
+        return false;
+    }
+
+    public boolean isAvalable (UUID deviceUuid)
+    {
+        return (deviceUuid != null) && uuidToHandler.containsKey (deviceUuid);
+    }
+
 //----------------------- Сообщения ------------------------------------
 
     public List<String> getHomeNews ()

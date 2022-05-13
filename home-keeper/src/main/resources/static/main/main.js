@@ -1,14 +1,14 @@
 
- angular.module('smarthome-front')
-		.controller('mainController', function ($scope, $rootScope, $http, $localStorage)
+ angular.module('smarthome-front') //< приложение
+		.controller('mainController', function ($scope, $rootScope, $http, $routeParams, $localStorage, $location)
 {
 	const contextMainPath 	  = 'http://localhost:15550/home/v1/main';
 	const contextSchedulePath = 'http://localhost:15550/home/v1/schedule';
 	const contextAuthoPath	  = 'http://localhost:15550/home/v1/auth';
 	//http://localhost:15550/home/index.html	- главная страница
 
-	$scope.stateTimer; //< Таймер для одновления (?динамических элементов?) страницы.
-	$rootScope.pollInterval = 3000; //< Интервал в миллисекундах для таймера $scope.stateTimer.
+	$rootScope.stateTimer; //< Таймер для одновления (?динамических элементов?) страницы.
+	$scope.pollInterval = 3000; //< Интервал в миллисекундах для таймера $rootScope.stateTimer.
 
 	$scope.states = [];	/*	< Этот массив содержит объекты {uuid, StateDto}, которые позволяют обновлять не всю
 	стопку панелей, а отдельные участки панелей. Необходимость это делать возникла, когда к фронту прикрутили
@@ -34,16 +34,16 @@ console.log ('***************');
 		{
 			$scope.home_dto = response.data;
 console.log (response.data);
-			$rootScope.pollInterval = $scope.home_dto.pollInterval;
+			$scope.pollInterval = $scope.home_dto.pollInterval;
 			$scope.fillStatesArray();
 			$scope.getHomeNews();
 		},
 		function failureCallback (response) {
-			$scope.cleanUp();
+			$scope.cleanUpMainPage();
 			alert ('ОШИБКА: Не удалось загрузить список устройств.');
 			console.log ('Error @ getDevicesList().');
 		});
-		$scope.stateTimer = setInterval ($scope.updateStates, $rootScope.pollInterval);
+		$rootScope.stateTimer = setInterval ($scope.updateStates, $scope.pollInterval);
 	}
 //-------------------------------------------------------------------------------- обновление состояний
 
@@ -116,7 +116,7 @@ console.log (response.data);
 	накопиться не одна тысяча одинаковых ошибок. Типа одного сообщения недостаточно.
 	*/
 			function failureCallback (response) {
-				$scope.cleanUp();
+				$scope.cleanUpMainPage();
 				console.log ('ОШИБКА в getDevicesList(): Не удалось обновить статус устройства ', element.uuid);
 			});
 		}
@@ -136,7 +136,7 @@ console.log (response.data);
 		}
 		return false;
 	}
-//-------------------------------------------------------------------------------- мена имени
+//-------------------------------------------------------------------------------- смена имени
 
 //Отправлвем на бэк сообщение, что о необходимости изменить поле deviceFriendlyName на указанное значение.
 	$scope.tryNewFriendlyName = function (device, newFriendlyName)
@@ -264,13 +264,9 @@ console.log (response.data);
 //-------------------------------------------------------------------------------- планирование
 	$scope.scheduleTask = function (device, taskName)
 	{
-console.log ('$scope.scheduleTask(): uuid = ', device.abilities.uuid);
-console.log ('$scope.scheduleTask(): taskName = ', taskName);
-		//...
-	}
-
-	$scope.cleanUp = function () {
-		clearInterval($scope.stateTimer);
+//console.log ('$scope.scheduleTask(): uuid = ', device.abilities.uuid);
+//console.log ('$scope.scheduleTask(): taskName = ', taskName);
+		$location.path ('/schedule/'+ device.abilities.uuid +'/'+ taskName +'/'+ device.friendlyName);
 	}
 //-------------------------------------------------------------------------------- связывание
 	$scope.loadDeviceSlaveList = function (device)
@@ -391,11 +387,10 @@ console.log ('$scope.scheduleTask(): taskName = ', taskName);
 	$scope.showTasksForm = function (tasklist) {
 		 return tasklist != null;
 	}
-//-------------------------------------------------------------------------------- для отладки
-	$scope.timerStop = function() {
-		clearInterval($scope.stateTimer);
+//-------------------------------------------------------------------------------- очистка
+	$scope.cleanUpMainPage = function () {
+		clearInterval ($rootScope.stateTimer);
 	}
 //-------------------------------------------------------------------------------- вызовы
 	$scope.startMain();
 });
-

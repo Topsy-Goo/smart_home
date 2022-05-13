@@ -8,7 +8,7 @@
 <!--	<br><button ng-click="timerStop()">Таймер стоп</button>-->
 	<br>
 	home_dto.pollInterval = {{home_dto.pollInterval}}<br>
-	$rootScope.pollInterval = {{pollInterval}}
+	$scope.pollInterval = {{pollInterval}}
 	<br>
 
 <br>
@@ -81,8 +81,7 @@
 					<li>device.slaveList: 			<span ng-repeat="slave in device.slaveList"><br>	  <b>{{slave.displayName}}</b>, {{slave.uuid}}</span></li>
 					<li style="width: 100%;"	ng-if="showTasksForm(device.abilities.tasks)">
 <!-- Форма для выбора задачи из списка доступных задач. -->
-						<form	class="align-middle col-12"
-								ng-submit="launchTask(device,taskToLaunch)">
+						<form	class="align-middle col-12"><!--	ng-submit="launchTask(device,taskToLaunch)"  -->
 							<div class="input-group-sm" style="margin-left: -15px;">
 								device.abilities.tasks&nbsp;:&nbsp;
 								<select	id="taskList"	name="taskList"
@@ -98,13 +97,15 @@
 								<button id="taskSubmit"
 										class="btn-sm btn-outline-warning"
 										style="margin-left: 10px;"
-										type="submit">
+										type="button"
+										ng-click="launchTask (device,taskToLaunch)">
 										Запустить
 								</button>
 								<button id="taskSchedule"
 										class="btn-sm btn-outline-default"
 										style="margin-left: 10px;"
-										ng-click="scheduleTask(device,taskToLaunch)">
+										type="button"
+										ng-click="scheduleTask (device, taskToLaunch)">
 										Запланировать
 								</button>
 							</div>

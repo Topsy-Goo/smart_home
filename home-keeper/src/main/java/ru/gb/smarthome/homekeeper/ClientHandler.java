@@ -130,7 +130,8 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
             e.printStackTrace();
         }
         finally {
-            if (helloSynQue != null) helloSynQue.offer (ERROR);helloSynQue = null;  //< сообщаем в DeviceServerHome, что у нас не получилось начать работу.
+            if (helloSynQue != null) helloSynQue.offer (ERROR);
+            helloSynQue = null;  //< сообщаем в DeviceServerHome, что у нас не получилось начать работу.
             disconnect();
             Thread.yield(); //< возможно, это позволит вовремя вывести сообщение об ошибке.
             printf ("\nClientHandler: поток %s завершился. Код завершения: %s.\n", threadRun, code);

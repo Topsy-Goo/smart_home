@@ -1,5 +1,6 @@
 package ru.gb.smarthome.common;
 
+import org.springframework.data.jpa.convert.threeten.Jsr310JpaConverters;
 import ru.gb.smarthome.common.smart.enums.DeviceTypes;
 import ru.gb.smarthome.common.smart.enums.OperationCodes;
 import ru.gb.smarthome.common.smart.enums.SensorStates;
@@ -9,9 +10,16 @@ import ru.gb.smarthome.common.smart.structures.Signal;
 import ru.gb.smarthome.common.smart.structures.Task;
 
 import java.lang.reflect.Constructor;
+import java.time.*;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoField;
+import java.time.temporal.TemporalAccessor;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
+import static java.time.temporal.ChronoField.INSTANT_SECONDS;
 import static ru.gb.smarthome.common.smart.enums.DeviceTypes.SMART;
 import static ru.gb.smarthome.common.smart.enums.OperationCodes.CMD_BUSY;
 import static ru.gb.smarthome.common.smart.enums.OperationCodes.CMD_INVALID;
@@ -57,17 +65,18 @@ final public class FactoryCommon
     public static final String FORMAT_ACTIVATE_DEVICE_FIRST_ = "Устройство «%s» неактивно.\rАктивизируйте его и повторите попытку.";
     public static final String FORMAT_REQUEST_ERROR = "Устройство %s\rне смогло обработать запрос.";
     //public static final String USE_DEF_SENSOR_NAME  = null;
+    //public static final String  = "";
 
     public static final String
         promptActivationDuringErrorState = "Активация неисправного устройства невозможна.",
         promptDeactivationIsNotSafeNow = "Деактивировать устройство сейчас нельзя!",
         promptCannotChangeActivityState = "Не удалось изменить активность устроуства.";
 
-    //public static final String  = "";
-    //public static final   = ;
-    //public static final   = ;
+    public static final Locale            RU_LOCALE = new Locale ("ru", "RU");
+    public static final DateTimeFormatter dtf       = DateTimeFormatter.ofPattern ("yyyy-MM-dd | HH:mm:ss", RU_LOCALE);
 
     public static final OperationCodes OPCODE_INITIAL = CMD_BUSY; //< состояние, в котором оказывается УУ при запуске его модуля.
+
 
 /** Проверяет строку на пригодность.
 @return true, если ни одна из строк не равна null, не является пустой и не состоит только из пробельных сиволов. */
@@ -207,5 +216,18 @@ final public class FactoryCommon
             printf ("Строка «%s» не может быть преобразована к UUID.", strUuid);
             return null;
         }
+    }
+
+    public static LocalDateTime ldtFromLong (Long l)
+    {
+        Instant instant = Instant.ofEpochMilli (l);
+        ZoneId  zoneId  = ZoneId.systemDefault();
+        return LocalDateTime.ofInstant (instant, zoneId);
+    }
+
+    public static long longFromLdt (LocalDateTime ldt)
+    {
+        ZonedDateTime zdt1 = ZonedDateTime.of (ldt, ZoneId.systemDefault());
+        return zdt1.toInstant().toEpochMilli();
     }
 }

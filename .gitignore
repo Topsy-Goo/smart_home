@@ -43,3 +43,4 @@ build/
 /smart-weather-station/backup.files/
 /smart-washer/backup.files/
 /.run/
+/smarthome.sql
