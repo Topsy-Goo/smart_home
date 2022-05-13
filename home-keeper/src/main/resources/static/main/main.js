@@ -1,14 +1,14 @@
 
- angular.module('smarthome-front')
-		.controller('mainController', function ($scope, $rootScope, $http, $localStorage)
+ angular.module('smarthome-front') //< приложение
+		.controller('mainController', function ($scope, $rootScope, $http, $routeParams, $localStorage, $location)
 {
 	const contextMainPath 	  = 'http://localhost:15550/home/v1/main';
 	const contextSchedulePath = 'http://localhost:15550/home/v1/schedule';
 	const contextAuthoPath	  = 'http://localhost:15550/home/v1/auth';
 	//http://localhost:15550/home/index.html	- главная страница
 
-	$scope.stateTimer; //< Таймер для одновления (?динамических элементов?) страницы.
-	$rootScope.pollInterval = 3000; //< Интервал в миллисекундах для таймера $scope.stateTimer.
+	$rootScope.stateTimer; //< Таймер для одновления (?динамических элементов?) страницы.
+	$scope.pollInterval = 3000; //< Интервал в миллисекундах для таймера $rootScope.stateTimer.
 
 	$scope.states = [];	/*	< Этот массив содержит объекты {uuid, StateDto}, которые позволяют обновлять не всю
 	стопку панелей, а отдельные участки панелей. Необходимость это делать возникла, когда к фронту прикрутили
@@ -22,28 +22,30 @@
 	$scope.startMain = function ()
 	{
 console.log ('***************');
-		$scope.getDevicesList();
+		getDevicesList();
 	}
 
 //Загрузка с бэка всего, что нужно для отобажения страницы. Сейчас это всё умещается в $scope.home_dto.
-	$scope.getDevicesList = function ()
+	getDevicesList = function ()
 	{
+		cleanUpMainPage();
+
 		$http.get (contextMainPath + '/home_dto')
 		.then (
 		function successCallback (response)
 		{
 			$scope.home_dto = response.data;
 console.log (response.data);
-			$rootScope.pollInterval = $scope.home_dto.pollInterval;
+			$scope.pollInterval = $scope.home_dto.pollInterval;
 			$scope.fillStatesArray();
 			$scope.getHomeNews();
+
+			$rootScope.stateTimer = setInterval (updateStates, $scope.pollInterval);
 		},
 		function failureCallback (response) {
-			$scope.cleanUp();
 			alert ('ОШИБКА: Не удалось загрузить список устройств.');
 			console.log ('Error @ getDevicesList().');
 		});
-		$scope.stateTimer = setInterval ($scope.updateStates, $rootScope.pollInterval);
 	}
 //-------------------------------------------------------------------------------- обновление состояний
 
@@ -75,7 +77,7 @@ console.log (response.data);
  у них поля (именно поля, а не целые StateDto, чтобы не потерять связи этих StateDto с таковыми
  в $scope.home_dto).
 */
-	$scope.updateStates = function ()
+	function updateStates()
 	{
 /*	Сперва запрашиваем у бэка массив UUID-строк, чтобы определить, не изменился ли набор
  обнаруженых устройств с момента последнего запроса $scope.home_dto. Если набор изменился,
@@ -86,7 +88,8 @@ console.log (response.data);
 		function successCallback (response)
 		{
 			if (!$scope.compareStringArrays ($scope.uuids, response.data)) {
-				$scope.getDevicesList();
+				getDevicesList();
+				return;
 			}
 		},
 		function failureCallback (response) {
@@ -113,11 +116,11 @@ console.log (response.data);
 			},
 	/*	Эту часть, наверное, можно удалить, а то яндекс-браузер, чтоб его… перестали дебилы делать,
 	сколько раз ошибку встретит, столько раз её и напечатает. Пока отлаживаешь бэк, может
-	накопиться не одна тысяча одинаковых ошибок. Типа одного сообщения недостаточно.
+	накопиться не одна тысяча одинаковых ошибок.
 	*/
 			function failureCallback (response) {
-				$scope.cleanUp();
-				console.log ('ОШИБКА в getDevicesList(): Не удалось обновить статус устройства ', element.uuid);
+				cleanUpMainPage();
+				console.log ('ОШИБКА в updateStates(): Не удалось обновить статус устройства ', element.uuid);
 			});
 		}
 	}
@@ -136,7 +139,7 @@ console.log (response.data);
 		}
 		return false;
 	}
-//-------------------------------------------------------------------------------- мена имени
+//-------------------------------------------------------------------------------- смена имени
 
 //Отправлвем на бэк сообщение, что о необходимости изменить поле deviceFriendlyName на указанное значение.
 	$scope.tryNewFriendlyName = function (device, newFriendlyName)
@@ -264,13 +267,9 @@ console.log (response.data);
 //-------------------------------------------------------------------------------- планирование
 	$scope.scheduleTask = function (device, taskName)
 	{
-console.log ('$scope.scheduleTask(): uuid = ', device.abilities.uuid);
-console.log ('$scope.scheduleTask(): taskName = ', taskName);
-		//...
-	}
-
-	$scope.cleanUp = function () {
-		clearInterval($scope.stateTimer);
+//console.log ('$scope.scheduleTask(): uuid = ', device.abilities.uuid);
+//console.log ('$scope.scheduleTask(): taskName = ', taskName);
+		$location.path ('/schedule/'+ device.abilities.uuid +'/'+ taskName +'/'+ device.friendlyName);
 	}
 //-------------------------------------------------------------------------------- связывание
 	$scope.loadDeviceSlaveList = function (device)
@@ -287,6 +286,12 @@ console.log ('$scope.scheduleTask(): taskName = ', taskName);
 
 	$scope.requestSlaveBindableFunctions = function (device, uuid)
 	{
+console.log ('$scope.requestSlaveBindableFunctions() получила параметры: ', device, ', и ', uuid);
+		if (!uuid) {
+			device.bindableFunctions = null;
+			return;
+		}
+
 		$http.get (contextMainPath + '/bindable-functions/'+ uuid)
 		.then (
 		function successCallback (response) {
@@ -391,11 +396,10 @@ console.log ('$scope.scheduleTask(): taskName = ', taskName);
 	$scope.showTasksForm = function (tasklist) {
 		 return tasklist != null;
 	}
-//-------------------------------------------------------------------------------- для отладки
-	$scope.timerStop = function() {
-		clearInterval($scope.stateTimer);
+//-------------------------------------------------------------------------------- очистка
+	cleanUpMainPage = function () {
+		clearInterval ($rootScope.stateTimer);
 	}
 //-------------------------------------------------------------------------------- вызовы
 	$scope.startMain();
 });
-

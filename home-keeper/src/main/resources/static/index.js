@@ -23,8 +23,7 @@
 
 	function config ($routeProvider)
 	{
-	/*	$routeProvider - модуль, который позволяет переходить между страницами
-	*/
+	//	$routeProvider - модуль, который позволяет переходить между страницами.
 		$routeProvider
 			.when('/main',		//< задаём постфикс для перехода на главную страницу
 			{
@@ -36,45 +35,19 @@
 				templateUrl: 'schedule/schedule.html',	//<	адрес страницы с расписанием и…
 				controller:	 'scheduleController'		//	…имя её контроллера
 			})
+			.when('/schedule/:uuid/:taskname/:friendlyname',
+			{
+				templateUrl: 'schedule/schedule.html',	//< для возможности передавать параметр требуется указать $routeParams в объявлении scheduleController'а.
+				controller:	 'scheduleController'
+			})
 			.when('/registration',
 			{
 				templateUrl: 'registration/registration.html',
 				controller:	 'registrationController'
 			})
-/*			.when('/product_page/:pid',
-			{
-				templateUrl: 'product_page/product_page.html',
-				controller:	 'product_pageController'
-			})
-			.when('/edit_product/:pid',	//< для возможности передавать параметр требуется указать $routeParams в объявлении edit_productController'а.
-			{
-				templateUrl: 'edit_product/edit_product.html',
-				controller:	 'edit_productController'
-			})
-			.when('/edit_product',	//< пусть переход на страницу через главное меню означает намерение создать новый товар, а не редактировать существующий
-			{
-				templateUrl: 'edit_product/edit_product.html',
-				controller:	 'edit_productController'
-			})
-			.when('/cart',
-			{
-				templateUrl: 'cart/cart.html',
-				controller:	 'cartController'
-			})
-			.when('/order',
-			{
-				templateUrl: 'order/order.html',
-				controller:	 'orderController'
-			})
-			.when('/user_profile',
-			{
-				templateUrl: 'user_profile/user_profile.html',
-				controller:	 'user_profileController'
-			})*/
 			.otherwise(
 			{
-				redirectTo:	'/main'
-//				redirectTo:	'/registration'
+				redirectTo:	'/main' //redirectTo:	'/registration'
 			});
 	}
 
@@ -117,7 +90,7 @@
 })();
 
  angular.module('smarthome-front')
-		.controller('indexController', function ($rootScope, $scope, $http, $localStorage, $location)
+		.controller('indexController', function ($scope, $rootScope, $http, $routeParams, $localStorage, $location)
 {
 /*	function ($scope, $http, ...) - по мере необходимости инжектим модули, которые входят в стандартную поставку ангуляра:
 	$http - позволяет посылать из приложения http-запросы
@@ -163,8 +136,7 @@
 				 данные о регистрации, если они не были записаны в хранилище браузера или не были
 				 сохранены иным способом */
 			},
-			function failureCallback (response)
-			{
+			function failureCallback (response) {
 				alert ('ОШИБКА: '+ response.data.messages);
 			});
 		}
@@ -183,6 +155,13 @@
 		$http.defaults.headers.common.Authorization = '';
 	}
 
+/* Переход на страницу с расписанием. Используем не ссылку на странице, а метод потому, что простой
+переход по ссылке не гасит таймер. */
+/*	$scope.gotoSchedulePage = function ()
+	{
+console.log ('scope.gotoSchedulePage() вызван.');
+		$rootScope.cleanUpMainPage();
+	}*/
 //----------------------------------------------------------------------- разрешения
 	$rootScope.isUserLoggedIn = function ()
 	{

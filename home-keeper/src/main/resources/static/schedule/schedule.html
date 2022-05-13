@@ -1,14 +1,100 @@
 <div style="margin: 10px;">
 	<h5>Расписние задач, которые Умный дом выполнит для Вас.</h5>
 	<p>&nbsp;</p>
-<!-- Начало экспериментальной части. -->
+<!--	<p>&nbsp;</p>-->
 
-<!--	<div><table>
-			<tr><th ng-repeat="h in tableHH">{{h}}</th></tr>
-			<tr><td ng-repeat="v1 in tableL1">{{v1}}</td></tr>
-			<tr><td ng-repeat="v2 in tableL2">{{v2}}</td></tr>
-		 </table>
-	</div>-->
-
-<!-- Конец экспериментальной части. -->
+	<form	class="align-middle col-12" ng-submit="createRecord (newRecord)">
+		<fieldset>
+			<legend style="font-size: 20px;">Редактирование записи:</legend>
+			<div class="input-group input-group-sm">	<!-- style="margin-left: -15px;"  -->
+				Устройство:
+				<input	id="new_record_input_devicename"
+						type="text"
+						class="form-control form-control-sm smartinput150"
+						ng-model="newRecord.deviceName"
+						ng-trim="true"
+						required="required"
+						disabled="disabled">			<!--      -->
+				Задача:
+				<input	id="new_record_input_taskname"
+						type="text"
+						class="form-control form-control-sm smartinput150"
+						style="margin-left: 10px;"
+						ng-model="newRecord.taskName"
+						ng-trim="true"
+						required="required"
+						disabled="disabled">
+				Время запуска:
+				<input	id="new_record_input_datetime"
+						type="datetime-local"
+						class="form-control form-control-sm smartinput150"
+						style="margin-left: 10px;"
+						ng-model="newRecord.dateTime"
+						required="required"
+						autofocus="autofocus"><!--	min="newRecord.dateTime"  -->
+				<button	id="new_record_button_ok"
+						type="submit"
+						class="btn btn-sm btn-outline-warning"
+						style="margin-left: 10px;">					<!--  -->
+						Запомнить</button><!-- Запомнить -->
+				<button	id="new_record_button_cancel"
+						type="button"
+						class="btn btn-sm btn-outline-warning"
+						style="margin-left: 10px;"
+						ng-click="resetNewRecordForm()">
+						Сброс</button><!-- Сброс -->
+			</div>
+		</fieldset>
+	</form>
+	<br>
+	<p style="color: #074F86; margin-left: 10px;">
+		Пожалуйста имейте в виду, что только <b>активное</b> устройство может выполнять задачи. Если ко времени выполнения задачи
+		соответствующее ей устройство не будет активно, то задача не будет запущена.
+	</p>
+	<br>
+	<fieldset>
+		<legend style="font-size: 20px;">Список запланированных задач:</legend>
+		<table class="table table-sm">
+		  <thead>
+			<tr>
+	<!--		  <th>id</th>-->
+			  <th scope="col">Устройство</th>
+	<!--		  <th>UUID</th>-->
+			  <th scope="col">Задача</th>
+			  <th scope="col">Время запуска</th>
+	<!--		  <th>long</th>-->
+			  <th scope="col">Состояние</th>
+			  <th scope="col" class="col-2" colspan="2">Действия</th>
+			</tr>
+		  </thead>
+		  <tbody>
+			<tr ng-repeat="rec in schedule"><!-- style="color: {{rec)}};" bgcolor="{{}}" style="color: {{statusColor(order.state)}};" -->
+	<!--			<td>{{rec.id}}</td>-->
+				<th scope="row">{{rec.deviceName}}</th>
+	<!--			<td>{{rec.uuid}}</td>-->
+				<td>{{rec.taskName}}</td>
+				<td>{{rec.dateTime}}</td>
+	<!--			<td>{{rec.dateTimeLong}}</td>-->
+				<td>{{rec.state}}</td>
+				<td class="col-1">
+					<button class="btn btn-sm btn-success"
+							style="font-family: Webdings;"
+							title="Редактировать запись"
+							disabled=""
+							ng-click="startEditRecord(rec)"
+							ng-show="{{rec.available}}">a</button>
+					&nbsp;
+				</td>
+				<td class="col-1">
+					<button class="btn btn-sm btn-danger"
+							style="font-family: Webdings;"
+							title="Удалить запись"
+							ng-click="deleteRecord(rec)"
+							>r</button><!-- ng-show="{{rec.available}}" -->
+				</td>
+	<!--			<td>{{rec.}}</td>-->
+			</tr>
+		  </tbody>
+		</table>
+	</fieldset>
 </div>

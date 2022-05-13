@@ -14,14 +14,14 @@ import static java.lang.String.format;
 @Data
 public class FriendlyName {
     @Id
-    @Column (name="uuid")
+    @Column (name="uuid", nullable=false)
     private String uuid;
 
-    @Column (name="name")
+    @Column (name="name", nullable=false)
     private String name;
 
     private FriendlyName (){}
-    public FriendlyName (String uid, String nam){
+    public FriendlyName (String uid, String nam) {
         uuid = uid;
         name = nam;
     }

@@ -8,6 +8,7 @@ import ru.gb.smarthome.homekeeper.dtos.*;
 import ru.gb.smarthome.homekeeper.services.HomeService;
 
 import java.util.List;
+import java.util.UUID;
 
 import static java.lang.String.format;
 import static ru.gb.smarthome.common.FactoryCommon.*;
@@ -34,6 +35,7 @@ public class HomeController
     @GetMapping ("/state/{uuid}")
     public StateDto getState (@PathVariable(name="uuid") String strUuid)
     {
+print(" <{state}> ");
         return homeService.getStateDto(strUuid);
     }
 
@@ -132,6 +134,13 @@ public class HomeController
         List<String> list = homeService.getHomeNews();
 if (list != null) lnprintf ("/home_news - ответ: %s.\n", list);
         return list;
+    }
+
+    @GetMapping ("/is_task_name/{uuid}/{taskName}")
+    public boolean isTaskName (@PathVariable(name="uuid") String strUuid, @PathVariable String taskName)
+    {
+lnprintf("isTaskName() - параметры: %s, %s.\n", strUuid, taskName);
+        return homeService.isTaskName (UUID.fromString(strUuid), taskName);
     }
 
 //Используется только в отладочных целях. Переводит объект в JSON-строку.

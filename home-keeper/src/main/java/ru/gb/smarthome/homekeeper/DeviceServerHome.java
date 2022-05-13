@@ -34,7 +34,7 @@ public class DeviceServerHome implements IDeviceServer
     {
         serverSocketPort = propMan.getServerSocketPort();
         Thread t = new Thread (this, "Running Home Server");
-        //t.setDaemon (true);
+        t.setDaemon (true);
         t.start();
     }
 

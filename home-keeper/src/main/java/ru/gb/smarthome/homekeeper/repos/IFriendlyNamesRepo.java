@@ -7,5 +7,5 @@ import ru.gb.smarthome.homekeeper.entities.FriendlyName;
 @Repository
 public interface IFriendlyNamesRepo extends CrudRepository<FriendlyName, String>
 {
-    FriendlyName findByUuid (String uuid);
+    //FriendlyName findByUuid (String uuid);
 }
