@@ -72,8 +72,10 @@ final public class FactoryCommon
         promptDeactivationIsNotSafeNow = "Деактивировать устройство сейчас нельзя!",
         promptCannotChangeActivityState = "Не удалось изменить активность устроуства.";
 
-    public static final Locale            RU_LOCALE = new Locale ("ru", "RU");
-    public static final DateTimeFormatter dtf       = DateTimeFormatter.ofPattern ("yyyy-MM-dd | HH:mm:ss", RU_LOCALE);
+    public static final Locale RU_LOCALE = new Locale ("ru", "RU");
+    public static final DateTimeFormatter dtf = DateTimeFormatter.ofPattern ("yyyy-MM-dd | HH:mm:ss", RU_LOCALE);
+    public static final long SCHEDULER_POLL_INTERVAL_MINUTES = 1L;
+    public static final long SCHEDULER_EXTRA_WAIT_MINUTES = 2L;
 
     public static final OperationCodes OPCODE_INITIAL = CMD_BUSY; //< состояние, в котором оказывается УУ при запуске его модуля.
 

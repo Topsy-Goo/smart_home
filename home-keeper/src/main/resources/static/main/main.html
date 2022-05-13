@@ -80,35 +80,38 @@
 					</li>
 					<li>device.slaveList: 			<span ng-repeat="slave in device.slaveList"><br>	  <b>{{slave.displayName}}</b>, {{slave.uuid}}</span></li>
 					<li style="width: 100%;"	ng-if="showTasksForm(device.abilities.tasks)">
-<!-- Форма для выбора задачи из списка доступных задач. -->
+<!-- Форма для зпуска задачи. -->
 						<form	class="align-middle col-12"><!--	ng-submit="launchTask(device,taskToLaunch)"  -->
-							<div class="input-group-sm" style="margin-left: -15px;">
-								device.abilities.tasks&nbsp;:&nbsp;
-								<select	id="taskList"	name="taskList"
-										class="form-select-sm"
-                                		style="margin-left: 10px; padding: 2px; border-color: #aaaadd; border-radius: 3px; border-width: 2px; width: 200px;"
-										required="required"
-										ng-model="taskToLaunch">
-									<option selected></option>
-									<option ng-repeat="tsk in device.abilities.tasks" value="{{tsk.name}}">
-											{{tsk.name}} ({{tsk.duration/60}} мин.)
-									</option>
-								</select>
-								<button id="taskSubmit"
-										class="btn-sm btn-outline-warning"
-										style="margin-left: 10px;"
-										type="button"
-										ng-click="launchTask (device,taskToLaunch)">
-										Запустить
-								</button>
-								<button id="taskSchedule"
-										class="btn-sm btn-outline-default"
-										style="margin-left: 10px;"
-										type="button"
-										ng-click="scheduleTask (device, taskToLaunch)">
-										Запланировать
-								</button>
-							</div>
+							<fieldset>
+								<legend style="font-size: 20px;">Запуск задачи:</legend>
+								<div class="input-group-sm" style="margin-left: -15px;"><!--  -->
+									<nobr>Выберите задачу :</nobr><!-- device.abilities.tasks -->
+									<select	id="taskList"	name="taskList"
+											class="form-select form-select-sm smartinput150"
+											required="required"
+											ng-model="taskToLaunch">
+										<option selected></option>
+										<option ng-repeat="tsk in device.abilities.tasks" value="{{tsk.name}}">
+												{{tsk.name}} ({{tsk.duration/60}} мин.)
+										</option>
+									</select>
+									<nobr>Выберите действие :</nobr>
+									<button id="taskSubmit"
+											class="btn btn-sm btn-outline-warning"
+											style="margin-left: 10px;"
+											type="button"
+											ng-click="launchTask (device,taskToLaunch)">
+											Запустить
+									</button><!-- Запустить -->
+									<button id="taskSchedule"
+											class="btn btn-sm btn-outline-default"
+											style="margin-left: 10px;"
+											type="button"
+											ng-click="scheduleTask (device, taskToLaunch)">
+											Запланировать
+									</button><!-- Запланировать -->
+								</div>
+							</fieldset>
 						</form>
 					</li>
 					<!-- device.slaveList приходит пустой. Чтобы его заполнить, запрашиваем бэк.
@@ -118,78 +121,75 @@
 						 браузер бесконечно грузит из бэка slaveList, если его запрашивать из showSlavesForm().
 					-->
 <!-- Форма для связывания функций устройств. -->
-					<li style="width: 100%;" ng-init="loadDeviceSlaveList(device);" ng-show="showSlaveBindingForm(device)"><!--	  -->
+					<li style="width: 100%;" ng-show="showSlaveBindingForm(device)"><!--	 ng-init=""  -->
 						<form	class="align-middle col-12">
 						<!--	ng-submit="bindSlave (device, slaveBindingModel)"  -->
-							<div class="input-group-sm" style="margin-left: -15px;">
-								<!-- Задача мастера: -->
-								device.abilities.tasks :
-								<select	id="taskList-bind"	name="taskList"
-										class="form-select-sm"
-                                		style="margin-left: 10px; padding: 2px; border-color: #aaaadd; border-radius: 3px; border-width: 2px; width: 150px;"
-										required="required"
-										ng-model="slaveBindingModel.masterTaskName">
-									<option selected></option>
-									<option ng-repeat="tskb in device.abilities.tasks" value="{{tskb.name}}">{{tskb.name}}</option>
-								</select>
-								<!-- Слэйв: -->
-								device.slaveList : <!--{{device.slaveList}}-->
-								<select	id="slaveList-bind"
-										class="form-select-sm"
-										style="margin-left: 10px; padding: 2px; border-color: #aaaadd; border-radius: 3px; border-width: 2px; width: 150px;"
-                                		required="required"
-										ng-model="slaveBindingModel.slaveUUID"
-										ng-change="requestSlaveBindableFunctions(device, slaveBindingModel.slaveUUID)">
-										<!-- ng-change реагирует на выбор непустого пункта, что позволяет подгрузить список для
-											 следующего списка, который использует device.bindableFunctions. -->
-									<option selected></option>
-									<option ng-repeat="slave in device.slaveList" value="{{slave.uuid}}">{{slave.displayName}}</option>
-								</select>
-								<!-- ф-ции слэйва -->
-								device.bindableFunctions : <ul><li ng-repeat="f in device.bindableFunctions">{{f.displayName}} | {{f.uuid}}</li></ul>
-								<select	id="slaveTask-bind"
-										class="form-select-sm"
-										style="margin-left: 10px; padding: 2px; border-color: #aaaadd; border-radius: 3px; border-width: 2px; width: 150px;"
-										required="required"
-										ng-model="slaveBindingModel.slaveFuctionUUID">
-									<option selected></option>
-									<option ng-repeat="tsk in device.bindableFunctions" value="{{tsk.uuid}}">&nbsp;{{tsk.displayName}}&nbsp;&nbsp;</option>
-								</select>
-								<button id="slaveBindButton"
-										class="btn-sm btn-outline-warning"
-										style="margin-left: 10px;"
-										type="button"
-										ng-click="bindSlave (device, slaveBindingModel)"><!-- submit -->
-										Связать
-								</button>
-<!--								<button id="slaveUnBindButton"
-										class="btn-sm btn-outline-default"
-										style="margin-left: 10px;"
-										type="button"
-										ng-click="unbindSlave (device, slaveBindingModel)">&lt;!&ndash;  &ndash;&gt;
-										Отвязать
-								</button>-->
-							</div>
+							<fieldset>
+								<legend style="font-size: 20px;">Связывание устройств:</legend>
+								<div class="input-group-sm" style="margin-left: -15px;"><!--  -->
+									<!-- Задача мастера: -->
+									<nobr>Выберите задачу :</nobr><!-- device.abilities.tasks -->
+									<select	id="taskList-bind"	name="taskList"
+											class="form-select form-select-sm smartinput150"
+											required="required"
+											ng-model="slaveBindingModel.masterTaskName"
+											ng-change="loadDeviceSlaveList(device, slaveBindingModel.masterTaskName);">
+										<option selected></option>
+										<option ng-repeat="tskb in device.abilities.tasks" value="{{tskb.name}}">{{tskb.name}}</option>
+									</select>
+									<!-- Слэйв: -->
+									<nobr>Выберите устройство :</nobr> <!-- device.slaveList -->
+									<select	id="slaveList-bind"
+											class="form-select form-select-sm smartinput150"
+											required="required"
+											ng-model="slaveBindingModel.slaveUUID"
+											ng-change="requestSlaveBindableFunctions(device, slaveBindingModel.slaveUUID)">
+											<!-- ng-change реагирует на выбор непустого пункта, что позволяет подгрузить список для
+												 следующего списка, который использует device.bindableFunctions. -->
+										<option selected></option>
+										<option ng-repeat="slave in device.slaveList" value="{{slave.uuid}}">{{slave.displayName}}</option>
+									</select>
+									<!-- ф-ции слэйва -->
+									<nobr> и функцию :</nobr> <!-- device.bindableFunctions -->
+									<select	id="slaveTask-bind"
+											class="form-select form-select-sm smartinput150"
+											required="required"
+											ng-model="slaveBindingModel.slaveFuctionUUID">
+										<option selected></option>
+										<option ng-repeat="tsk in device.bindableFunctions" value="{{tsk.uuid}}">&nbsp;{{tsk.displayName}}&nbsp;&nbsp;</option>
+									</select>
+									<button id="slaveBindButton"
+											class="btn btn-sm btn-outline-warning"
+											style="margin-left: 10px;"
+											type="button"
+											ng-click="bindSlave (device, slaveBindingModel)"><!-- submit -->
+											Связать
+									</button><!-- Связать -->
+									<ul><li ng-repeat="f in device.bindableFunctions">{{f.displayName}} | {{f.uuid}}</li></ul>
+								</div>
+							</fieldset>
 						</form>
 					</li>
 <!-- Список контрактов (есть только у мастера). -->
-					<li ng-show="device.contracts">device.contracts :
+					<li ng-show="device.contracts">
 						<form	class="align-middle col-12"  ng-submit="deleteContract (device, contractToRemove)">
-							<div class="input-group-sm" style="margin-left: -15px;"><!--  -->
-								<select class="form-select col-10" size="5"
-										ng-show="device.contracts"
-										ng-model="contractToRemove.data">
-									<option ng-repeat="contract in device.contracts" value="{{contract}}"><!--  -->
-										{{contract.taskName}} — {{contract.mateFriendlyName}} ({{contract.functionFriendlyName}})
-									</option>
-								</select>
-								<button id="unBindButton"
-										class="btn-sm btn-outline-default"
-										style="margin-left: 10px;"
-										type="submit"><!--  -->
-										Отвязать
-								</button>
-							</div>
+							<fieldset>
+								<legend style="font-size: 20px;"><nobr>Установленные связи : </nobr></legend><!-- device.contracts -->
+								<div class="input-group-sm" style="margin-left: -15px;"><!--  -->
+									<select class="form-select col-10" size="5"
+											ng-show="device.contracts"
+											ng-model="contractToRemove.data">
+										<option ng-repeat="contract in device.contracts" value="{{contract}}"><!--  -->
+											{{contract.taskName}} — {{contract.mateFriendlyName}} ({{contract.functionFriendlyName}})
+										</option>
+									</select>
+									<button id="unBindButton"
+											class="btn btn-sm btn-outline-default"
+											style="margin-left: 10px;"
+											type="submit">
+											Отвязать</button><!-- Отвязать -->
+								</div>
+							</fieldset>
 						</form>
 					</li>
 <!--				<li>device.state.active :  {{device.state.active}}</li>
@@ -211,20 +211,17 @@
 					</li>
 <!-- Форма для изменения device.friendlyName. -->
 					<li><form	class="align-middle col-12" ng-submit="tryNewFriendlyName(device, newFriendlyName);">
-								<!--  style="margin-left: -15px;"  -->
 							<div class="input-group input-group-sm">
-								device.friendlyName&nbsp;:&nbsp;{{device.friendlyName}}&nbsp;
+								<nobr>Укажите новое имя для этого устройства :</nobr><!--  -->
 								<input	id="friendlyNameInput"
-                                		class="form-control form-control-sm"
-                                		style="margin-left: 10px;"
+                                		class="form-control form-control-sm smartinput150"
                                 		type="text"
 										ng-model="newFriendlyName.string"
 										ng-trim="true"
-										required="required"><!--   input-group     -->
+										required="required"><!--  -->
 								<button	id="friendlyNameSubmit"
                                 		class="btn btn-sm btn-outline-warning"
-                                		style="margin-left: 10px;"
-                                		type="submit">Запомнить</button>
+                                		type="submit">Запомнить</button><!-- Запомнить -->
 							</div>
 						</form>
 					</li>
@@ -234,3 +231,4 @@
 	</div>
 	<br><br>
 </div>
+<!--  -->

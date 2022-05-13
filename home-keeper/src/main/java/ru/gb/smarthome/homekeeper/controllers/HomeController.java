@@ -35,7 +35,7 @@ public class HomeController
     @GetMapping ("/state/{uuid}")
     public StateDto getState (@PathVariable(name="uuid") String strUuid)
     {
-print(" <{state}> ");
+print("<{s}>");
         return homeService.getStateDto(strUuid);
     }
 

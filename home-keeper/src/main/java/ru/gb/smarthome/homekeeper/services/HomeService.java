@@ -12,6 +12,7 @@ import ru.gb.smarthome.homekeeper.PropertyManagerHome;
 import ru.gb.smarthome.homekeeper.dtos.*;
 import ru.gb.smarthome.homekeeper.entities.Contract;
 import ru.gb.smarthome.homekeeper.entities.FriendlyName;
+import ru.gb.smarthome.homekeeper.entities.SchedRecord;
 import ru.gb.smarthome.homekeeper.repos.IContractsRepo;
 import ru.gb.smarthome.homekeeper.repos.IFriendlyNamesRepo;
 
@@ -201,10 +202,8 @@ public class HomeService {
 @return ISmartHandler устройства, ассоциированного с указаным UUID. */
     private ISmartHandler deviceByUuidString (String uuidStr)
     {
-        ISmartHandler device = null;
-        UUID uuid = UUID.fromString (uuidStr);
-        device = uuidToHandler.get(uuid);
-        return device;
+        UUID uuid = uuidFromString (uuidStr);
+        return (uuid != null) ? uuidToHandler.get (uuid) : null;
     }
 
 /** По строковому представлению UUID отдаём StateDto устройства, которому этот UUID принадлежит.
@@ -230,25 +229,25 @@ public class HomeService {
 
 /** Пробуем запустить задачу, имя которой пришло от фронта.
  @param uuidStr строковое представление UUID устрйоства, которое будет выполнять задачу.
- @param taskname название задачи из списка задач, которые УУ может выполнить. */
+ @param taskname название задачи из списка задач, которые УУ может выполнить.
+ @return Строка-сообщение для фронта. */
     @Transactional
     public String launchTask (String uuidStr, String taskname)
     {
         String param = taskname;
         String result = FORMAT_CANNOT_LAUNCH_TASK_;
         ISmartHandler device = deviceByUuidString (uuidStr);
-        if (device != null)
-        {
-            if (device.isActive()) {
-                Message message = new Message().setOpCode(CMD_TASK).setData (taskname);
 
-                if (device.offerRequest (message))
-                    result = FORMAT_LAUNCHING_TASK_;
-            }
-            else { // нельзя запустить задачу, т.к. УУ неактивно.
-                result = FORMAT_ACTIVATE_DEVICE_FIRST_;
-                param = friendlyNameByUuid (uuidStr);
-            }
+        if (device != null)
+        if (device.isActive())
+        {
+            Message message = new Message().setOpCode(CMD_TASK).setData (taskname);
+            if (device.offerRequest (message))
+                result = FORMAT_LAUNCHING_TASK_;
+        }
+        else { // нельзя запустить задачу, т.к. УУ неактивно.
+            result = FORMAT_ACTIVATE_DEVICE_FIRST_;
+            param = friendlyNameByUuid (uuidStr);
         }
         return format (result, param);
     }
@@ -402,11 +401,24 @@ public class HomeService {
         return false;
     }
 
+/** Определяем, доступно ли устройство для работы с ним на странице расписания.
+ @param deviceUuid UUID устройства, доступность которого нужно проверить.
+ @return TRUE, если устройство находится в списке обнаруженных устройств. */
     public boolean isAvalable (UUID deviceUuid)
     {
         return (deviceUuid != null) && uuidToHandler.containsKey (deviceUuid);
     }
 
+/** Вызывается из ScheduleService для запуска задач, время которых подошло.
+ @param rec экземпляр SchedRecord, содержащий необходимую инфорацию. */
+    public void launchScheduledTask (SchedRecord rec)
+    {
+        FriendlyName fName;
+        if (rec != null  &&  (fName = rec.getDeviceName()) != null)
+            lastNews.add (launchTask (fName.getUuid(), rec.getTaskName()));
+        else
+            lastNews.add ("Не удалось запустить задачу из расписания:\rНеизвестная ошибка.");
+    }
 //----------------------- Сообщения ------------------------------------
 
     public List<String> getHomeNews ()

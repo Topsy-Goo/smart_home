@@ -22,12 +22,14 @@
 	$scope.startMain = function ()
 	{
 console.log ('***************');
-		$scope.getDevicesList();
+		getDevicesList();
 	}
 
 //Загрузка с бэка всего, что нужно для отобажения страницы. Сейчас это всё умещается в $scope.home_dto.
-	$scope.getDevicesList = function ()
+	getDevicesList = function ()
 	{
+		cleanUpMainPage();
+
 		$http.get (contextMainPath + '/home_dto')
 		.then (
 		function successCallback (response)
@@ -37,13 +39,13 @@ console.log (response.data);
 			$scope.pollInterval = $scope.home_dto.pollInterval;
 			$scope.fillStatesArray();
 			$scope.getHomeNews();
+
+			$rootScope.stateTimer = setInterval (updateStates, $scope.pollInterval);
 		},
 		function failureCallback (response) {
-			$scope.cleanUpMainPage();
 			alert ('ОШИБКА: Не удалось загрузить список устройств.');
 			console.log ('Error @ getDevicesList().');
 		});
-		$rootScope.stateTimer = setInterval ($scope.updateStates, $scope.pollInterval);
 	}
 //-------------------------------------------------------------------------------- обновление состояний
 
@@ -75,7 +77,7 @@ console.log (response.data);
  у них поля (именно поля, а не целые StateDto, чтобы не потерять связи этих StateDto с таковыми
  в $scope.home_dto).
 */
-	$scope.updateStates = function ()
+	function updateStates()
 	{
 /*	Сперва запрашиваем у бэка массив UUID-строк, чтобы определить, не изменился ли набор
  обнаруженых устройств с момента последнего запроса $scope.home_dto. Если набор изменился,
@@ -86,7 +88,8 @@ console.log (response.data);
 		function successCallback (response)
 		{
 			if (!$scope.compareStringArrays ($scope.uuids, response.data)) {
-				$scope.getDevicesList();
+				getDevicesList();
+				return;
 			}
 		},
 		function failureCallback (response) {
@@ -113,11 +116,11 @@ console.log (response.data);
 			},
 	/*	Эту часть, наверное, можно удалить, а то яндекс-браузер, чтоб его… перестали дебилы делать,
 	сколько раз ошибку встретит, столько раз её и напечатает. Пока отлаживаешь бэк, может
-	накопиться не одна тысяча одинаковых ошибок. Типа одного сообщения недостаточно.
+	накопиться не одна тысяча одинаковых ошибок.
 	*/
 			function failureCallback (response) {
-				$scope.cleanUpMainPage();
-				console.log ('ОШИБКА в getDevicesList(): Не удалось обновить статус устройства ', element.uuid);
+				cleanUpMainPage();
+				console.log ('ОШИБКА в updateStates(): Не удалось обновить статус устройства ', element.uuid);
 			});
 		}
 	}
@@ -269,8 +272,13 @@ console.log (response.data);
 		$location.path ('/schedule/'+ device.abilities.uuid +'/'+ taskName +'/'+ device.friendlyName);
 	}
 //-------------------------------------------------------------------------------- связывание
-	$scope.loadDeviceSlaveList = function (device)
+	$scope.loadDeviceSlaveList = function (device, taskName)
 	{
+//console.log ('Вызван $scope.loadDeviceSlaveList() с параметрами: device = ', device, ', и taskName = ', taskName);
+		if (!taskName) {
+			device.slaveList = null;
+			return;
+		}
 		$http.get (contextMainPath + '/slave-list/'+ device.abilities.uuid)
 		.then (
 		function successCallback (response) {
@@ -283,6 +291,12 @@ console.log (response.data);
 
 	$scope.requestSlaveBindableFunctions = function (device, uuid)
 	{
+console.log ('$scope.requestSlaveBindableFunctions() получила параметры: ', device, ', и ', uuid);
+		if (!uuid) {
+			device.bindableFunctions = null;
+			return;
+		}
+
 		$http.get (contextMainPath + '/bindable-functions/'+ uuid)
 		.then (
 		function successCallback (response) {
@@ -381,14 +395,15 @@ console.log (response.data);
 	}
 //-------------------------------------------------------------------------------- разрешения
 	$scope.showSlaveBindingForm = function (device) {
-		return device.slaveList != null && device.slaveList.length > 0;
+		return device.abilities.master;
+//		return device.slaveList != null && device.slaveList.length > 0;
 	}
 
 	$scope.showTasksForm = function (tasklist) {
 		 return tasklist != null;
 	}
 //-------------------------------------------------------------------------------- очистка
-	$scope.cleanUpMainPage = function () {
+	cleanUpMainPage = function () {
 		clearInterval ($rootScope.stateTimer);
 	}
 //-------------------------------------------------------------------------------- вызовы
