@@ -48,6 +48,8 @@ CREATE TABLE `schedule_records` (
   CONSTRAINT `fk_friendly_names` FOREIGN KEY (`device_uuid`) REFERENCES `friendly_names` (`uuid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+-- Колонка state пока не используется в приложении и всегда содержит строку 'Бездействует'.
+
 INSERT INTO `smarthome`.`schedule_records`
 (`id`,
 `device_uuid`,
@@ -62,3 +64,25 @@ VALUES
 <{date_time: }>,
 <{created_at: CURRENT_TIMESTAMP}>,
 <{state: }>);
+
+CREATE TABLE `users` (
+  `id`			int 		NOT NULL AUTO_INCREMENT,
+  `login`		varchar(45) NOT NULL,
+  `password`	varchar(64) NOT NULL,
+  `updated_at`	timestamp 	NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+
+-- Умолчальные логин и пароль : admin / admin
+-- Значения для них в таблице : admin / '$2a$10$OvajFCiMvmgvt5vH7oNIOeu5gQ.7uPBQfAjAA5a6dQU2EiKu3uS2i'
+
+INSERT INTO `smarthome`.`users`
+(`id`,
+`login`,
+`password`,
+`updated_at`)
+VALUES
+(<{id: }>,
+<{login: }>,
+<{password: }>,
+<{updated_at: CURRENT_TIMESTAMP}>);

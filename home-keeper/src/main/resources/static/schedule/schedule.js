@@ -11,6 +11,11 @@
 //-------------------------------------------------------------------------------- запуск
 	$scope.startSchedulePage = function ()
 	{
+		if (!isUserLoggedIn()) {
+			$location.path ('/registration'); //< выполняем переход на страницу регистрации
+			return;
+		}
+console.log ('******** авторизован ********');
 		resetNewRecord();
 		clearInterval ($rootScope.stateTimer);
 		$scope.loadSchedule();
@@ -203,7 +208,10 @@ console.log ('$scope.deleteRecord() - бэк вернул: ', response.data);
 			console.log ('ОШИБКА в $scope.getBgColor(): не удалось обработать запрос: ', response.data);
 		});
 	}*/
-
+	/*$rootScope.*/isUserLoggedIn = function () //< TODO: $rootScope ?
+	{
+		if ($localStorage.smartHomeUser)	{	return true;	}	else	{	return false;	}
+	}
 //-------------------------------------------------------------------------------- для отладки
 
 	$scope.clickButton = function () {

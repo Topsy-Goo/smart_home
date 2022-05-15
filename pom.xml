@@ -35,11 +35,11 @@
 
 	<dependencies>
 
-		<!--<dependency>
+		<dependency><!-- Гасит ошибку в spring-boot-maven-plugin -->
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-maven-plugin</artifactId>
 			<version>2.5.5</version>
-		</dependency>--> <!-- spring-boot-maven-plugin 2.5.5 -->
+		</dependency> <!-- spring-boot-maven-plugin 2.5.5 -->
 
 		<dependency> <!-- Позволяет упростить работу с хибер-том на уровне Спринга. См.также YAML-файл. -->
 			<groupId>org.springframework.boot</groupId>
@@ -62,11 +62,11 @@
 		</dependency><!-- org.springframework.boot : spring-boot-starter-test : test -->
 
 
-		<!--<dependency>	&lt;!&ndash; для организации авторизации &ndash;&gt;
+		<dependency>	<!-- для организации авторизации -->
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security</artifactId>
-			&lt;!&ndash; Также автоматически конфигурирет умолчального пользователя user; его (одноразовый?) пароль создаётся генериться при старте приложения.  &ndash;&gt;
-		</dependency>--> <!-- spring-boot-starter-security -->
+			<!-- Также автоматически конфигурирет умолчального пользователя user; его (одноразовый?) пароль создаётся генериться при старте приложения.  -->
+		</dependency> <!-- spring-boot-starter-security -->
 		<!--<dependency>	&lt;!&ndash; для тестирования безопасности &ndash;&gt;
 			<groupId>org.springframework.security</groupId>
 			<artifactId>spring-security-test</artifactId>

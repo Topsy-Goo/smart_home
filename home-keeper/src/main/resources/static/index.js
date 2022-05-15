@@ -24,37 +24,36 @@
 	function config ($routeProvider)
 	{
 	//	$routeProvider - модуль, который позволяет переходить между страницами.
-		$routeProvider
-			.when('/main',		//< задаём постфикс для перехода на главную страницу
-			{
-				templateUrl: 'main/main.html',		//< адрес главной страницы и…
-				controller:	 'mainController'		//	…имя её контроллера
-			})
-			.when('/schedule',	//< задаём адрес страницы с расписанием
-			{
-				templateUrl: 'schedule/schedule.html',	//<	адрес страницы с расписанием и…
-				controller:	 'scheduleController'		//	…имя её контроллера
-			})
-			.when('/schedule/:uuid/:taskname/:friendlyname',
-			{
-				templateUrl: 'schedule/schedule.html',	//< для возможности передавать параметр требуется указать $routeParams в объявлении scheduleController'а.
-				controller:	 'scheduleController'
-			})
-			.when('/registration',
-			{
-				templateUrl: 'registration/registration.html',
-				controller:	 'registrationController'
-			})
-			.otherwise(
-			{
-				redirectTo:	'/main' //redirectTo:	'/registration'
-			});
+		$routeProvider.when('/main',		//< задаём постфикс для перехода на главную страницу
+					  {
+					  	templateUrl: 'main/main.html',		//< адрес главной страницы и…
+					  	controller:	 'mainController'		//	…имя её контроллера
+					  })
+					  .when('/schedule',	//< задаём адрес страницы с расписанием
+					  {
+					  	templateUrl: 'schedule/schedule.html',	//<	адрес страницы с расписанием и…
+					  	controller:	 'scheduleController'		//	…имя её контроллера
+					  })
+					  .when('/schedule/:uuid/:taskname/:friendlyname',
+					  {
+					  	templateUrl: 'schedule/schedule.html',	//< для возможности передавать параметр требуется указать $routeParams в объявлении scheduleController'а.
+					  	controller:	 'scheduleController'
+					  })
+					  .when('/registration',
+					  {
+					  	templateUrl: 'registration/registration.html',
+					  	controller:	 'registrationController'
+					  })
+					  .otherwise(
+					  {
+					  	redirectTo:	'/main' //'/registration' //redirectTo:
+					  });
 	}
 
 	function run ($rootScope, $http, $localStorage)
 	{
-	/*	При запуске приложения во фронте неразлогиненный юзер будет считан (из локального хранилища
-	браузера) и в соотв-ии с ним будет добавлен и настроен умолчальный заголовок Authorization, как
+	/*	При запуске приложения во фронте неразлогиненный юзер будет считан из локального хранилища
+	браузера и в соотв-ии с ним будет добавлен и настроен умолчальный заголовок Authorization, как
 	при авторизации и регистрации.
 	(В нашем учебном проекте это не заработает, т.к. при старте
 	приложения бэк считывает БД из sql-файла, а при регистрации нового юзера он не записывается в
@@ -72,11 +71,11 @@
             $http.defaults.headers.common.Authorization = 'Bearer ' + $localStorage.smartHomeUser.token;
         }
 
-		if ($localStorage.smartHomeUser) {
+/*		if ($localStorage.smartHomeUser) {
 			//...
 		}
 
-/*		if (!$localStorage.gbj11SmartHomeActivationCode)
+		if (!$localStorage.gbj11SmartHomeActivationCode)
 		{
 			$http.get(contextAuthoPath + '/activation')
 			.then(
@@ -107,14 +106,14 @@
 	$scope.schedulePageTitle = 'Расписание';
 
 
-	$scope.tryToRegister = function ()
+/*	$scope.tryToRegister = function ()
 	{
 		console.log ('$scope.tryToRegister call.');
-		$scope.clearUserFields();		 //< это очистит поля формы авторизации (в шапке index.html)
+		clearUserFields();		 //< это очистит поля формы авторизации (в шапке index.html)
 		$location.path('/registration'); //< выполняем переход на страницу регистрации
 	}
 
-	$scope.clearUserFields = function () { $scope.user = null; }
+	clearUserFields = function () { $scope.user = null; }
 
 	$scope.tryToLogin = function ()
 	{
@@ -129,30 +128,36 @@
 				{
 					$http.defaults.headers.common.Authorization = 'Bearer ' + response.data.token;
 					$localStorage.smartHomeUser = {login: $scope.user.login, token: response.data.token};
-					$scope.clearUserFields();
+					clearUserFields();
 				}
-				location.reload(false); /* перезагружает страницу (false=из кэша, true=из сервера);
+				location.reload(false); *//* перезагружает страницу (false=из кэша, true=из сервера);
 				 место вызова в коде имеет значение, т.к. при перезагрузке, например, могут потеряться
 				 данные о регистрации, если они не были записаны в хранилище браузера или не были
-				 сохранены иным способом */
+				 сохранены иным способом *//*
 			},
 			function failureCallback (response) {
 				alert ('ОШИБКА: '+ response.data.messages);
 			});
 		}
 	}
-
-	$scope.tryToLogout = function ()
+*/
+	$scope.logout = function ()
 	{
-		$scope.removeUserFromLocalStorage();
-		$scope.clearUserFields();
+		removeUserFromLocalStorage();
+		$localStorage.openedPanels = [];
+console.log ('logout(): $localStorage.openedPanels: ',$localStorage.openedPanels)
+//		clearUserFields();
 		$location.path('/registration');
 	}
 
-	$scope.removeUserFromLocalStorage = function ()
+	removeUserFromLocalStorage = function ()
 	{
+console.log ('removeUserFromLocalStorage(): $localStorage.smartHomeUser: ',$localStorage.smartHomeUser)
 		delete $localStorage.smartHomeUser;
+console.log ('removeUserFromLocalStorage(): $localStorage.smartHomeUser: ',$localStorage.smartHomeUser)
+console.log ('removeUserFromLocalStorage(): $http.defaults.headers.common.Authorization: ',$http.defaults.headers.common.Authorization)
 		$http.defaults.headers.common.Authorization = '';
+console.log ('removeUserFromLocalStorage(): $http.defaults.headers.common.Authorization: ',$http.defaults.headers.common.Authorization)
 	}
 
 /* Переход на страницу с расписанием. Используем не ссылку на странице, а метод потому, что простой
@@ -163,8 +168,5 @@ console.log ('scope.gotoSchedulePage() вызван.');
 		$rootScope.cleanUpMainPage();
 	}*/
 //----------------------------------------------------------------------- разрешения
-	$rootScope.isUserLoggedIn = function ()
-	{
-		if ($localStorage.smartHomeUser)	{	return true;	}	else	{	return false;	}
-	}
+
 });

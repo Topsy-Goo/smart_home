@@ -21,7 +21,11 @@
 //-------------------------------------------------------------------------------- запуск
 	$scope.startMain = function ()
 	{
-console.log ('***************');
+		if (!isUserLoggedIn()) {
+			$location.path ('/registration'); //< выполняем переход на страницу регистрации
+			return;
+		}
+console.log ('******** авторизован ********');
 		getDevicesList();
 	}
 
@@ -401,6 +405,11 @@ console.log ('$scope.requestSlaveBindableFunctions() получила парам
 
 	$scope.showTasksForm = function (tasklist) {
 		 return tasklist != null;
+	}
+
+	/*$rootScope.*/isUserLoggedIn = function () //< TODO: $rootScope ?
+	{
+		if ($localStorage.smartHomeUser)	{	return true;	}	else	{	return false;	}
 	}
 //-------------------------------------------------------------------------------- очистка
 	cleanUpMainPage = function () {

@@ -24,7 +24,7 @@ spring:
     username: root
     password: 1
   jpa: # < указываем реализацию JPA (по умолчанию будет подключен хибер-т)
-    show-sql: true # < показывать сгенерированные запросы хибер-та
+    show-sql: false # < показывать сгенерированные запросы хибер-та
     properties:
       hibernate:
         #dialect: org.hibernate.dialect.MySQL5Dialect
@@ -34,3 +34,4 @@ spring:
 jwt:
   secret: $2a$12$c4HYjryn7vo1bYQfSzkUDe8jPhYIpInbUKZmv5lGnmcyrQPLIWnVu
   lifetime: 36000000 #10ч
+#https://jwt.io/

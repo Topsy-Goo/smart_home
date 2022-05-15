@@ -82,7 +82,7 @@
 						<a class="nav-link" href="#!/schedule">📚&nbsp;{{schedulePageTitle}}</a>
 						<!--  ng-click="gotoSchedulePage()" -->
 					</li>
-					<li class="nav-item" style="background-color: #E0F8C3; margin: 1px;" ng-show="!isUserLoggedIn()">
+<!--					<li class="nav-item" style="background-color: #E0F8C3; margin: 1px;" ng-show="!isUserLoggedIn()">
                         <form class="align-middle" ng-submit="tryToLogin()">
                             <div class="input-group input-group-sm" style="padding: 4px;">
                                 <input	id="navLoginField"
@@ -109,17 +109,17 @@
                                 		style="margin-left: 10px;"
                                 		type="button"
                                 		ng-click="tryToRegister()"
-                                		>👤&nbsp;Регистрация</button><!-- disabled -->
+                                		>👤&nbsp;Регистрация</button>&lt;!&ndash; disabled &ndash;&gt;
                             </div>
                         </form>
-                    </li>
-					<li class="nav-item" style="background-color: #E0F8C3; margin: 1px;" ng-show="isUserLoggedIn()"><!-- "padding: 4px;" -->
-						<a class="nav-link" ng-click="tryToLogout()">🚪&nbsp;Выход</a>
+                    </li>-->
+                    <li class="nav-item" style="background-color: #E0F8C3; margin: 1px;"><!-- ng-show="isUserLoggedIn()"  -->
+                        <a	class="nav-link" href="#!/registration">👤&nbsp;Изменить логин и пароль</a>
 					</li>
-<!--                <li class="nav-item" ng-show="isUserLoggedIn()" style="background-color: #E0F8C3; margin: 1px;">
-                        <button	class="btn btn-outline-secondary btn-sm"></button>
-					</li>-->
-				</ul><!-- 🎀 📎 🔔 👤 🚪 🔕 🔒   -->
+					<li class="nav-item" style="background-color: #E0F8C3; margin: 1px;"><!-- ng-show="isUserLoggedIn()" "padding: 4px;" -->
+						<a class="nav-link"  href="" ng-click="logout()">🚪&nbsp;Выход</a>
+					</li>
+				</ul><!-- 🌞 🎀 📎 🔔 👤 🚪 🔕 🔒   -->
 			</div>
 		</nav>
 		<h1 style="margin-left: 10px;">{{appTitle}}</h1>

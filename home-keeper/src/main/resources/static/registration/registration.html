@@ -1,7 +1,7 @@
 <div style="margin: 10px;">
 	<h5>{{contextPrompt}}</h5>
 	<p>&nbsp;</p>
-	<form novalidate ng-submit="tryToRegister()" ng-show="canShow()"><!--  ng-reset="resetForm()" -->
+	<form novalidate><!-- ng-show="canShow()"  ng-reset="resetForm()" -->
 
 		<div class="container" style="font-size: 14pt; font-weight:500;">
 			<div class="row">
@@ -10,60 +10,65 @@
 				след.строку. В данном примере общее кол-во колонок: 1+11 = 12, что заставляет ряд
 				занимать всю доступную ему ширину. Если общее кол-во колонок не равно 12, то имеет
 				смысл указать в class="row" тип выравнивания.  -->
-				<div class="col-1">
+				<div class="col-2">
 					<label for="login" class="col-form-lable">Логин:&nbsp;</label>
 				</div>
-				<div class="col-11">
+				<div class="col-10">
 					<input	id="login"
 							class="form-control"
 							type="text"
-							placeholder="обязательно укажите (3…32 латинских сиволов и/или цифр)"
+							placeholder="обязательно укажите (до 32 сиволов)"
 							required="required"
+							maxlength="32"
 							ng-model="new_user.login">
 				</div>
 			</div>
 			<p></p>
 			<div class="row g-2">
-				<div class="col-1">
+				<div class="col-2">
 					<label for="password" class="col-form-lable">Пароль:&nbsp;</label>
 				</div>
-				<div class="col-11">
+				<div class="col-10">
 					<input	id="password"
 							class="form-control"
-							type="text"
-							placeholder="обязательно укажите (3…128 символов)"
+							type="password"
+							placeholder="обязательно укажите (до 32 символов)"
 							required="required"
+							maxlength="32"
 							ng-model="new_user.password">
 				</div>
 			</div>
-<!--			<p></p>
-			<div class="row g-2 bg-example">
-				<div class="col-1">
-					<label for="email" class="col-form-lable">Эл.&nbsp;почта:&nbsp;</label>
+			<p></p>
+			<div>
+				<!--	ng-show="!canShowRegistrationElements()"  -->
+				<button type="button" class="btn btn-primary col-2"
+						ng-click="authorize()">Авторизация</button><!-- Авторизация -->
+			</div>
+			<p></p>
+			<p style="color: #074F86;">
+				Если Вы забыли логин или пароль, то задать новые логин и пароль можно введя ключ активации.
+			</p>
+			<div class="row g-2 bg-example"><!-- ng-show="canShowRegistrationElements()"  -->
+				<div class="col-2">
+					<label for="key" class="col-form-lable"><nobr>Ключ активации:</nobr>&nbsp;</label>
 				</div>
-&lt;!&ndash;				<div class="col-11">
-					<input	id="email"
+				<div class="col-10">
+					<input	id="key"
 							class="form-control"
-							type="email"
-							placeholder="обязательно укажите (5…64 символов)"
+							type="text"
+							placeholder="XXXXX-XXXXXXXX-XXXXXX-XXXXX-XXXXXXX"
 							required="required"
-							ng-model="new_user.email">
-				</div>&ndash;&gt;
-				<div class="input-group col-11">&lt;!&ndash; не удалось сделать красиво: если для @ использовать
-span, то у него получаются скруглённые края, а если делать input, то мин.ширина выставляется тольк при
-пом. col-1 и почти всегда оказывается некрасиво большой. В общем, — в топку; слишком мало времени!	&ndash;&gt;
-	<input class="form-control" type="text" width="50" ng-model="new_user.emailUser" placeholder="Имя пользователя" id="email">
-	<input class="form-control" type="text" width="20" value="@" readonly>
-	<input class="form-control" type="text" width="50" ng-model="new_user.emailServer" placeholder="Имя сервера">
-	<input class="form-control" type="text" width="20" value="." readonly>
-	<input class="form-control" type="text" width="50" ng-model="new_user.emailDomain" placeholder="Домен">
+							maxlength="35"
+							ng-model="new_user.key">
 				</div>
-			</div>-->
+			</div>
+			<p></p>
+			<div>
+				<button type="button" class="btn btn-primary col-2"
+						ng-click="register()">Регистрация</button><!-- Регистрация -->
+				<!--	ng-show="canShowRegistrationElements()"  -->
+			</div>
 		</div>
-		<p></p>
-		<button type="submit" class="btn btn-primary">Зарегистрироваться</button>
-		&nbsp;
-		<button class="btn btn-secondary" ng-click="cancelRegistration()">Отмена</button>
 	</form>
-
+	<p></p>
 </div>

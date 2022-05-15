@@ -14,64 +14,102 @@
 	const contextSchedulePath = 'http://localhost:15550/home/v1/schedule';
 	const contextAuthoPath	  = 'http://localhost:15550/home/v1/auth';
 
-	var contextPrompt_Registered = "Вы успешно зарегистрированы.";
-	var contextPrompt_Unathorized = "Введите логин, паоль и код активации.";
-	var contextPrompt_LogedIn = "Вы авторизованы.";
-	var contextPrompt_Error = "Ошибка регистрации.";
 	$scope.contextPrompt = "";
+	const contextPrompt_Unathorized = "Введите логин и пароль.";
+	const contextPrompt_LogedIn = "Вы авторизованы.";
+	const contextPrompt_Registered = "Вы успешно зарегистрированы.";
+	const contextPrompt_Error = "Ошибка регистрации.";
 
-
-	$scope.prepareToRegistration = function()
+//-------------------------------------------------------------------------------- запуск
+	prepareToRegistration = function()
 	{
-		$scope.clearNewUserFields();
+console.log ('prepareToRegistration(): $localStorage.smartHomeUser: ',$localStorage.smartHomeUser)
+		clearNewUserFields();
 
-		if ($rootScope.isUserLoggedIn())
-		{
+		if (isUserLoggedIn())
 			$scope.contextPrompt = contextPrompt_LogedIn;
-		}
 		else
-		{
 			$scope.contextPrompt = contextPrompt_Unathorized;
+	}
+
+	isUserLoggedIn = function () {
+		if ($localStorage.smartHomeUser)	{	return true;	}	else	{	return false;	}
+	}
+
+//-------------------------------------------------------------------------------- регистрация
+
+	$scope.authorize = function ()
+	{
+console.log ('$scope.authorize() - вызван для $scope.new_user = ',$scope.new_user);
+		if ($scope.new_user)
+		{
+			let autho = {"login":$scope.new_user.login, "password":$scope.new_user.password};
+console.log ('$scope.authorize() - на бэк отправляется autho = ', autho);
+			$http.post (contextAuthoPath + '/login', $scope.new_user)
+			.then(
+			function successCallback (response)
+			{
+				if (onSuccessfullLogin (response.data))
+					$scope.contextPrompt = contextPrompt_LogedIn;
+			},
+			function failureCallback (response) {
+				onLoginError (response.data);
+			});
 		}
 	}
 
-	$scope.tryToRegister = function ()
+	onSuccessfullLogin = function (data)
 	{
+		if (data.s)
+		{
+			$http.defaults.headers.common.Authorization = 'Bearer ' + data.s;
+			$localStorage.smartHomeUser = {login: $scope.new_user.login, token: data.s};
+			clearNewUserFields();
+			return true;
+		}
+		return false;
+	}
+
+	onLoginError = function (data)
+	{
+		$scope.contextPrompt = contextPrompt_Error;
+		alert ('ОШИБКА:\r'+ data.s);
+console.log ('$scope.authorize() - бэк вернул ошибку: ', data.s);
+	}
+
+	$scope.register = function ()
+	{
+console.log ('$scope.register() - вызван для $scope.new_user = ',$scope.new_user);
 		if ($scope.new_user != null)
 		{
 			$http.post (contextAuthoPath + '/register', $scope.new_user)
 			.then(
 			function successCallback (response)
 			{
-				if (response.data.token)
-				{
-					$http.defaults.headers.common.Authorization = 'Bearer ' + response.data.token;
-					$localStorage.smartHomeUser = {login: $scope.new_user.login, token: response.data.token};
-					$scope.clearNewUserFields();
+				if (onSuccessfullLogin (response.data))
 					$scope.contextPrompt = contextPrompt_Registered;
-				}
-//				$scope.tryMergeCarts();
 			},
-			function failureCallback (response)	//кажется, errorCallback тоже можно использовать
-			{
-				alert ('ОШИБКА: '+ response.data.messages);
-				console.log ('$scope.tryToRegister failure callback. : '+ response.data.messages);
-				$scope.contextPrompt = contextPrompt_Error;
+			function failureCallback (response) {
+				onLoginError (response.data);
 			});
 		}
 	}
 
-	$scope.clearNewUserFields = function()	{	$scope.new_user = null;	}
+	clearNewUserFields = function()	{	$scope.new_user = null;	}
 
-	$scope.cancelRegistration = function()
+
+
+
+
+/*	$scope.cancelRegistration = function()
 	{
-		$scope.clearNewUserFields();
+		clearNewUserFields();
 //		$location.path('/main');
-		location.reload(true); /* перезагружает страницу (false=из кэша, true=из сервера);
+		location.reload(true); *//* перезагружает страницу (false=из кэша, true=из сервера);
 				 место вызова в коде имеет значение, т.к. при перезагрузке, например, могут потеряться
 				 данные о регистрации, если они не были записаны в хранилище браузера или не были
-				 сохранены иным способом */
-	}
+				 сохранены иным способом *//*
+	}*/
 
 /*	$scope.tryMergeCarts = function ()
 	{
@@ -91,8 +129,13 @@
 			});
 		}
 	}*/
-//-------------------------------------------------------------------------------- условия
-	$scope.canShow = function()	{	return !$rootScope.isUserLoggedIn();	}
+//-------------------------------------------------------------------------------- разрешения
+/*	$scope.canShowRegistrationElements = function() {
+		if ($localStorage.smartHomeUser)
+			return false;
+		return true;
+	}*/
+
 //-------------------------------------------------------------------------------- вызовы
-	$scope.prepareToRegistration();	//< вызов описанной выше функции
+	prepareToRegistration();	//< вызов описанной выше функции
 });
