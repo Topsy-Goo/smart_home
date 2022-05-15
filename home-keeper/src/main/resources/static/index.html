@@ -63,7 +63,12 @@
 						box-sizing: border-box;		border: none;/*	3px solid #d8deff;	*/
 		}
 		.smartinput150 {
-			margin: 0px 10px 0px 10px; padding: 2px; border-color: #aaaadd; border-radius: 3px; border-width: 2px; width: 150px;
+			margin: 0px 10px 0px 10px; padding: 2px; border-color: #aaaadd;
+			border-radius: 3px; border-width: 2px; width: 150px;
+		}
+		.smartinput {
+			margin: 0px 10px 0px 10px; padding: 2px; border-color: #aaaadd;
+			border-radius: 3px; border-width: 2px;
 		}
 	</style>
 
@@ -78,45 +83,14 @@
 					<li class="nav-item" style="background-color: #E0F8C3; margin: 1px;">
 						<a class="nav-link" href="#!/main">🌞&nbsp;{{mainPageTitle}}</a>
 					</li>
-					<li class="nav-item" style="background-color: #E0F8C3; margin: 1px;"><!--  ng-show="isUserLoggedIn()" -->
+					<li class="nav-item" style="background-color: #E0F8C3; margin: 1px;"><!--  -->
 						<a class="nav-link" href="#!/schedule">📚&nbsp;{{schedulePageTitle}}</a>
 						<!--  ng-click="gotoSchedulePage()" -->
 					</li>
-<!--					<li class="nav-item" style="background-color: #E0F8C3; margin: 1px;" ng-show="!isUserLoggedIn()">
-                        <form class="align-middle" ng-submit="tryToLogin()">
-                            <div class="input-group input-group-sm" style="padding: 4px;">
-                                <input	id="navLoginField"
-                                		class="form-control"
-                                		style="margin-left: 10px;"
-                                		type="text"
-										aria-describedby="inputGroup-sizing-sm"
-										ng-model="user.login"
-										>
-                                <input	id="navPasswordField"
-                                		class="form-control"
-                                		style="margin-left: 10px;"
-                                		type="password"
-										aria-describedby="inputGroup-sizing-sm"
-										ng-model="user.password"
-										>
-                                <button	id="navLoginSubmit"
-                                		class="btn btn-outline-warning btn-sm"
-                                		style="margin-left: 10px;"
-                                		type="submit"
-                                		>🔔&nbsp;Войти</button>
-                                <button	id="navRegistration"
-                                		class="btn btn-outline-warning btn-sm"
-                                		style="margin-left: 10px;"
-                                		type="button"
-                                		ng-click="tryToRegister()"
-                                		>👤&nbsp;Регистрация</button>&lt;!&ndash; disabled &ndash;&gt;
-                            </div>
-                        </form>
-                    </li>-->
-                    <li class="nav-item" style="background-color: #E0F8C3; margin: 1px;"><!-- ng-show="isUserLoggedIn()"  -->
+                    <li class="nav-item" style="background-color: #E0F8C3; margin: 1px;"><!--  -->
                         <a	class="nav-link" href="#!/registration">👤&nbsp;Изменить логин и пароль</a>
 					</li>
-					<li class="nav-item" style="background-color: #E0F8C3; margin: 1px;"><!-- ng-show="isUserLoggedIn()" "padding: 4px;" -->
+					<li class="nav-item" style="background-color: #E0F8C3; margin: 1px;"><!--  -->
 						<a class="nav-link"  href="" ng-click="logout()">🚪&nbsp;Выход</a>
 					</li>
 				</ul><!-- 🌞 🎀 📎 🔔 👤 🚪 🔕 🔒   -->
@@ -125,7 +99,8 @@
 		<h1 style="margin-left: 10px;">{{appTitle}}</h1>
 	</div>
 
-<!-- Сюда, в блок ng-view, будут помещаться страницы. Переключение между страницами фактически будет сменой содержимого этого блока: -->
+<!-- Сюда, в блок ng-view, будут помещаться страницы. Переключение между
+	 страницами фактически будет сменой содержимого этого блока: -->
 	<ng-view>
 	</ng-view>
 

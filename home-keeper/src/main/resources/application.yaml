@@ -18,7 +18,7 @@ server:
 spring:
   datasource: # < спринговый стандартный бин для подключения к базе данных
     driver-class-name: com.mysql.cj.jdbc.Driver
-#    url: jdbc:mysql://localhost:3306/test?user=root&password=1
+#    url: jdbc:mysql://localhost:3306/smarthome?user=root&password=1
 #    url: jdbc:mysql://localhost:3306/smarthome.sql
     url: jdbc:mysql://localhost:3306/smarthome
     username: root

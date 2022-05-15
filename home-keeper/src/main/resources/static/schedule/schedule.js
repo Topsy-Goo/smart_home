@@ -15,7 +15,7 @@
 			$location.path ('/registration'); //< выполняем переход на страницу регистрации
 			return;
 		}
-console.log ('******** авторизован ********');
+console.log ('******** расписание-авторизован ********');
 		resetNewRecord();
 		clearInterval ($rootScope.stateTimer);
 		$scope.loadSchedule();
@@ -37,17 +37,12 @@ console.log ('$scope.startSchedulePage() вызван. $routeParams: ', $routePa
 		$scope.newRecord.uuid		= $routeParams.uuid
 
 		let dateTime = new Date();
-		dateTime.setMilliseconds(0);
+		dateTime.setMilliseconds(0);	//секунды и доли нужно обнулить
 		dateTime.setSeconds(0);
 		$scope.newRecord.dateTime	= dateTime;
 //		$scope.newRecord.dateTime	= dateTime.valueOf();
 //		$scope.newRecord.state		= "";
 //		$scope.newRecord.available	= ;
-
-		//секунды и доли нужно обнулить:	setMilliseconds(0), setSeconds(0).
-		//parse()   даёт значение для long. https://www.w3schools.com/jsref/jsref_parse.asp		//
-		//getTime() даёт значение для long. https://www.w3schools.com/jsref/jsref_gettime.asp	//
-		//valueOf() даёт значение для long. https://www.w3schools.com/jsref/jsref_valueof_date.asp	//
 	}
 
 //сбрасываем все поля $scope.newRecord в умолчальное состояние.
@@ -73,7 +68,7 @@ console.log ('$scope.startSchedulePage() вызван. $routeParams: ', $routePa
 		//	(Если id корректный, то фронт расценит запрос как запрос на изменение данных.)
 
 		$scope.newRecord.dateTimeLong = $scope.newRecord.dateTime.valueOf();
-console.log ('$scope.createRecord() отправляет на бэк $scope.newRecord = ', $scope.newRecord);
+//console.log ('$scope.createRecord() отправляет на бэк $scope.newRecord = ', $scope.newRecord);
 
 		$http.post (contextSchedulePath + '/new_schedule_record', $scope.newRecord)
 		.then (
@@ -99,7 +94,7 @@ console.log ('$scope.createRecord() отправляет на бэк $scope.newR
 //Вызывается при старте и после добавления новой записи.
 	$scope.loadSchedule = function ()
 	{
-console.log ('$scope.loadSchedule() вызван для загрузки расписания из бэка.');
+//console.log ('$scope.loadSchedule() вызван для загрузки расписания из бэка.');
 		$http.get (contextSchedulePath + '/schedule')
 		.then (
 		function successCallback (response) {
@@ -123,7 +118,7 @@ console.log ('$scope.loadSchedule() вызван для загрузки рас�
 		$scope.newRecord.dateTimeLong = record.dateTimeLong;
 		$scope.newRecord.available	= record.available;
 		$scope.newRecord.state		= record.state;
-console.log ('$scope.scheduleRecordToNewRecord() создал $scope.newRecord: ', $scope.newRecord);
+//console.log ('$scope.scheduleRecordToNewRecord() создал $scope.newRecord: ', $scope.newRecord);
 	}
 
 //Подготавливаем форму к редактированию записи.
@@ -134,13 +129,13 @@ console.log ('$scope.scheduleRecordToNewRecord() создал $scope.newRecord: 
 //Отправляем на бэк запрос на удаление записи.
 	$scope.deleteRecord = function (record)
 	{
-console.log ('$scope.deleteRecord() вызван. record = ', record);
+//console.log ('$scope.deleteRecord() вызван. record = ', record);
 		scheduleRecordToNewRecord (record);
 
 		$http.post (contextSchedulePath + '/schedule_delete_record', $scope.newRecord)
 		.then (
 		function successCallback (response) {
-console.log ('$scope.deleteRecord() - бэк вернул: ', response.data);
+//console.log ('$scope.deleteRecord() - бэк вернул: ', response.data);
 			if (response.data)
 			{
 				$scope.newRecord.id = null; /* Поскольку (ре)инициализация $scope.newRecord данными
@@ -156,7 +151,6 @@ console.log ('$scope.deleteRecord() - бэк вернул: ', response.data);
 			console.log ('ОШИБКА: в $scope.deleteRecord() бэк вернул: ', response.data);
 		});
 	}
-
 //-------------------------------------------------------------------------------- сообщения
 	$scope.showDeviceNews = function (lastNews)
 	{
@@ -190,31 +184,14 @@ console.log ('$scope.deleteRecord() - бэк вернул: ', response.data);
 			alert (text);
 		});
 	}
-//-------------------------------------------------------------------------------- планирование
 //-------------------------------------------------------------------------------- разрешения
 
-/*	$scope.getBgColor = function (rec)
-	{
-		$http.get (contextMainPath + '/is_task_name/'+ rec.uuid + '/' + rec.taskName)
-		.then (
-		function successCallback (response) {
-			if (response.data)
-				return 'black';
-			else
-				return 'silver';
-		},
-		function failureCallback (response)	{
-			return 'silver';
-			console.log ('ОШИБКА в $scope.getBgColor(): не удалось обработать запрос: ', response.data);
-		});
-	}*/
-	/*$rootScope.*/isUserLoggedIn = function () //< TODO: $rootScope ?
-	{
+	isUserLoggedIn = function () {
 		if ($localStorage.smartHomeUser)	{	return true;	}	else	{	return false;	}
 	}
 //-------------------------------------------------------------------------------- для отладки
 
-	$scope.clickButton = function () {
+/*	$scope.clickButton = function () {
 console.log ('$scope.clickButton() вызван.');
 //		var myModal = new bootstrap.Modal(document.getElementById('staticBackdrop'));
 //		var myModal = new bootstrap.Modal(document.getElementById('myDialog'), {
@@ -223,8 +200,7 @@ console.log ('$scope.clickButton() вызван.');
 //		  focus: true
 //		});
 //		myModal.show();
-	}
-
+	}*/
 //-------------------------------------------------------------------------------- вызовы
 	$scope.startSchedulePage();
 });

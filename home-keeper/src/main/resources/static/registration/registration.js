@@ -23,11 +23,13 @@
 //-------------------------------------------------------------------------------- запуск
 	prepareToRegistration = function()
 	{
-console.log ('prepareToRegistration(): $localStorage.smartHomeUser: ',$localStorage.smartHomeUser)
+//console.log ('prepareToRegistration(): $localStorage.smartHomeUser: ',$localStorage.smartHomeUser)
 		clearNewUserFields();
 
-		if (isUserLoggedIn())
+		if (isUserLoggedIn()) {
+console.log ('******** регистрация-авторизован ********');
 			$scope.contextPrompt = contextPrompt_LogedIn;
+		}
 		else
 			$scope.contextPrompt = contextPrompt_Unathorized;
 	}
@@ -40,11 +42,11 @@ console.log ('prepareToRegistration(): $localStorage.smartHomeUser: ',$localStor
 
 	$scope.authorize = function ()
 	{
-console.log ('$scope.authorize() - вызван для $scope.new_user = ',$scope.new_user);
+//console.log ('$scope.authorize() - вызван для $scope.new_user = ',$scope.new_user);
 		if ($scope.new_user)
 		{
 			let autho = {"login":$scope.new_user.login, "password":$scope.new_user.password};
-console.log ('$scope.authorize() - на бэк отправляется autho = ', autho);
+//console.log ('$scope.authorize() - на бэк отправляется autho = ', autho);
 			$http.post (contextAuthoPath + '/login', $scope.new_user)
 			.then(
 			function successCallback (response)
@@ -74,12 +76,12 @@ console.log ('$scope.authorize() - на бэк отправляется autho = 
 	{
 		$scope.contextPrompt = contextPrompt_Error;
 		alert ('ОШИБКА:\r'+ data.s);
-console.log ('$scope.authorize() - бэк вернул ошибку: ', data.s);
+//console.log ('$scope.authorize() - бэк вернул ошибку: ', data.s);
 	}
 
 	$scope.register = function ()
 	{
-console.log ('$scope.register() - вызван для $scope.new_user = ',$scope.new_user);
+//console.log ('$scope.register() - вызван для $scope.new_user = ',$scope.new_user);
 		if ($scope.new_user != null)
 		{
 			$http.post (contextAuthoPath + '/register', $scope.new_user)
@@ -97,44 +99,7 @@ console.log ('$scope.register() - вызван для $scope.new_user = ',$scope
 
 	clearNewUserFields = function()	{	$scope.new_user = null;	}
 
-
-
-
-
-/*	$scope.cancelRegistration = function()
-	{
-		clearNewUserFields();
-//		$location.path('/main');
-		location.reload(true); *//* перезагружает страницу (false=из кэша, true=из сервера);
-				 место вызова в коде имеет значение, т.к. при перезагрузке, например, могут потеряться
-				 данные о регистрации, если они не были записаны в хранилище браузера или не были
-				 сохранены иным способом *//*
-	}*/
-
-/*	$scope.tryMergeCarts = function ()
-	{
-		if ($localStorage.gbj7MarketGuestCartId)
-		{
-			$http.get (contextCartPath + '/merge/' + $localStorage.gbj7MarketGuestCartId)
-			.then (
-			function successCallback (response)
-			{
-				console.log ('registration - $scope.tryMergeCarts - OK');
-//////////////////////////				$scope.loadCart();
-			},
-			function failureCallback (response)
-			{
-				console.log ('Ой! @ registration - $scope.tryMergeCarts');
-				alert (response.data);
-			});
-		}
-	}*/
 //-------------------------------------------------------------------------------- разрешения
-/*	$scope.canShowRegistrationElements = function() {
-		if ($localStorage.smartHomeUser)
-			return false;
-		return true;
-	}*/
 
 //-------------------------------------------------------------------------------- вызовы
 	prepareToRegistration();	//< вызов описанной выше функции

@@ -1,22 +1,17 @@
 <div style="margin: 10px;">
 	<h5>{{contextPrompt}}</h5>
-	<p>&nbsp;</p>
-	<form novalidate><!-- ng-show="canShow()"  ng-reset="resetForm()" -->
-
+	<p>(сейчас: admin / 100)</p>
+	<form novalidate><!--  -->
 		<div class="container" style="font-size: 14pt; font-weight:500;">
 			<div class="row">
-				<!-- Число в col-N означает относительную ширину колонки. Если общее кол-во колонок
-				всех элементов превышает 12, то элементы, занимающие лишние колонки, переносятся на
-				след.строку. В данном примере общее кол-во колонок: 1+11 = 12, что заставляет ряд
-				занимать всю доступную ему ширину. Если общее кол-во колонок не равно 12, то имеет
-				смысл указать в class="row" тип выравнивания.  -->
 				<div class="col-2">
 					<label for="login" class="col-form-lable">Логин:&nbsp;</label>
 				</div>
 				<div class="col-10">
 					<input	id="login"
-							class="form-control"
+							class="form-control form-control-sm smartinput"
 							type="text"
+							style="padding-left:10px;"
 							placeholder="обязательно укажите (до 32 сиволов)"
 							required="required"
 							maxlength="32"
@@ -30,8 +25,9 @@
 				</div>
 				<div class="col-10">
 					<input	id="password"
-							class="form-control"
+							class="form-control form-control-sm smartinput"
 							type="password"
+							style="padding-left:10px;"
 							placeholder="обязательно укажите (до 32 символов)"
 							required="required"
 							maxlength="32"
@@ -40,22 +36,22 @@
 			</div>
 			<p></p>
 			<div>
-				<!--	ng-show="!canShowRegistrationElements()"  -->
-				<button type="button" class="btn btn-primary col-2"
+				<button type="button" class="btn btn-sm btn-primary col-2"
 						ng-click="authorize()">Авторизация</button><!-- Авторизация -->
 			</div>
 			<p></p>
 			<p style="color: #074F86;">
 				Если Вы забыли логин или пароль, то задать новые логин и пароль можно введя ключ активации.
 			</p>
-			<div class="row g-2 bg-example"><!-- ng-show="canShowRegistrationElements()"  -->
+			<div class="row g-2 bg-example"><!--  -->
 				<div class="col-2">
 					<label for="key" class="col-form-lable"><nobr>Ключ активации:</nobr>&nbsp;</label>
 				</div>
 				<div class="col-10">
 					<input	id="key"
-							class="form-control"
+							class="form-control form-control-sm smartinput"
 							type="text"
+							style="padding-left:10px;"
 							placeholder="XXXXX-XXXXXXXX-XXXXXX-XXXXX-XXXXXXX"
 							required="required"
 							maxlength="35"
@@ -64,9 +60,8 @@
 			</div>
 			<p></p>
 			<div>
-				<button type="button" class="btn btn-primary col-2"
+				<button type="button" class="btn btn-sm btn-primary col-2"
 						ng-click="register()">Регистрация</button><!-- Регистрация -->
-				<!--	ng-show="canShowRegistrationElements()"  -->
 			</div>
 		</div>
 	</form>

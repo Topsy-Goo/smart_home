@@ -25,7 +25,7 @@
 			$location.path ('/registration'); //< выполняем переход на страницу регистрации
 			return;
 		}
-console.log ('******** авторизован ********');
+console.log ('******** главнвая-авторизован ********');
 		getDevicesList();
 	}
 
@@ -39,7 +39,7 @@ console.log ('******** авторизован ********');
 		function successCallback (response)
 		{
 			$scope.home_dto = response.data;
-console.log (response.data);
+//console.log (response.data);
 			$scope.pollInterval = $scope.home_dto.pollInterval;
 			$scope.fillStatesArray();
 			$scope.getHomeNews();
@@ -295,7 +295,7 @@ console.log (response.data);
 
 	$scope.requestSlaveBindableFunctions = function (device, uuid)
 	{
-console.log ('$scope.requestSlaveBindableFunctions() получила параметры: ', device, ', и ', uuid);
+//console.log ('$scope.requestSlaveBindableFunctions() получила параметры: ', device, ', и ', uuid);
 		if (!uuid) {
 			device.bindableFunctions = null;
 			return;
@@ -400,14 +400,13 @@ console.log ('$scope.requestSlaveBindableFunctions() получила парам
 //-------------------------------------------------------------------------------- разрешения
 	$scope.showSlaveBindingForm = function (device) {
 		return device.abilities.master;
-//		return device.slaveList != null && device.slaveList.length > 0;
 	}
 
 	$scope.showTasksForm = function (tasklist) {
 		 return tasklist != null;
 	}
 
-	/*$rootScope.*/isUserLoggedIn = function () //< TODO: $rootScope ?
+	isUserLoggedIn = function () //< TODO: $rootScope ?
 	{
 		if ($localStorage.smartHomeUser)	{	return true;	}	else	{	return false;	}
 	}

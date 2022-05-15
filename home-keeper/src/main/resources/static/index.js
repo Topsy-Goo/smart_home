@@ -70,21 +70,6 @@
         if ($localStorage.smartHomeUser) {
             $http.defaults.headers.common.Authorization = 'Bearer ' + $localStorage.smartHomeUser.token;
         }
-
-/*		if ($localStorage.smartHomeUser) {
-			//...
-		}
-
-		if (!$localStorage.gbj11SmartHomeActivationCode)
-		{
-			$http.get(contextAuthoPath + '/activation')
-			.then(
-			function successCallback(response)
-			{
-				$localStorage.gbj11SmartHomeActivationCode = response.data.value;
-				console.log ('Activated successfully:'+ response.data.value);
-			});
-		}*/
 	}
 })();
 
@@ -105,68 +90,23 @@
 	$scope.mainPageTitle = 'Главная страница';
 	$scope.schedulePageTitle = 'Расписание';
 
-
-/*	$scope.tryToRegister = function ()
-	{
-		console.log ('$scope.tryToRegister call.');
-		clearUserFields();		 //< это очистит поля формы авторизации (в шапке index.html)
-		$location.path('/registration'); //< выполняем переход на страницу регистрации
-	}
-
-	clearUserFields = function () { $scope.user = null; }
-
-	$scope.tryToLogin = function ()
-	{
-		if ($scope.user != null)
-		{
-			$http.post (contextAuthoPath + '/login',
-						$scope.user)
-			.then(
-			function successCallback (response)
-			{
-				if (response.data.token)	//< проверка, что в ответе именно токен
-				{
-					$http.defaults.headers.common.Authorization = 'Bearer ' + response.data.token;
-					$localStorage.smartHomeUser = {login: $scope.user.login, token: response.data.token};
-					clearUserFields();
-				}
-				location.reload(false); *//* перезагружает страницу (false=из кэша, true=из сервера);
-				 место вызова в коде имеет значение, т.к. при перезагрузке, например, могут потеряться
-				 данные о регистрации, если они не были записаны в хранилище браузера или не были
-				 сохранены иным способом *//*
-			},
-			function failureCallback (response) {
-				alert ('ОШИБКА: '+ response.data.messages);
-			});
-		}
-	}
-*/
+//----------------------------------------------------------------------- выход
 	$scope.logout = function ()
 	{
 		removeUserFromLocalStorage();
 		$localStorage.openedPanels = [];
-console.log ('logout(): $localStorage.openedPanels: ',$localStorage.openedPanels)
-//		clearUserFields();
+//console.log ('logout(): $localStorage.openedPanels: ',$localStorage.openedPanels)
 		$location.path('/registration');
 	}
 
 	removeUserFromLocalStorage = function ()
 	{
-console.log ('removeUserFromLocalStorage(): $localStorage.smartHomeUser: ',$localStorage.smartHomeUser)
+//console.log ('removeUserFromLocalStorage(): $localStorage.smartHomeUser: ',$localStorage.smartHomeUser)
 		delete $localStorage.smartHomeUser;
-console.log ('removeUserFromLocalStorage(): $localStorage.smartHomeUser: ',$localStorage.smartHomeUser)
-console.log ('removeUserFromLocalStorage(): $http.defaults.headers.common.Authorization: ',$http.defaults.headers.common.Authorization)
+//console.log ('removeUserFromLocalStorage(): $localStorage.smartHomeUser: ',$localStorage.smartHomeUser)
+//console.log ('removeUserFromLocalStorage(): $http.defaults.headers.common.Authorization: ',$http.defaults.headers.common.Authorization)
 		$http.defaults.headers.common.Authorization = '';
-console.log ('removeUserFromLocalStorage(): $http.defaults.headers.common.Authorization: ',$http.defaults.headers.common.Authorization)
+//console.log ('removeUserFromLocalStorage(): $http.defaults.headers.common.Authorization: ',$http.defaults.headers.common.Authorization)
 	}
-
-/* Переход на страницу с расписанием. Используем не ссылку на странице, а метод потому, что простой
-переход по ссылке не гасит таймер. */
-/*	$scope.gotoSchedulePage = function ()
-	{
-console.log ('scope.gotoSchedulePage() вызван.');
-		$rootScope.cleanUpMainPage();
-	}*/
 //----------------------------------------------------------------------- разрешения
-
 });
