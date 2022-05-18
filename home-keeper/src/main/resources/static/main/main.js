@@ -116,6 +116,7 @@ console.log ('******** главнвая-авторизован ********');
 				element.state.errCode     = response.data.errCode;
 				element.state.currentTask = response.data.currentTask;
 				element.state.sensors	  = response.data.sensors;
+				element.state.videoImageSource = response.data.videoImageSource;
 				$scope.getHomeNews();
 			},
 	/*	Эту часть, наверное, можно удалить, а то яндекс-браузер, чтоб его… перестали дебилы делать,
@@ -262,7 +263,9 @@ console.log ('******** главнвая-авторизован ********');
 		$http.get (contextMainPath + '/launch_task/'+ device.abilities.uuid +'/'+ taskName)
 		.then (
 		function successCallback (response) {
-			alert (response.data.s);
+			if (!response.data)
+				$scope.getHomeNews();
+//			alert (response.data.s);
 		},
 		function failureCallback (response)	{
 			alert ('ОШИБКА: не удалось обработать запрос:\r'+ response.data);
@@ -397,6 +400,31 @@ console.log ('******** главнвая-авторизован ********');
 			console.log ('ОШИБКА: в alarmSensor() бэк вернул: ', response.data);
 		});
 	}
+//-------------------------------------------------------------------------------- видео
+	$scope.startVideoStreaming = function (device)
+	{
+		$http.get (contextMainPath + '/video_on/'+ device.abilities.uuid)
+		.then (
+		function successCallback (response) {
+//console.log ('$scope.startVideoStreaming() получила в ответ:', response.data);
+		},
+		function failureCallback (response)	{
+			console.log ('ОШИБКА: в startVideoStreaming() бэк вернул: ', response.data);
+		});
+	}
+
+	$scope.stopVideoStreaming = function (device)
+	{
+		$http.get (contextMainPath + '/video_off/'+ device.abilities.uuid)
+		.then (
+		function successCallback (response) {
+//console.log ('$scope.stopVideoStreaming() получила в ответ:', response.data);
+		},
+		function failureCallback (response)	{
+			console.log ('ОШИБКА: в stopVideoStreaming() бэк вернул: ', response.data);
+		});
+	}
+
 //-------------------------------------------------------------------------------- разрешения
 	$scope.showSlaveBindingForm = function (device) {
 		return device.abilities.master;
@@ -406,9 +434,8 @@ console.log ('******** главнвая-авторизован ********');
 		 return tasklist != null;
 	}
 
-	isUserLoggedIn = function () //< TODO: $rootScope ?
-	{
-		if ($localStorage.smartHomeUser)	{	return true;	}	else	{	return false;	}
+	isUserLoggedIn = function () {
+		if ($localStorage.smartHomeUser) { return true; } else { return false; }
 	}
 //-------------------------------------------------------------------------------- очистка
 	cleanUpMainPage = function () {

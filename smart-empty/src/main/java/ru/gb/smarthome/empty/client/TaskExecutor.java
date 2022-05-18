@@ -29,21 +29,29 @@ state, state.currentTask, но можно изменять их Atomic-поля.
  */
 public class TaskExecutor implements Callable<Boolean>
 {
-    private final Task   theTask;
-    private final String taskName;
+    protected final Task   theTask;
+    protected final String taskName;
 
-    public TaskExecutor (@NotNull Task newTask) {
+    public TaskExecutor (@NotNull Task newTask/*, Object specialData*/)
+    {
         theTask = newTask.setTstate (TS_LAUNCHING)
-                         .setMessage (format ("Запускается задача «%s».", newTask.getName()));
+                         .setMessage (TS_LAUNCHING.tsName/*"Запускается задача."*/);
         taskName = newTask.getName();
     }
 
-    @Override
-    public Boolean call () {
+    @Override public Boolean call ()
+    {
         if (DEBUG) printf ("\nTaskExecutor.call(): начинает работать задача: %s.\n", theTask);
-
         theTask.setTstate (TS_RUNNING).setMessage (format ("Выполняется задача «%s»", taskName));
+        return taskBody();
+    }
 
+/** Этот метод аккумулирует основные действия, выполняемые задачей. УУ должно переопределить его,
+ если им требуется выполнение специфических операций. Empty-реализация просто ожидает в течение
+ промежутка времени, равного продолжительности задачи, отвлекаясь только на периодическое обновление
+ счётчика секунд.  */
+    protected boolean taskBody () //throws InterruptedException
+    {
         boolean ok = false;
         try {
             AtomicLong reminder = theTask.getRemained();

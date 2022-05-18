@@ -24,6 +24,11 @@
 			<artifactId>smart-empty</artifactId>
 			<version>0.0.1-SNAPSHOT</version>
 			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.github.sarxos</groupId>
+			<artifactId>webcam-capture</artifactId>
+			<version>0.3.13-SNAPSHOT</version>
 		</dependency><!-- ru.gb.smarthome : smart-empty : compile -->
 	</dependencies>
 

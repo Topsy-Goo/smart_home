@@ -5,6 +5,7 @@ import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import ru.gb.smarthome.common.smart.ISmartDevice;
+import ru.gb.smarthome.sequrity.camera.client.DevClientSequrCamera;
 
 @Configuration
 @ComponentScan (basePackages = "ru.gb.smarthome.sequrity.camera")

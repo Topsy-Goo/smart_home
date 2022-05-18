@@ -46,11 +46,11 @@ public class DeviceServerHome implements IDeviceServer
         try (ServerSocket servsocket = new ServerSocket (serverSocketPort))
         {
             TimeUnit.SECONDS.sleep(1);
-            if (DEBUG) println ("\nСервер ждёт подключения клиентов.");
+            println ("\nСервер ждёт подключения клиентов.");
             while (!treadRun.isInterrupted())
             {
                 Socket socket = servsocket.accept ();
-                if (DEBUG) println ("\nОт клиента получен запрос на подключение.");
+                println ("\nОт клиента получен запрос на подключение.");
 
                 if (treadRun.isInterrupted())
                     break;

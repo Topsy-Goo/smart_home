@@ -39,12 +39,12 @@ public class JwtokenUtil
     // «Закрепляем» данные указанием секрета и типа шифрования.
 
         claims.put ("roles", roles);
-        Date dateIssued  = new Date();
-        Date dateExpired = new Date (dateIssued.getTime() + lifetime);
-        //LocalDateTime ldtNow = LocalDateTime.now();
-        //Date dateIssued  = new Date (longFromLdt (ldtNow));
-        //LocalDateTime ldtNowPlusCentury = ldtNow.plusYears (100);
-        //Date dateExpired = new Date (longFromLdt (ldtNowPlusCentury));
+        //Date dateIssued  = new Date();
+        //Date dateExpired = new Date (dateIssued.getTime() + lifetime);
+        LocalDateTime ldtNow = LocalDateTime.now();
+        Date dateIssued  = new Date (longFromLdt (ldtNow));
+        LocalDateTime ldtNowPlusCentury = ldtNow.plusYears (100);
+        Date dateExpired = new Date (longFromLdt (ldtNowPlusCentury));
 
         String s = Jwts.builder()
                    .setClaims (claims)

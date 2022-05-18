@@ -5,7 +5,13 @@
 	{{home_dto.name}}
 	<br>
 	{{home_dto.string}}
-<!--	<br><button ng-click="timerStop()">Таймер стоп</button>-->
+
+
+<!--<img style="-webkit-user-select: none;margin: auto;background-color: hsl(0, 0%, 25%);"
+	 width="480" height="360"
+	 src="http://localhost:15555/">-->
+
+
 	<br>
 	home_dto.pollInterval = {{home_dto.pollInterval}}<br>
 	$scope.pollInterval = {{pollInterval}}
@@ -52,8 +58,15 @@
 				</table>
 			</div>
 <!-- Основная часть панели, которая может быть скрыта. -->
-			<div class="almost_windows" ng-show="isPanelOpened(device.abilities.uuid)"><!--  -->
-				<!-- <img src="img/Steampunk.jpg" alt="JPG">-->
+			<div class="almost_windows" ng-show="isPanelOpened(device.abilities.uuid)"><!-- ng-show="{{device.videoIsOn}}"  ng-show="{{!(device.videoIsOn)}}" -->
+				<div ng-if="device.state.videoImageSource">
+					device.state.videoImageSource = {{device.state.videoImageSource}}<br>
+					<img style="background-color: hsl(0, 0%, 25%);"
+						 width="320" height="240"
+						 src="{{device.state.videoImageSource}}"><!--  -->
+					<button ng-click="startVideoStreaming (device)">Старт</button>
+					<button ng-click="stopVideoStreaming (device)">Стоп</button>
+				</div>
 				<ul><li>device.abilities.deviceType : {{device.abilities.deviceType}}</li>
 					<li>device.abilities.vendorString : {{device.abilities.vendorString}}</li>
 					<li>device.abilities.uuid : 	  {{device.abilities.uuid}}</li><!--  -->
@@ -63,7 +76,6 @@
 					<li>device.abilities.tasks :	<span ng-repeat="ts in device.abilities.tasks"><br>	  <b>{{ts.name}}</b>, autonomic:{{ts.autonomic}}, interruptible:{{ts.interruptible}}, duration:{{ts.duration}}сек., message:{{ts.message}}</span></li>
 					<li>device.abilities.sensors :	<span ng-repeat="sen in device.abilities.sensors"><br><b>{{sen.type}}</b>, on:{{sen.on}}, alarm:{{sen.alarm}}</span></li>
 <!-- Состояния датчиков УУ. -->
-					<!--<li>device.state.sensors : <span ng-repeat="sn in device.state.sensors"><br>{{sn}}</span></li>-->
 					<li>device.state.sensors :
 						<span ng-repeat="sn in device.state.sensors"><br>
 							{{sn.type}} ({{sn.name}})

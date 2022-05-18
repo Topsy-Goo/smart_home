@@ -18,6 +18,8 @@ public class DeviceDto
     private List<UuidDto> slaveList;         //Здесь не заполняем, — будем запрашивать из фронта.
     private List<UuidDto> bindableFunctions; //Здесь не заполняем, — будем запрашивать из фронта.
     private List<BinateDto> contracts;
+    //private boolean videoIsOn;
+    //private String  videoBanner;
 
     public DeviceDto (){}
 
@@ -30,8 +32,12 @@ public class DeviceDto
             dto.state        = StateDto.deviceStateToDto (info);
             dto.friendlyName = info.device.getDeviceFriendlyName();
             dto.contracts    = getContractsDto.apply (info.uuidstr);
-            ;
+            //if (info.abilitiesDto.getVideoSource() != null)
+            //    dto.videoBanner = "./images/tv-test-pattern.png";
+            //;
         }
         return dto;
     }
+
+    //public DeviceDto setVidioIsOnTo (boolean val) { videoIsOn = val; return this; }
 }

@@ -60,11 +60,10 @@ final public class FactoryCommon
     public static final String DEF_ABILITIES_DTO_VENDORSTRING = "";
     public static final String DEF_ABILITIES_DTO_UUID         = "";
     //public static final String DEF_TYPEGROUP_DTO_DEVICETYPE = "";
-    public static final String FORMAT_LAUNCHING_TASK_ = "Задача «%s» запускается.";
+    //public static final String FORMAT_LAUNCHING_TASK_ = "Задача «%s» запускается.";
     public static final String FORMAT_CANNOT_LAUNCH_TASK_ = "Не удалось запустить задачу: «%s».";
     public static final String FORMAT_ACTIVATE_DEVICE_FIRST_ = "Устройство «%s» неактивно.\rАктивизируйте его и повторите попытку.";
     public static final String FORMAT_REQUEST_ERROR = "Устройство %s\rне смогло обработать запрос.";
-    //public static final String USE_DEF_SENSOR_NAME  = null;
     //public static final String  = "";
 
     public static final String

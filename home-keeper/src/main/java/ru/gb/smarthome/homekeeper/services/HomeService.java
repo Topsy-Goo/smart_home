@@ -19,6 +19,7 @@ import ru.gb.smarthome.homekeeper.repos.IFriendlyNamesRepo;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static java.lang.String.format;
@@ -48,6 +49,34 @@ public class HomeService {
              typeGroups.put(t, new LinkedList<>());
              typeToUuidSlaves.put(t, new LinkedList<>());
         }
+    }
+
+    public boolean videoOn (String uuidStr)
+    {
+        return launchTask (uuidStr, "режим просмотра");
+    }
+
+/*    public DeviceDto videoOn_Dto (String uuidStr)
+    {
+        if (videoOn (uuidStr)) {
+            try {
+                TimeUnit.SECONDS.sleep(5);
+            }
+            catch (Exception e) { e.printStackTrace(); }
+            ISmartHandler device = deviceByUuidString (uuidStr);
+            return fromSmartHandler(device).setVidioIsOnTo (ON);
+        }
+        return null;
+    }*/
+
+    public boolean videoOff (/**/String uuidStr)
+    {
+        ISmartHandler device = deviceByUuidString (uuidStr);
+        if (device != null) {
+            //;
+            return device.offerRequest (new Message().setOpCode (CMD_INTERRUPT));
+        }
+        return false;
     }
 
 /** Добавление УУ в список обнаруженых устройств. */
@@ -167,11 +196,15 @@ public class HomeService {
             if (group.isEmpty())
                 continue;
             List<DeviceDto> groupDto = group.stream()
-                                            .map (h->DeviceDto.smartDeviceToDto (handlerToInfo.get(h), this::getContractsDto))
+                                            .map (this::fromSmartHandler)
                                             .collect (Collectors.toList());
             typeGroupsDto.add (new TypeGroupDto (type.typeNameMultiple, groupDto));
         }
         return typeGroupsDto;
+    }
+
+    private DeviceDto fromSmartHandler (ISmartHandler device) {
+        return DeviceDto.smartDeviceToDto (handlerToInfo.get(device), this::getContractsDto);
     }
 
 /** Собираем в один список dto-шки мастер-контрактов устройства. */
@@ -232,25 +265,33 @@ public class HomeService {
  @param taskname название задачи из списка задач, которые УУ может выполнить.
  @return Строка-сообщение для фронта. */
     @Transactional
-    public String launchTask (String uuidStr, String taskname)
+    public boolean launchTask (String uuidStr, String taskname)
     {
+        boolean ok = false;
         String param = taskname;
         String result = FORMAT_CANNOT_LAUNCH_TASK_;
-        ISmartHandler device = deviceByUuidString (uuidStr);
 
+        ISmartHandler device = deviceByUuidString (uuidStr);
         if (device != null)
-        if (device.isActive())
         {
-            Message message = new Message().setOpCode(CMD_TASK).setData (taskname);
-            if (device.offerRequest (message))
-                result = FORMAT_LAUNCHING_TASK_;
+            if (device.isActive()) {
+                Message message = new Message().setOpCode(CMD_TASK).setData (taskname);
+                ok = device.offerRequest (message);
+                //if (ok)
+                //    result = FORMAT_LAUNCHING_TASK_;
+            }
+            else { // нельзя запустить задачу, т.к. УУ неактивно.
+                result = FORMAT_ACTIVATE_DEVICE_FIRST_;
+                param = friendlyNameByUuid (uuidStr);
+            }
         }
-        else { // нельзя запустить задачу, т.к. УУ неактивно.
-            result = FORMAT_ACTIVATE_DEVICE_FIRST_;
-            param = friendlyNameByUuid (uuidStr);
-        }
-        return format (result, param);
+        //else
+        if (!ok)
+            addNews (format (result, param));
+        return ok;
     }
+
+
 
 /** Меняем значение ISmartHandler.deviceFriendlyName на значение, присланое юзером с фронта.
 @param uuidStr строковое представление UUID устрйоства.
@@ -415,9 +456,9 @@ public class HomeService {
     {
         FriendlyName fName;
         if (rec != null  &&  (fName = rec.getDeviceName()) != null)
-            lastNews.add (launchTask (fName.getUuid(), rec.getTaskName()));
+            /*addNews*/ launchTask (fName.getUuid(), rec.getTaskName());
         else
-            lastNews.add ("Не удалось запустить задачу из расписания:\rНеизвестная ошибка.");
+            addNews ("Не удалось запустить задачу из расписания:\rНеизвестная ошибка.");
     }
 //----------------------- Сообщения ------------------------------------
 

@@ -13,6 +13,7 @@ import static ru.gb.smarthome.common.FactoryCommon.AUTONOMIC;
 import static ru.gb.smarthome.common.FactoryCommon.INTERRUPTIBLE;
 import static ru.gb.smarthome.common.smart.enums.DeviceTypes.SEQURITY_CONTROLLLER;
 import static ru.gb.smarthome.common.smart.enums.DeviceTypes.WASHER;
+import static ru.gb.smarthome.sequrity.camera.FactorySequrCamera.TASKNAME_STREAMING;
 
 @Component ("seqcam_propman")
 @Scope ("singleton")
@@ -23,8 +24,8 @@ public class PropManagerSequrCamera extends PropManagerComplex
 
     @PostConstruct
     @Override public void init() {
-        tasks.add (new Task ("режим просмотра", AUTONOMIC, 3600L, TimeUnit.SECONDS, INTERRUPTIBLE).setMessage("Начать передачу видео."));
-//      tasks.add (new Task ("регистратор",     AUTONOMIC,    0L, TimeUnit.SECONDS, INTERRUPTIBLE).setMessage("Начать запись."));
+        tasks.add (new Task (TASKNAME_STREAMING, AUTONOMIC, 1L, TimeUnit.HOURS,   INTERRUPTIBLE).setMessage("Начать трансляцию."));
+//      tasks.add (new Task (TASKNAME_VRECORDER, AUTONOMIC, 5L, TimeUnit.MINUTES, INTERRUPTIBLE).setMessage("Начать запись."));
         slaveTypes.add (SEQURITY_CONTROLLLER);
         slaveTypes.add (WASHER);
     }

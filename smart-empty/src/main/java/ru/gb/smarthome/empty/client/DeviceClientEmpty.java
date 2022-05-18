@@ -189,17 +189,7 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
                             if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_WAKEUP");
                             break;*/
 
-                        case CMD_TASK:
-                            t = startTask (mR.getData());
-                            if (t == errorTask) {
-                                sendData (CMD_TASK, t.safeCopy());
-                            }
-                            else { //Если задача создана и запущена, то изменяем state и отвечаем хэндлеру только что созданной Task:
-                                statesManager.taskStarts();
-                                state.setCurrentTask (t);
-                                sendData (CMD_TASK, t);
-                            }
-                            if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_TASK");
+                        case CMD_TASK:  onCmdTask (mR.getData());
                             break;
 
                         /*case CMD_BUSY:  //< не должно приходить.
@@ -288,7 +278,7 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
     }//mainLoop()
 
 /** Очистка в конце работы метода mainLoop(). */
-    private void cleanup () {
+    protected void cleanup () {
         //«… previously submitted tasks are executed, but no new tasks will be accepted.…»
         if (taskExecutorService != null) taskExecutorService.shutdown();
     }
@@ -396,11 +386,13 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
     задачи в аварийной ситуации, т.е. когда state.code == CMD_ERROR.
         {   */
             if (taskFuture != null && taskFuture.isDone()) // задача звершилась сама или была отменена (canceled)
-            {
-                taskFuture = null;
-                statesManager.taskEnds(); // (Выполненная задача останется в state.currentTask.)
-            }
+                onTaskEndOrInterrupted();
         //}
+    }
+
+    protected void onTaskEndOrInterrupted () {
+        taskFuture = null;
+        statesManager.taskEnds(); // (Выполненная задача останется в state.currentTask.)
     }
 
 //------------ Методы, используемые в IConsoleReader.runConsole -------------
@@ -463,7 +455,7 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
                 println("Невозможно запустить задачу сейчас.");
             else {
                 //Повторяем поведение обработчика команды CMD_TASK, но без информирования хэндлера.
-                Task t = startTask (taskname);
+                Task t = getTaskToStart(taskname);
                 if (t == errorTask)
                     println("Не удалось запустить задачу: " + errorTask);
                 else {
@@ -476,6 +468,27 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
 
 //-------------------------- про задачи -------------------------------------
 
+    private void onCmdTask (Object data) throws Exception
+    {
+        Task newTask = getTaskToStart (data);
+        if (newTask == errorTask) {
+            sendData (CMD_TASK, newTask.safeCopy());
+        }
+        else {
+            TaskExecutor te = launchTask (newTask);
+            taskFuture = taskExecutorService.submit (te);
+            //Если задача создана и запущена, то изменяем state и отвечаем хэндлеру только что созданной Task:
+            statesManager.taskStarts();
+            state.setCurrentTask (newTask);
+            sendData (CMD_TASK, newTask);
+        }
+        if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_TASK");
+    }
+
+    protected TaskExecutor launchTask (Task t) {
+        return new TaskExecutor (t);
+    }
+
 /** Используется для ошибок. */
     final Task errorTask = new Task (DEF_TASK_NAME, DEF_TASK_STATE, DEF_TASK_MESSAGE);
 
@@ -487,7 +500,7 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
 @param data строка-идентификатор задачи, для поиска её в списке доступных задач устройства.
 @return экземпляр Task, который является запущенной задачей или, в случае ошибки, сгодится для информирования о результатах запроса.
 */
-    private @NotNull Task startTask (Object data)
+    private @NotNull Task getTaskToStart (Object data)
     {
         String taskName = "?",
                taskErrorMessage = DEF_TASK_MESSAGE;
@@ -516,8 +529,7 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
             }
             else {
         //если задачу можно создать и запустить:
-                TaskExecutor te = new TaskExecutor (newTask = t.safeCopy());
-                taskFuture = taskExecutorService.submit (te);
+                newTask = t.safeCopy();
             }
         /*  Тут не учитывается, что текущая задача может быть прервана для запуска другой задачи.
         Такую проверку делать здесь не стоит, например, потому, что нарушается «зона
@@ -547,11 +559,12 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
             {
                 if (taskFuture != null) {
                     if (!taskFuture.isDone()) {
-                        taskFuture.cancel(true);
+                        taskFuture.cancel (true);
                         while (!taskFuture.isDone()); //taskFuture.get() даст исключение CancellationException
                     }
-                    taskFuture = null;
-                    statesManager.taskEnds();
+                    onTaskEndOrInterrupted();
+                    //taskFuture = null;
+                    //statesManager.taskEnds();
 
                     TimeUnit.MILLISECONDS.sleep(500); //< даём параллельному потоку возможность
                     // обработать завершение задачи, чтобы его результаты попали в state. (Вызова
@@ -732,5 +745,5 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
             if (DEBUG) throw new RuntimeException ("В стеке отсутствует код уровня "+ example.name());
             return null;
         }
-    }
+    }//class StatesManager
 }

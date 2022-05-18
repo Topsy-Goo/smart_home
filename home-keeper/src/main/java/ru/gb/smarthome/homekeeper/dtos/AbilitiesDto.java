@@ -23,6 +23,7 @@ public class AbilitiesDto {
     private List<SensorDto> sensors;
     private boolean master;
     private boolean slave;
+    //private String videoSource;
 
     public AbilitiesDto (){}
 
@@ -48,6 +49,10 @@ public class AbilitiesDto {
             }
             dto.slave  = a.isSlave();
             dto.master = a.isMaster();
+
+            //int port = a.getVideoPort();
+            //if (port > 0)
+            //    dto.videoSource = format ("http://%s:%d/", SERVER_ADDRESS_DEFAULT, port);
         }
         return dto;
     }

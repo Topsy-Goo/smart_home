@@ -1,2 +1,5 @@
 server:
   port: 15555
+#  servlet:
+#    context-path: /seqcam
+

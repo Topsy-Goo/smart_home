@@ -33,6 +33,8 @@ public class DeviceState implements Serializable
 /** Датчики, которыми располагает УУ и состоянием которых оно готово делиться с хэндлером.  */
     @Getter private Map<UUID, SensorStates> sensors = Collections.emptyMap();
 
+    @Getter private String videoImageSource;
+
 
 /**
 @param cod кодтекущего состояния УУ : режим, выполняемыя задача, … (см. {@link ru.gb.smarthome.common.smart.enums.OperationCodes OperationCodes})
@@ -52,7 +54,8 @@ public class DeviceState implements Serializable
             t = currentTask.safeCopy();
         return new DeviceState (opCode, errCode)
                         .setCurrentTask (t)
-                        .setSensors (new HashMap<>(sensors));
+                        .setSensors (new HashMap<>(sensors))
+                        .setVideoImageSource (videoImageSource);
     }
 
     public DeviceState setOpCode (@NotNull OperationCodes val) { opCode = val;    return this; }
@@ -65,6 +68,7 @@ public class DeviceState implements Serializable
         sensors = (val != null) ? val : Collections.emptyMap();
         return this;
     }
+    public DeviceState setVideoImageSource (String val) {  videoImageSource = val;   return this;  }
 
     @Override public String toString ()
     {

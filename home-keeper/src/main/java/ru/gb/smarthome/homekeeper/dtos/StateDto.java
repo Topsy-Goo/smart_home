@@ -26,17 +26,9 @@ public class StateDto
     private String  errCode     = DEF_STATE_DTO_ERRCODE;
     private TaskDto currentTask = TaskDto.nullTaskDto; //TODO: удалить?
     private List<SensorDto> sensors;
+    private String  videoImageSource;
 
     public StateDto() {}
-
-    @Override public String toString ()
-    {
-        StringBuilder sb = new StringBuilder("датчики: ");
-        for (SensorDto v : sensors) {
-            sb.append (v.isOn()?"ON_":"OFF_").append(v.isAlarm()?"ALARM":"WATCH").append(" • ");
-        }
-        return format ("%s %s %s\n", opCode, active?"A":"a", sensors);
-    }
 
     public static @NotNull StateDto deviceStateToDto (DeviceInfo info)
     {
@@ -72,7 +64,18 @@ public class StateDto
                     sstate = sensorsMap.get (sen.getUuid());
                     sensordto.on    = sstate.on;
                     sensordto.alarm = sstate.alarm;
-        }   }   }
+            }   }
+            dto.videoImageSource = ds.getVideoImageSource();
+        }
         return dto;
+    }
+
+    @Override public String toString ()
+    {
+        StringBuilder sb = new StringBuilder("датчики: ");
+        for (SensorDto v : sensors) {
+            sb.append (v.isOn()?"ON_":"OFF_").append(v.isAlarm()?"ALARM":"WATCH").append(" • ");
+        }
+        return format ("%s %s %s\n", opCode, active?"A":"a", sensors);
     }
 }

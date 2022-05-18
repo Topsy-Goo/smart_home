@@ -34,7 +34,6 @@
 	</properties>
 
 	<dependencies>
-
 		<dependency><!-- Гасит ошибку в spring-boot-maven-plugin -->
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-maven-plugin</artifactId>

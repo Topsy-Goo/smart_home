@@ -256,20 +256,20 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
     {
     //Если мы здесь, то у клиента НЕТ состояния ошибки.
         OperationCodes messageOpCode;
-        Message peekedMsg, mR;
-        boolean ok;
-        Object obj;
+        Message peekedMsg/*, mR*/;
+        //boolean ok;
+        //Object obj;
     //Выполняем запрошенную операцию, только если её приоритет БОЛЬШЕ приоритета текущего состояния УУ.
         while ((peekedMsg = priorityQueue.peek()) != null   &&
-        (!state.getOpCode().greaterThan (messageOpCode = peekedMsg.getOpCode())))
+               (!state.getOpCode().greaterThan (messageOpCode = peekedMsg.getOpCode())))
         {
             switch (messageOpCode)
             {
                 //case CMD_READY:
                 //    break;
-                //case CMD_SLEEP:
-                //    break;
                 case CMD_TASK:   treatTaskRequest (peekedMsg);
+                    break;
+                case CMD_INTERRUPT: treatTaskInterruptRequest (/*peekedMsg*/);
                     break;
                 case CMD_SIGNAL: treatSignalRequest (peekedMsg);
                     break;
@@ -289,6 +289,18 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
         }//while try
     }
 
+/** Обрабатываем запрос на остановку текущей задачи. */
+    private void treatTaskInterruptRequest (/*Message peekedMsg*/)
+    {
+        Task t = state.getCurrentTask();
+        if (t != null)
+        {
+            if (!t.isInterruptible()  ||  !interruptCurrentTask())
+                addNewsCallback.callback (format ("Не удалось остановить задачу «%s».", t.getName()));
+        }
+        else if (DEBUG) addNewsCallback.callback ("Отладка: Получен запрос остановить несуществующую задачу.");
+    }
+
     static final String rejectedTaskMessageFormat = "Устройство %s\rне выполнило задачу %s — %s\r(%s).";
 
 /** Делаем клиенту запрос на выполнение задачи и ждём в ответ Message.data == Task с подробностями.
@@ -297,17 +309,27 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
  о запрошеном действии. */
     private void treatTaskRequest (Message peekedMsg)
     {
+    //Если мы здесь, то это означает, что нет запущенный задач (state.opCode < CMD_TASK < CMD_BUSY).
         Message mR;
-        Object obj;
-        Task answer;
         String friendlyName = deviceFriendlyName.get();
+        Object obj;
         String taskName = stringFromObject (peekedMsg.getData()),
                error = format (FORMAT_REQUEST_ERROR, friendlyName);
+        Task answer,
+             currentTask = state.getCurrentTask();
 
-        if (taskName != null
-        &&  (mR = requestClient (CMD_TASK, taskName)) != null
+        if (!abilities.isTaskName(taskName)) {
+            if (DEBUG) throw new RuntimeException ("Неправильное имя задачи.");
+            return;
+        }
+        if ((mR = requestClient (CMD_TASK, taskName)) != null
         &&  ((answer = taskFromObject (mR.getData())) != null))
         {
+            priorityQueue.removeIf (m->qualifyMessageForRemoving(m, peekedMsg.getOpCode(), peekedMsg.getData()));
+            //^ Удаляем из очереди запрос на запуск задачи, которую мы только что запустили. Это обработает
+            // ситуации с повторными запусками в ситуциях, когда, например, юзер нажал кнопку пуска несколько
+            // раз, или запустил задачу одновременно с точно такой же запланированной задачей.
+
             TaskStates answerTstate = answer.getTstate();
             if (answerTstate.launchingError)
             {
@@ -320,6 +342,23 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
         }
         if (error != null && !error.isBlank())
             addNewsCallback.callback (error);
+    }
+
+//Метод проверен на пригодность для сравнения Message(…, data(Task)). Для других типов Message
+// нужна проверка и, возможно, доработка.
+/** Метод используется при удалении из очереди одинаковых запросов. Сравниваем свойства Message m
+ со свойствами, переданными в остальных параметрах, и решаем, нужно ли удалить m из очереди.
+ @return TRUE, если m нужно удалить из очереди. */
+    private boolean qualifyMessageForRemoving (Message m, OperationCodes code, Object data)
+    {
+        if (m == null || m.getOpCode() == null)  return true; //< их просто надо удалить, чтобы не замусоривали очередь.
+        if (m.getOpCode().equals (code))
+        {
+            Object o = m.getData();
+            if (o == null)      return (data == null);
+            if (o.equals(data)) return true;
+        }
+        return false;
     }
 
     static final String rejectedRequestFormat = "Устройство %s\rне выполнило запрос — %s.";
@@ -462,7 +501,7 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
             }
             else if (active == ACTIVE) //< нас просят ДЕактивировать УУ
             {
-                if (isItSafeToDeactivate())
+                if (isItSafeToDeactivate() && interruptCurrentTask())
                     changeActiveState (NOT_ACTIVE);
                 else
                     error = promptDeactivationIsNotSafeNow;
@@ -542,46 +581,6 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
         return overideCurrentState (requestClientState());
     }
 
-/** Если {@code newState != null}, то перезаписываем this.state указаным экземпляром newState.<p>
- Если в результате этих действий state.code окажется == CMD_ERROR, то устанавливаем active в значение
- NOT_ACTIVE. (Неисправное УУ не может быть активным.)<br>
- @param newState экземпляр DeviceState, которым требуется заменить {@code this.state}.
- @return TRUE, если state удалось обновить.    */
-    private boolean overideCurrentState (DeviceState newState)
-    {
-        final boolean ok = newState != null;
-        if (ok) {
-            state = newState;
-
-            if (state.getOpCode().equals (CMD_ERROR))
-                changeActiveState (NOT_ACTIVE);
-
-            readSensors();
-        }
-        else if (DEBUG) throw new RuntimeException ("ClientHandler.updateState(newState==null).");
-        return ok;
-    }
-
-/** Обрабатываем состояния датчиков, пришедшие от нашего клиента. Для каждого датчика, находящегося
- в тревожном состоянии, составляем Signal и передаём его в колбэк. Мы не знаем, будет ли
- обрабатываться эта переданная информация. */
-    private void readSensors ()
-    {
-        Map<UUID, SensorStates> sensors = state.getSensors();
-        for (Map.Entry<UUID, SensorStates> e : sensors.entrySet())
-        {
-            if (e.getValue().alarm) {
-                UUID uuSensor = e.getKey();
-                slaveCallback.callback (new Signal (this, this.uuid, uuSensor, null));
-            }
-        //TODO: Кроме того УУ в ответ на ALARM тут может запустить какую-то свою задачу или обработчик.
-        }
-    }
-
-    private void changeActiveState (boolean value) {
-        active = value;
-    }
-
 /** Запрашиваем state у нашего подопечного УУ. (Планируем вызывать этот метод очень часто.)
 @return DeviceState, полученный от клиента, или NULL, если запрос не удался. */
     private DeviceState requestClientState ()
@@ -609,6 +608,44 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
                     "\n\t** получили: %s" +
                     "\n\t** data: %s.\n", mW, mR, data);
         return newState;
+    }
+
+/** Если {@code newState != null}, то перезаписываем this.state указаным экземпляром newState.<p>
+ Если в результате этих действий state.code окажется == CMD_ERROR, то устанавливаем active в значение
+ NOT_ACTIVE. (Неисправное УУ не может быть активным.)<br>
+ @param newState экземпляр DeviceState, которым требуется заменить {@code this.state}.
+ @return TRUE, если state удалось обновить.    */
+    private boolean overideCurrentState (DeviceState newState)
+    {
+        final boolean ok = newState != null;
+        if (ok) {
+            state = newState;
+            if (state.getOpCode().equals (CMD_ERROR))
+                changeActiveState (NOT_ACTIVE);
+            readSensors();
+        }
+        else if (DEBUG) throw new RuntimeException ("ClientHandler.updateState(newState==null).");
+        return ok;
+    }
+
+/** Обрабатываем состояния датчиков, пришедшие от нашего клиента. Для каждого датчика, находящегося
+ в тревожном состоянии, составляем Signal и передаём его в колбэк. Мы не знаем, будет ли
+ обрабатываться эта переданная информация. */
+    private void readSensors ()
+    {
+        Map<UUID, SensorStates> sensors = state.getSensors();
+        for (Map.Entry<UUID, SensorStates> e : sensors.entrySet())
+        {
+            if (e.getValue().alarm) {
+                UUID uuSensor = e.getKey();
+                slaveCallback.callback (new Signal (this, this.uuid, uuSensor, null));
+            }
+        //TODO: Кроме того УУ в ответ на ALARM тут может запустить какую-то свою задачу или обработчик.
+        }
+    }
+
+    private void changeActiveState (boolean value) {
+        active = value;
     }
 
 /** Перенапраовляет вызов в  {@link #requestClient(OperationCodes, Object) requestClient (Message.opCode, Message.data)} */
@@ -657,7 +694,7 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
         Task t = state.getCurrentTask();
         boolean ok = t == null || t.isAutonomic() || !t.getTstate().runningState;
         if (!ok) {
-            ok = t.isInterruptible() && interruptCurrentTask();
+            ok = t.isInterruptible();
         }
         return ok;
     }

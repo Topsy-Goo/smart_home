@@ -5,11 +5,9 @@ import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 import ru.gb.smarthome.common.PropertyManager;
 import ru.gb.smarthome.common.smart.enums.DeviceTypes;
-import ru.gb.smarthome.homekeeper.dtos.UuidDto;
 
 import java.io.Serializable;
 import java.util.*;
-import java.util.concurrent.ConcurrentMap;
 
 import static ru.gb.smarthome.common.FactoryCommon.*;
 
@@ -58,6 +56,9 @@ public final class Abilities implements Serializable
 /** Типы УУ, которые могут быть ведомыми этим УУ. */
     @Getter private Set<DeviceTypes> slaveTypes;
 
+/* * Внешний порт для трансляции видеопотокка в вёб-интерфейс. */
+    //@Getter private int videoPort;
+
 
     private Abilities (){} //< для сериализации
 
@@ -82,7 +83,8 @@ public final class Abilities implements Serializable
                      .setSensors(sensors)
                      .setMaster(master)
                      .setSlave(slave)
-                     .setSlaveTypes (PropertyManager.copyDeviceTypesList (slaveTypes));
+                     .setSlaveTypes (PropertyManager.copyDeviceTypesList (slaveTypes))/*
+                     .setVideoPort (videoPort)*/;
     }
 
     public Abilities setTasks   (Set<Task> val) { tasks = val;   return this; }
@@ -94,6 +96,12 @@ public final class Abilities implements Serializable
         sensors = (val != null) ? val : Collections.emptyList();
         return this;
     }
+/*    public Abilities setVideoPort (int val)
+    {
+        if (val >= 0)
+            videoPort = val;
+        return this;
+    }*/
 
     public boolean isTaskName (String taskName) {    return taskByName (taskName) != null;    }
 

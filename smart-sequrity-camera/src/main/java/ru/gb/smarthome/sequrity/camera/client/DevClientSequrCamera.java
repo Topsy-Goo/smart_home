@@ -1,17 +1,24 @@
-package ru.gb.smarthome.sequrity.camera;
+package ru.gb.smarthome.sequrity.camera.client;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
+import org.springframework.util.SocketUtils;
 import ru.gb.smarthome.common.smart.IConsolReader;
 import ru.gb.smarthome.common.smart.structures.Abilities;
+import ru.gb.smarthome.common.smart.structures.Task;
+import ru.gb.smarthome.empty.client.TaskExecutor;
 import ru.gb.smarthome.empty.complex.DevClientEmptyComplex;
+import ru.gb.smarthome.sequrity.camera.PropManagerSequrCamera;
 
 import javax.annotation.PostConstruct;
 import java.util.concurrent.Executors;
 
+import static java.lang.String.format;
 import static ru.gb.smarthome.common.FactoryCommon.CANNOT_SLEEP;
 import static ru.gb.smarthome.common.smart.enums.DeviceTypes.SEQURITY_CAMERA;
+import static ru.gb.smarthome.sequrity.camera.FactorySequrCamera.*;
+import static ru.gb.smarthome.sequrity.camera.SequrityCameraApp.DEBUG;
 
 @Component
 @Scope ("prototype")
@@ -46,5 +53,27 @@ public class DevClientSequrCamera extends DevClientEmptyComplex
             threadConsole.setDaemon(true);
             threadConsole.start();
         //}
+        state.setVideoImageSource (VIDEO_IMAGE_BANNER_SRC);
+    }
+
+    @Override protected TaskExecutor launchTask (Task t)
+    {
+        if (t.getName().equals (TASKNAME_STREAMING))
+        {
+            int port = SocketUtils.findAvailableTcpPort();;
+            CameraStreamExecutor cameraStreamExecutor =
+                    new CameraStreamExecutor (t, new SmartCamera (cameraNamePrefix_, port));
+
+            state.setVideoImageSource (format (VIDEO_IMAGE_SRC_FORMAT, port));
+            return cameraStreamExecutor;
+        }
+        else if (DEBUG) throw new UnsupportedOperationException ();
+        return null;
+    }
+
+    @Override protected void onTaskEndOrInterrupted ()
+    {
+        super.onTaskEndOrInterrupted();
+        state.setVideoImageSource (VIDEO_IMAGE_BANNER_SRC);
     }
 }

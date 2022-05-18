@@ -35,8 +35,10 @@ public class HomeController
     @GetMapping ("/state/{uuid}")
     public StateDto getState (@PathVariable(name="uuid") String strUuid)
     {
-print("<{s}>");
-        return homeService.getStateDto(strUuid);
+        StateDto dto = homeService.getStateDto(strUuid);
+//print("<{s}>");
+if (dto != null) lnprintf("<{%s}>", dto.getVideoImageSource());
+        return dto;
     }
 
     //Активация/деактивация УУ по UUID.
@@ -66,9 +68,9 @@ print("<{s}>");
     //Запрос на запуск указанной задачи указанного устройства.
     //http://localhost:15550/home/v1/main/launch_task/{uuid}/{taskname}
     @GetMapping ("/launch_task/{uuid}/{taskname}")
-    public StringDto launchTask (@PathVariable(name="uuid") String strUuid, @PathVariable String taskname)
+    public boolean launchTask (@PathVariable(name="uuid") String strUuid, @PathVariable String taskname)
     {
-        return new StringDto (homeService.launchTask (strUuid, taskname));
+        return /*new StringDto*/ (homeService.launchTask (strUuid, taskname));
     }
 
     //http://localhost:15550/home/v1/main/slave-list/{uuid}
@@ -132,15 +134,15 @@ print("<{s}>");
     public List<String> getHomeNews ()
     {
         List<String> list = homeService.getHomeNews();
-if (list != null) lnprintf ("/home_news - ответ: %s.\n", list);
+//if (list != null) lnprintf ("/home_news - ответ: %s.\n", list);
         return list;
     }
 
     @GetMapping ("/is_task_name/{uuid}/{taskName}")
     public boolean isTaskName (@PathVariable(name="uuid") String strUuid, @PathVariable String taskName)
     {
-lnprintf("isTaskName() - параметры: %s, %s.\n", strUuid, taskName);
-        return homeService.isTaskName (UUID.fromString(strUuid), taskName);
+//lnprintf("isTaskName() - параметры: %s, %s.\n", strUuid, taskName);
+        return homeService.isTaskName (uuidFromString (strUuid), taskName);
     }
 
 //Используется только в отладочных целях. Переводит объект в JSON-строку.
@@ -152,4 +154,24 @@ lnprintf("isTaskName() - параметры: %s, %s.\n", strUuid, taskName);
         return format("objectToJsonString() не справился с объектом %s", o.getClass().getSimpleName());
     }
 
+    @GetMapping ("/video_on/{uuid}")
+    public boolean videoOn (@PathVariable(name="uuid") String strUuid)
+    {
+lnprintf("videoOn() - параметр: %s.\n", strUuid);
+        return homeService.videoOn (strUuid);
+    }
+
+/*    @GetMapping ("/video_on/{uuid}")
+    public DeviceDto videoOn (@PathVariable(name="uuid") String strUuid)
+    {
+lnprintf("videoOn() - параметр: %s.\n", strUuid);
+        return homeService.videoOn_Dto (strUuid);
+    }*/
+
+    @GetMapping ("/video_off/{uuid}")
+    public boolean videoOff (@PathVariable(name="uuid") String strUuid)
+    {
+lnprintf("videoOff() - параметр: %s.\n", strUuid);
+        return homeService.videoOff (strUuid);
+    }
 }
