@@ -24,7 +24,7 @@ public class StateDto
     private boolean active;
     private String  opCode      = DEF_STATE_DTO_OPCODE.name();
     private String  errCode     = DEF_STATE_DTO_ERRCODE;
-    private TaskDto currentTask = TaskDto.nullTaskDto; //TODO: удалить?
+    private TaskDto currentTask = TaskDto.nullTaskDto;
     private List<SensorDto> sensors;
     private String  videoImageSource;
 

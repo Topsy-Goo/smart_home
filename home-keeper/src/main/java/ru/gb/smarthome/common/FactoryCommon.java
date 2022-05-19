@@ -1,6 +1,5 @@
 package ru.gb.smarthome.common;
 
-import org.springframework.data.jpa.convert.threeten.Jsr310JpaConverters;
 import ru.gb.smarthome.common.smart.enums.DeviceTypes;
 import ru.gb.smarthome.common.smart.enums.OperationCodes;
 import ru.gb.smarthome.common.smart.enums.SensorStates;
@@ -10,20 +9,20 @@ import ru.gb.smarthome.common.smart.structures.Signal;
 import ru.gb.smarthome.common.smart.structures.Task;
 
 import java.lang.reflect.Constructor;
-import java.time.*;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoField;
-import java.time.temporal.TemporalAccessor;
-import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
-import static java.time.temporal.ChronoField.INSTANT_SECONDS;
 import static ru.gb.smarthome.common.smart.enums.DeviceTypes.SMART;
 import static ru.gb.smarthome.common.smart.enums.OperationCodes.CMD_BUSY;
 import static ru.gb.smarthome.common.smart.enums.OperationCodes.CMD_INVALID;
-import static ru.gb.smarthome.common.smart.enums.TaskStates.TS_NONE;
+import static ru.gb.smarthome.common.smart.enums.TaskStates.TS_IDLE;
+//import static ru.gb.smarthome.common.smart.enums.TaskStates.TS_NONE;
 
 final public class FactoryCommon
 {
@@ -50,9 +49,9 @@ final public class FactoryCommon
 
     public static final OperationCodes DEF_STATE_DTO_OPCODE  = CMD_INVALID;
     public static final DeviceTypes DEF_DEVICETYPE = SMART;
-    public static final TaskStates  DEF_TASK_STATE = TS_NONE;
-    public static final String DEF_TASK_NAME       = "—";
-    public static final String DEF_TASK_MESSAGE    = "—";
+    public static final TaskStates  DEF_TASK_STATE   = TS_IDLE; /*TS_NONE*/
+    public static final String      DEF_TASK_MESSAGE = DEF_TASK_STATE.tsName;
+    public static final String      DEF_TASK_NAME    = "Нет задач";
     public static final String DEF_STATE_DTO_ERRCODE = "";
     //public static final String[] DEF_STATE_DTO_NEWS    = {};
     public static final String DEF_DEV_DTO_FRIENDLYNAME = "";
@@ -106,16 +105,6 @@ final public class FactoryCommon
     public static void errprintf (String s, Object... args) { System.err.printf(s, args); }
     public static void lnerrprintln (String s) { System.err.println("\n"+ s+ "\n"); }
 
-/** Проверка условия с выбрасыванием указанного исключения. Вынесена в отдельный метод, чтобы не загромождать
-код проверочными конструкциями.
-@param condition условие, проверка выполнения которого выполняется.
-@param exclass класс исключения, которое нужно бросить при невыполнении условия condition.
-*/
-    public static void check (boolean condition, Class<? extends Exception> exclass) //< TODO: не используется.
-                       throws Exception
-    {
-        check (condition, exclass, "Не выполнено необходимое условие.");
-    }
 
 /** Проверка условия с выбрасыванием указанного исключения. Вынесена в отдельный метод, чтобы не загромождать
 код проверочными конструкциями.
@@ -154,14 +143,14 @@ final public class FactoryCommon
         map.get(k).add(v);
     }*/
 
-/** Убеждаемся, что объект является UUID.
+/* * Убеждаемся, что объект является UUID.
  @param o исследуемый объект.
- @return Объект o, преобразованный к типу UUID, или NULL, если о не является объектом UUID. */
-    public static UUID uuidFromObject (Object o) { //< TODO: не используется.
+ @return Объект o, преобразованный к типу UUID, или NULL, если о не является объектом UUID.
+    public static UUID uuidFromObject (Object o) {
         if (o instanceof UUID)
             return (UUID) o;
         return null;
-    }
+    } */
 
 /** Убеждаемся, что объект является Signal.
  @param o исследуемый объект.
@@ -199,7 +188,7 @@ final public class FactoryCommon
         return null;
     }
 
-    public static SensorStates sensorStateFromString (String str) { //< TODO: не используется.
+/*    public static SensorStates sensorStateFromString (String str) {
         try {
             return SensorStates.valueOf (str);
         }
@@ -207,9 +196,9 @@ final public class FactoryCommon
             printf ("В SensorStates нет константы: «%s».", str);
             return null;
         }
-    }
+    }*/
 
-    public static UUID uuidFromString (String strUuid) { //< TODO: не используется.
+    public static UUID uuidFromString (String strUuid) {
         try {
             return UUID.fromString (strUuid);
         }

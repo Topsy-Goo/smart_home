@@ -63,7 +63,7 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
     public DeviceClientEmpty (PropertyManagerEmpty pm) {
         propMan = pm;
         state = new DeviceState();
-        overideCurrentState (CMD_NOT_CONNECTED);
+        statesManager.setState_NotConnected();
     }
 
     @PostConstruct public void init ()
@@ -130,7 +130,7 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
 
 /** Очистка в конце работы метода run(). */
     private void disconnect() {
-        overideCurrentState (CMD_NOT_CONNECTED);
+        statesManager.setState_NotConnected();
     }
 
 /** Основной цикл клиента. При разработке этого метода придерживаемся следующих принципов:<br>
@@ -163,49 +163,14 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
                 //(Запросы в switch для удобства выстроены в порядке увеличения их приоритета, хотя приоритет
                 // здесь не обрабатывается.)
                 //На необрабатываемые запросы игнорируем — обрабатываем их как запрос CMD_STATE.
-//TODO: сделать обработчики для case-ов, когда код switch-а устоится.
                     switch (opCode)
                     {
-                        /*case CMD_READY: //< не реализовано.
-                            sendCode (CMD_ERROR);
-                            if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_READY");
-                            break;
-
-                        case CMD_SLEEP: //< не реализовано.
-                            if (canSleepNow()) {
-                                statesManager.sleepOn();
-                                sendCode (CMD_SLEEP);
-                            }
-                            else sendCode (CMD_ERROR);
-                            if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_SLEEP");
-                            break;
-
-                        case CMD_WAKEUP: //< не реализовано.
-                            if (state.getOpCode().equals(CMD_SLEEP)) {
-                                statesManager.sleepOff();
-                                sendCode (CMD_WAKEUP);
-                            }
-                            else sendCode (CMD_ERROR);
-                            if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_WAKEUP");
-                            break;*/
-
                         case CMD_TASK:  onCmdTask (mR.getData());
                             break;
 
-                        /*case CMD_BUSY:  //< не должно приходить.
-                            sendState();
-                            if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_BUSY");
-                            break;*/
-
                         case CMD_INTERRUPT:
-                            t = state.getCurrentTask();
-                            if (t == null)
-                                sendData (CMD_INTERRUPT, null);
-                            else {
-                                //if (!t.getTstate().canReplace)
-                                interruptCurrentTask();
-                                sendData (CMD_INTERRUPT, t.safeCopy());
-                            }
+                            interruptCurrentTask();
+                            sendData (CMD_INTERRUPT, Task.safeCopy (state.getCurrentTask()));
                             break;
 
                         case CMD_ERROR: //< не может придти извне (не требуется чтение), и устанавливается по усмотрению самого УУ.
@@ -235,20 +200,17 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
                             break;
 
                         case CMD_CONNECTED:
-                            println ("\nПодключен."); //< приходит из УД при подключении, когда соединение можно считать
-                            // состоявшимся. В этот момент хэндлер нашего УУ ещё не полностью инициализирован, — ждём
-                            // первых запросов CMD_ABILITIES и CMD_STATE.
-                            overideCurrentState (CMD_READY);
+                            println ("\nПодключен."); /* < приходит из УД при подключении, когда соединение можно считать
+                            состоявшимся. В этот момент хэндлер нашего УУ ещё не полностью инициализирован, — ждём
+                            первых запросов CMD_ABILITIES и CMD_STATE.   */
+                            statesManager.setInitialState();
                             sendCode (CMD_READY);
                             if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_CONNECTED");
                             break;
 
                         case CMD_NOPORTS:   //< приходит из УД при подкючении, когда все порты оказались заняты.
-                            overideCurrentState (CMD_NOT_CONNECTED);
-                            //rwCounter.decrementAndGet(); //< поскольку мы не должны отвечать на это сообщение.
-                            //if (DEBUG) check (rwCounter.get() == 0L, RWCounterException.class, "блок case CMD_NOPORTS");
+                            statesManager.setState_NotConnected();
                             throw new OutOfServiceException("!!! Отказано в подключении, — нет свободных портов. !!!");
-                            //break;
 
                         case CMD_EXIT:   //< вызывается только из консоли; здесь обработчик присутствует на всякий случай.
                             crExit();
@@ -416,7 +378,7 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
     @Override public void crExit () throws OutOfServiceException {
         if (DEBUG)
         synchronized (consoleMonitor) {
-            overideCurrentState (CMD_EXIT);
+            statesManager.setState_Exit();
             threadRun.interrupt();
         }
     } //+
@@ -472,7 +434,7 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
     {
         Task newTask = getTaskToStart (data);
         if (newTask == errorTask) {
-            sendData (CMD_TASK, newTask.safeCopy());
+            sendData (CMD_TASK, Task.safeCopy (newTask));
         }
         else {
             TaskExecutor te = launchTask (newTask);
@@ -490,7 +452,7 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
     }
 
 /** Используется для ошибок. */
-    final Task errorTask = new Task (DEF_TASK_NAME, DEF_TASK_STATE, DEF_TASK_MESSAGE);
+    final Task errorTask = new Task (DEF_TASK_NAME, TS_ERROR, TS_ERROR.tsName);
 
 /** Запуск указанной задачи. Запрос на запуск задачи будет проигнориован, если:<br>
 • state.code == CMD_ERROR (эта проверка нужна на случай, если УД ещё не знает об ошике в нашем УУ. Если бы он знал, то не прислал бы CMD_TASK);<br>
@@ -503,7 +465,7 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
     private @NotNull Task getTaskToStart (Object data)
     {
         String taskName = "?",
-               taskErrorMessage = DEF_TASK_MESSAGE;
+               taskErrorMessage = "Неизвестная ошибка.";
         TaskStates errorTState = TS_REJECTED;
         Task newTask = null;
 
@@ -529,7 +491,7 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
             }
             else {
         //если задачу можно создать и запустить:
-                newTask = t.safeCopy();
+                newTask = Task.safeCopy(t);
             }
         /*  Тут не учитывается, что текущая задача может быть прервана для запуска другой задачи.
         Такую проверку делать здесь не стоит, например, потому, что нарушается «зона
@@ -616,7 +578,7 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
             SensorStates newStat = changeSensorState (senUuid, sensor.getSstate());
             if (newStat != null)
             {
-                sensor.setSstate (newStat);
+                sensor.setSstate (newStat); //< Вычисленное значение может отличаться от запрошенного.
                 if (newStat.alarm)
                     alarmForAWhile (senUuid);
             }
@@ -634,14 +596,12 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
         Thread tr = new Thread (()->{
             try {
 //lnprintln("alarmForAWhile() - начат отчсёт для датчика: "+ uuid +"; state.sensors: "+ state.getSensors());
-                //statesManager.sensorAlarmIsOn();
                 TimeUnit.MILLISECONDS.sleep (millis);
             }
             catch (InterruptedException e) { lnerrprintln (e.getMessage()); }
             finally {
                 if (state.getSensors().get(uuid).on)
                     state.getSensors().put(uuid, SST_ON);
-                //statesManager.sensorAlarmOff();
 //lnprintln("alarmForAWhile() - закончен отчсёт для датчика: "+ uuid+ "; state.sensors: "+ state.getSensors());
 //println (state.toString());
             }});
@@ -662,13 +622,6 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
 
 //---------------------------------------------------------------------------
 
-//TODO: все вызовы этого метода, выполняемые вне класса StatesManager, нужно заменить на вызовы
-// методов StatesManager.
-    private void overideCurrentState (@NotNull OperationCodes opCode)
-    {
-        state.setOpCode (opCode);
-    }
-
 /** Класс заботится о правильном перелючении состояний УУ.<p>
  Состояния УУ сменяют друг друга, и
  иногда, выходя из состояния с высоким приоритетом, бывает желательно или необходимо вернуться
@@ -683,7 +636,10 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
  statesStack не совсем стек. */
         private final LinkedList<OperationCodes> statesStack = new LinkedList<>();
 
-//TODO: некоторые методы похожи.
+
+        private void overideCurrentState (@NotNull OperationCodes opCode) {
+            state.setOpCode (opCode);
+        }
 
 /** Запоминаем состояние УУ, в котором задача запускается, и устанавливаем состояние CMD_BUSY. */
         void taskStarts () {
@@ -711,9 +667,6 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
             overideCurrentState (CMD_ERROR);
 //lnprintf("StatesManager.errorOn() сделала: стек = %s, state.opCode = %s.\n", statesStack.toString(), state.getOpCode());
         }
-
-        void sleepOn () {}
-        void sleepOff () {}
 
 /** Восстанавливаем состояние УУ после состояния ошибки.<p>
  Извлекаем из стека самый ближний к вершине код, не превышающий CMD_ERROR. Если приоритет кода
@@ -744,6 +697,33 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
                 }
             if (DEBUG) throw new RuntimeException ("В стеке отсутствует код уровня "+ example.name());
             return null;
+        }
+
+        void sleepOn () {}
+        void sleepOff () {}
+
+/** Устанавливаем состояние, с которым УУ начинает работу в УД. Подразумеваем, что statesStack пуст. */
+        void setInitialState () {
+            overideCurrentState (CMD_READY);
+            if (DEBUG && !statesStack.isEmpty())
+                throw new RuntimeException ("StatesManager.statesStack не пуст.");
+        }
+
+/** Состояние CMD_NOT_CONNECTED устанавливается перед завершением работы УУ в УД, —
+ соединение с УД разрывается, и пропадает необходимость отслеживать переключение состояний УУ
+ — после включения этого состояния statesStack становится ненужен. */
+        void setState_NotConnected ()
+        {
+            statesStack.clear();
+            overideCurrentState (CMD_NOT_CONNECTED);
+        }
+
+/** Состояние CMD_EXIT устанавливается перед завершением работы УУ в УД, —
+ соединение с УД разрывается, и пропадает необходимость отслеживать переключение состояний УУ
+ — после включения этого состояния statesStack становится ненужен. */
+        void setState_Exit () {
+            statesStack.clear();
+            overideCurrentState (CMD_EXIT);
         }
     }//class StatesManager
 }

@@ -2,19 +2,12 @@ package ru.gb.smarthome.homekeeper.entities;
 
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
-import org.jetbrains.annotations.NotNull;
-import org.springframework.boot.autoconfigure.web.format.DateTimeFormatters;
-import org.springframework.format.annotation.DateTimeFormat;
-import ru.gb.smarthome.common.smart.enums.TaskStates;
 import ru.gb.smarthome.homekeeper.dtos.SchedRecordDto;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.UUID;
 
 import static java.lang.String.format;
-import static ru.gb.smarthome.common.FactoryCommon.*;
 
 @Entity
 @Table (name="schedule_records")
@@ -35,22 +28,18 @@ public class SchedRecord {
     @Column (name="date_time", nullable=false)
     private LocalDateTime dateTime;
 
-    @Column (name="state")
-    private String  state; //TaskStates.tsName
-
     @CreationTimestamp  @Column (name="created_at")
     private LocalDateTime createdAt;
 
     public SchedRecord (){}
 
     @Override public String toString () {
-        return format ("\nSchedRecord:[%d | %s (%s) | %s | %s | %s]"
+        return format ("\nSchedRecord:[%d | %s (%s) | %s | %s]"
                     ,id
                     ,deviceName.getName()
                     ,deviceName.getUuid()
                     ,taskName
-                    ,dateTime
-                    ,state);
+                    ,dateTime);
     }
 
 /** Инициализация создание и инициализация SchedRecord (по данным из SchedRecordDto), например,
@@ -67,15 +56,11 @@ public class SchedRecord {
     {
         if (dto == null || fName == null || ldt == null)
             return null;
-
         SchedRecord rec = new SchedRecord();
         rec.id          = dto.getId();
         rec.deviceName  = fName;
         rec.taskName    = dto.getTaskName();
         rec.dateTime    = ldt;
-
-        TaskStates tstate = TaskStates.byTsName (dto.getState());
-        rec.state       = (tstate != null) ? tstate.tsName : TaskStates.TS_IDLE.tsName;
         return rec;
     }
 }

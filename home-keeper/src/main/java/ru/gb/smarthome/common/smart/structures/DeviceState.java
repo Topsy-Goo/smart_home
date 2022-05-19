@@ -51,7 +51,7 @@ public class DeviceState implements Serializable
     public DeviceState safeCopy () {
         Task t = currentTask;
         if (t != null)
-            t = currentTask.safeCopy();
+            t = Task.safeCopy (currentTask);
         return new DeviceState (opCode, errCode)
                         .setCurrentTask (t)
                         .setSensors (new HashMap<>(sensors))

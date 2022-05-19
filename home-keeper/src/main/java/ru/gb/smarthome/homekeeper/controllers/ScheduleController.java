@@ -37,7 +37,7 @@ if (list != null) lnprintf ("/schedule - ответ: %s.\n", list);
     }
 
     //http://localhost:15550/home/v1/schedule/schedule_delete_record
-    @PostMapping ("/schedule_delete_record")
+    @PostMapping ("/delete_schedule_record")
     public boolean deleteScheduleRecord (@RequestBody SchedRecordDto schedRecordDto)
     {
 lnprintln ("deleteScheduleRecord() - получила: "+ schedRecordDto);

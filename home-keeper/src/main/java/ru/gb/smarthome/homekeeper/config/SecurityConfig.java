@@ -22,8 +22,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter
 
     @Override
     @Bean
-    public AuthenticationManager authenticationManagerBean () throws Exception //< TODO: удалить?
-    {
+    public AuthenticationManager authenticationManagerBean () throws Exception
+    {   //Это переопределение кажется бессмысленным, но его наличие необходимо для запуска приложения.
         return super.authenticationManagerBean();
     }
 

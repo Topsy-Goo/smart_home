@@ -4,9 +4,6 @@ import lombok.Data;
 import org.jetbrains.annotations.NotNull;
 import ru.gb.smarthome.common.smart.structures.Task;
 
-import java.util.Collections;
-import java.util.List;
-
 import static ru.gb.smarthome.common.FactoryCommon.*;
 
 @Data
@@ -21,10 +18,9 @@ public class TaskDto
     private long    remained;
     private long    elapsed;
 
-    //public  static final List<TaskDto> nullTasks = Collections.emptyList();
-    public static final TaskDto nullTaskDto = TaskDto.taskToDto (null);
-
     public TaskDto () {}
+
+    public static final TaskDto nullTaskDto = TaskDto.taskToDto (null);
 
     public static @NotNull TaskDto taskToDto (Task t) {
         String s;

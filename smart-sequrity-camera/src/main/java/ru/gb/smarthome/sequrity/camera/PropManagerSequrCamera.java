@@ -24,8 +24,8 @@ public class PropManagerSequrCamera extends PropertyManagerEmpty
 
     @PostConstruct
     @Override public void init() {
-        tasks.add (new Task (TASKNAME_STREAMING, AUTONOMIC, 1L, TimeUnit.HOURS,   INTERRUPTIBLE).setMessage("Начать трансляцию."));
-//      tasks.add (new Task (TASKNAME_VRECORDER, AUTONOMIC, 5L, TimeUnit.MINUTES, INTERRUPTIBLE).setMessage("Начать запись."));
+        tasks.add (new Task (TASKNAME_STREAMING, AUTONOMIC, INTERRUPTIBLE, 1L, TimeUnit.HOURS).setMessage("Начать трансляцию."));
+//      tasks.add (new Task (TASKNAME_VRECORDER, AUTONOMIC, INTERRUPTIBLE, 5L, TimeUnit.MINUTES).setMessage("Начать запись."));
         slaveTypes.add (SEQURITY_CONTROLLLER);
         slaveTypes.add (WASHER);
     }

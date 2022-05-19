@@ -21,7 +21,7 @@ public class PropertyManagerFridge extends PropertyManagerEmpty
 
     @PostConstruct
     @Override public void init() {
-        tasks.add (new Task ("Разморозка", AUTONOMIC, 60, TimeUnit.SECONDS, NON_INTERRUPTIBLE));
+        tasks.add (new Task ("Разморозка", AUTONOMIC, NON_INTERRUPTIBLE, 60, TimeUnit.SECONDS));
     }
 
     @Override public UUID getUuid ()   { return uuid; }

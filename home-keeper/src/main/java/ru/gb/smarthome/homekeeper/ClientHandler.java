@@ -33,9 +33,9 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
  причём вне блока пК просто спит. */
     private final Object  stateMonitor = new Object();
 
-/** Передача Abilities происходит единажды — в начале работы хэндлера. Сейчас нет необходимости в
+/* * Передача Abilities происходит единажды — в начале работы хэндлера. Сейчас нет необходимости в
  этом мониторе, но пусть останется до поры. */
-    private final Object  abilitiesMonitor = new Object(); //TODO: кажется, монитор на Abilities не нужен.
+    //private final Object  abilitiesMonitor = new Object();
 
 /** Некий объект, который УУ должно получить для того, чтобы получить статус обнаруженного
  устр-ва. Отключаясь от УД, у-во освобождает занимаемы Port. Количество Port-ов в УД ораничено. */
@@ -173,7 +173,7 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
                 return;
             }
 
-            if (!updateAbilities()  ||  !updateState()) {
+            if (!getAbilitiesFromClient() || !updateState()) {
                 errprint ("\nEmpty.mainLoop(): не удалось получить первые CMD_ABILITIES и CMD_STATE.");
                 return;
             }
@@ -256,17 +256,14 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
     {
     //Если мы здесь, то у клиента НЕТ состояния ошибки.
         OperationCodes messageOpCode;
-        Message peekedMsg/*, mR*/;
-        //boolean ok;
-        //Object obj;
+        Message peekedMsg;
+
     //Выполняем запрошенную операцию, только если её приоритет БОЛЬШЕ приоритета текущего состояния УУ.
         while ((peekedMsg = priorityQueue.peek()) != null   &&
                (!state.getOpCode().greaterThan (messageOpCode = peekedMsg.getOpCode())))
         {
             switch (messageOpCode)
             {
-                //case CMD_READY:
-                //    break;
                 case CMD_TASK:   treatTaskRequest (peekedMsg);
                     break;
                 case CMD_INTERRUPT: treatTaskInterruptRequest (/*peekedMsg*/);
@@ -275,10 +272,6 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
                     break;
                 case CMD_SENSOR: treatSensorRequest (peekedMsg);
                     break;
-                //case CMD_STATE:  if (!updateState()) throw new OutOfServiceException (); //TODO: Удалить?
-                //    break;
-                //case CMD_ABILITIES: if (!updateAbilities()) throw new OutOfServiceException (); //TODO: Удалить?
-                //    break;
                 default: if (DEBUG) throw new OutOfServiceException(
                     format ("ClientHandler.dispatchHadlerTaskQueue():switch:default: Message: %s.", peekedMsg));
             }
@@ -295,7 +288,9 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
         Task t = state.getCurrentTask();
         if (t != null)
         {
-            if (!t.isInterruptible()  ||  !interruptCurrentTask())
+            if (t.isInterruptible()  &&  interruptCurrentTask())
+                updateState();
+            else
                 addNewsCallback.callback (format ("Не удалось остановить задачу «%s».", t.getName()));
         }
         else if (DEBUG) addNewsCallback.callback ("Отладка: Получен запрос остановить несуществующую задачу.");
@@ -331,14 +326,15 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
             // раз, или запустил задачу одновременно с точно такой же запланированной задачей.
 
             TaskStates answerTstate = answer.getTstate();
-            if (answerTstate.launchingError)
-            {
-                error = format (rejectedTaskMessageFormat,
+            if (!answerTstate.launchingError) {
+                updateState(); //< Это нужно для правильного поведения while-цикла в dispatchHadlerTaskQueue().
+                error = null;
+            }
+            else error = format (rejectedTaskMessageFormat,
                                   friendlyName,
                                   answer.getName(),
                                   answer.getTstate().tsName, //< стандартное (очень) краткое описание результата
                                   answer.getMessage());      //< строка-сообщение о результате выполнения.
-            } else error = null;
         }
         if (error != null && !error.isBlank())
             addNewsCallback.callback (error);
@@ -376,7 +372,9 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
         if (request != null  &&  (mR = requestClient (peekedMsg)) != null)
         {
             Sensor answer = sensorFromObject (mR.getData());
-            if (!request.equals (answer))
+            if (request.equals (answer))
+                updateState();
+            else
                 error = format (rejectedRequestFormat, friendlyName, request.toString());
         }
         else error = format (FORMAT_REQUEST_ERROR, friendlyName);
@@ -385,45 +383,46 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
             addNewsCallback.callback (error);
     }
 
+/** Обрабатываем извлечение из очереди запроса на выполнение каких-то действий по контракту.
+ Сейчас по контракту мы можем только запустить задачу, указанную в контракте. */
     private void treatSignalRequest (Message peekedMsg)
     {
-        Signal signal;
-        ISmartHandler originSmartHandler = null;
-        //UUID sourceUuid;
-        String contractTaskName, currentTaskName;
-        boolean putIntoTaskQueue;
-        Task taskCurrent;
-        TaskStates tstate;
-        StringBuilder sb = new StringBuilder();
+        Signal signal =  (peekedMsg != null) ? signalFromObject (peekedMsg.getData()) : null;
+        ISmartHandler originSmartHandler = (signal != null) ? signal.getSlaveHandler() : null;
 
-        if (peekedMsg != null
-        &&  (signal = signalFromObject (peekedMsg.getData())) != null
-        &&  (originSmartHandler = signal.getSlaveHandler()) != null
-        &&  originSmartHandler != this)
+        StringBuilder sb = new StringBuilder();
+        if (originSmartHandler != null  &&  originSmartHandler != this)
         {
-            putIntoTaskQueue = false;
-            contractTaskName = stringFromObject (signal.getData());
+            boolean putIntoTaskQueue = false;
+            Task taskCurrent = state.getCurrentTask();
+            TaskStates tstate;
+            String currentTaskName, contractTaskName = stringFromObject (signal.getData());
+
             if (abilities.isTaskName (contractTaskName))
             {
-                if ((taskCurrent = state.getCurrentTask()) == null)
-                    putIntoTaskQueue = true;    /* нет текущей задачи */
+                if ((taskCurrent) == null)
+                    putIntoTaskQueue = true;        /* нет текущей задачи */
                 else
                 if ((tstate = taskCurrent.getTstate()).canReplace)
-                    putIntoTaskQueue = true;    /* нет текущей задачи */
+                    putIntoTaskQueue = true;        /* нет текущей задачи */
                 else
                 if (tstate.runningState)
-                {                               /* contractTaskName уже запущена ? */
-                    if (!(currentTaskName = taskCurrent.getName()).equals (contractTaskName))
-                    if (taskCurrent.isInterruptible())
-                    {                           /* текущую задачу можно прервать */
-                        putIntoTaskQueue = interruptCurrentTask();
-                        if (!putIntoTaskQueue)
-                            sb.append (format ("Не удалось остановить задачу %s.\r", currentTaskName));
+                {                                   /* contractTaskName уже запущена ? */
+                    currentTaskName = taskCurrent.getName();
+                    if (!currentTaskName.equals (contractTaskName))
+                    {
+                        if (taskCurrent.isInterruptible()) {
+                            putIntoTaskQueue = interruptCurrentTask();
+                                                    /* текущую задачу можно прервать */
+                            if (!putIntoTaskQueue)
+                                sb.append (format ("Не удалось остановить задачу %s.\r", currentTaskName));
+                        }
+                        else sb.append (format ("Задача %s не может быть запущена, — выполняется задача %s.\r",
+                                                contractTaskName, currentTaskName));
                     }
-                    else sb.append (format ("Задача %s не может быть запущена, — выполняется задача %s.\r",
-                                            contractTaskName, currentTaskName));
                 }
-                else sb.append (format ("Нельзя запустить задачу %s.\r", contractTaskName));
+                else // (!canReplace и !runningState)
+                    sb.append (format ("Нельзя запустить задачу %s.\r", contractTaskName));
 
                 if (putIntoTaskQueue)
                     offerRequest (new Message().setOpCode (CMD_TASK).setData (contractTaskName));
@@ -454,11 +453,7 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
 
 //---------------------- Реализации методов --------------------------------
 
-    @Override public @NotNull Abilities getAbilities () {
-        synchronized (abilitiesMonitor) {
-            return abilities;
-        }
-    }
+    @Override public @NotNull Abilities getAbilities () {  return abilities.copy();  }
 
     @Override public @NotNull DeviceState getState () {
         synchronized (stateMonitor) {
@@ -543,11 +538,7 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
 
 /** Перезаписываем this.abilities экземпляром, считаным из клиента нашего подопечного УУ. */
     @SuppressWarnings("all")
-    private boolean updateAbilities () {
-        synchronized (abilitiesMonitor) {
-            return (abilities = requestClientAbilities()) != null;
-        }
-    }
+    private boolean getAbilitiesFromClient () {  return (abilities = requestClientAbilities()) != null;  }
 
 /** Запрашиваем abilities у нашего подопечного УУ. */
     private Abilities requestClientAbilities ()
@@ -640,7 +631,6 @@ public class ClientHandler extends SmartDevice implements ISmartHandler
                 UUID uuSensor = e.getKey();
                 slaveCallback.callback (new Signal (this, this.uuid, uuSensor, null));
             }
-        //TODO: Кроме того УУ в ответ на ALARM тут может запустить какую-то свою задачу или обработчик.
         }
     }
 

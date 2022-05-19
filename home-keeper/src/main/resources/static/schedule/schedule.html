@@ -3,7 +3,7 @@
 	<p>&nbsp;</p>
 <!--	<p>&nbsp;</p>-->
 
-	<form	class="align-middle col-12" ng-submit="createRecord (newRecord)">
+	<form	class="align-middle col-12" ng-submit="createRecord ()"><!--  newRecord    -->
 		<fieldset>
 			<legend style="font-size: 20px;">Редактирование записи:</legend>
 			<div class="input-group input-group-sm">	<!-- style="margin-left: -15px;"  -->
@@ -14,7 +14,7 @@
 						ng-model="newRecord.deviceName"
 						ng-trim="true"
 						required="required"
-						disabled="disabled">			<!--      -->
+						disabled="disabled">
 				Задача:
 				<input	id="new_record_input_taskname"
 						type="text"
@@ -57,25 +57,25 @@
 		<table class="table table-sm">
 		  <thead>
 			<tr>
-	<!--		  <th>id</th>-->
+			  <!--<th>id</th>-->
 			  <th scope="col">Устройство</th>
-	<!--		  <th>UUID</th>-->
+			  <!--<th>UUID</th>-->
 			  <th scope="col">Задача</th>
 			  <th scope="col">Время запуска</th>
-	<!--		  <th>long</th>-->
-			  <th scope="col">Состояние</th>
+			  <!--<th>long</th>-->
+			  <!--<th scope="col">Состояние</th>-->
 			  <th scope="col" class="col-2" colspan="2">Действия</th>
 			</tr>
 		  </thead>
 		  <tbody>
 			<tr ng-repeat="rec in schedule"><!-- style="color: {{rec)}};" bgcolor="{{}}" style="color: {{statusColor(order.state)}};" -->
-	<!--			<td>{{rec.id}}</td>-->
+				<!--<td>{{rec.id}}</td>-->
 				<th scope="row">{{rec.deviceName}}</th>
-	<!--			<td>{{rec.uuid}}</td>-->
+				<!--<td>{{rec.uuid}}</td>-->
 				<td>{{rec.taskName}}</td>
 				<td>{{rec.dateTime}}</td>
-	<!--			<td>{{rec.dateTimeLong}}</td>-->
-				<td>{{rec.state}}</td>
+				<!--<td>{{rec.dateTimeLong}}</td>-->
+				<!--<td>{{rec.state}}</td>-->
 				<td class="col-1">
 					<button class="btn btn-sm btn-success"
 							style="font-family: Webdings;"

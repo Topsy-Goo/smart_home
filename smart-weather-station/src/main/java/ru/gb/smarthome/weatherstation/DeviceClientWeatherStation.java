@@ -7,11 +7,9 @@ import ru.gb.smarthome.common.smart.structures.Abilities;
 import ru.gb.smarthome.empty.client.DeviceClientEmpty;
 
 import javax.annotation.PostConstruct;
-
 import java.util.concurrent.Executors;
 
 import static ru.gb.smarthome.common.FactoryCommon.CANNOT_SLEEP;
-import static ru.gb.smarthome.common.smart.enums.DeviceTypes.FRIDGE;
 import static ru.gb.smarthome.common.smart.enums.DeviceTypes.METEO_STATION;
 
 @Component

@@ -56,19 +56,6 @@ public class HomeService {
         return launchTask (uuidStr, "режим просмотра");
     }
 
-/*    public DeviceDto videoOn_Dto (String uuidStr)
-    {
-        if (videoOn (uuidStr)) {
-            try {
-                TimeUnit.SECONDS.sleep(5);
-            }
-            catch (Exception e) { e.printStackTrace(); }
-            ISmartHandler device = deviceByUuidString (uuidStr);
-            return fromSmartHandler(device).setVidioIsOnTo (ON);
-        }
-        return null;
-    }*/
-
     public boolean videoOff (/**/String uuidStr)
     {
         ISmartHandler device = deviceByUuidString (uuidStr);
@@ -427,10 +414,10 @@ public class HomeService {
         return fName != null ? fName.getName() : null;
     }
 
-    private String friendlyNameByUuid (UUID uuid) {
+/*    private String friendlyNameByUuid (UUID uuid) {
         FriendlyName fName = findFriendlyNameByUuid (uuid.toString());
         return fName != null ? fName.getName() : null;
-    } //TODO: не используется.
+    }*/
 
     @Transactional
     public boolean isTaskName (UUID uuid, String taskName)

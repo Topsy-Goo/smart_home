@@ -55,15 +55,13 @@ INSERT INTO `smarthome`.`schedule_records`
 `device_uuid`,
 `task_name`,
 `date_time`,
-`created_at`,
-`state`)
+`created_at`)
 VALUES
 (<{id: }>,
 <{device_uuid: }>,
 <{task_name: }>,
 <{date_time: }>,
-<{created_at: CURRENT_TIMESTAMP}>,
-<{state: }>);
+<{created_at: CURRENT_TIMESTAMP}>);
 
 CREATE TABLE `users` (
   `id`			int 		NOT NULL AUTO_INCREMENT,

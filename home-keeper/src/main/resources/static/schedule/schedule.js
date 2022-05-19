@@ -18,7 +18,7 @@
 console.log ('******** расписание-авторизован ********');
 		resetNewRecord();
 		clearInterval ($rootScope.stateTimer);
-		$scope.loadSchedule();
+		loadSchedule();
 
 		if ($routeParams.uuid == null) {
 		}
@@ -41,7 +41,6 @@ console.log ('$scope.startSchedulePage() вызван. $routeParams: ', $routePa
 		dateTime.setSeconds(0);
 		$scope.newRecord.dateTime	= dateTime;
 //		$scope.newRecord.dateTime	= dateTime.valueOf();
-//		$scope.newRecord.state		= "";
 //		$scope.newRecord.available	= ;
 	}
 
@@ -55,14 +54,13 @@ console.log ('$scope.startSchedulePage() вызван. $routeParams: ', $routePa
 			"taskName"		: "",
 			"dateTime"		: null,
 			"dateTimeLong"	: 0,
-			"available"		: false,	//< Указывает, подключено ли УУ. (На случай, когда в расписании
+			"available"		: false	//< Указывает, подключено ли УУ. (На случай, когда в расписании
 	//остались записи для УУ, которое сейчас отключено от УД — отсутствует среди обнаруженых устройств.)
-			"state"			: ""
 		};
 	}
 
 //Вызывается из формы при нажатии на кнопку Запомнить.
-	$scope.createRecord = function (newRecord) //< TODO:параметр не нужен?
+	$scope.createRecord = function ()
 	{
 		//$scope.newRecord.id - не трогаем, т.к. форма может быть заполнена данными из строки таблицы.
 		//	(Если id корректный, то фронт расценит запрос как запрос на изменение данных.)
@@ -77,7 +75,7 @@ console.log ('$scope.startSchedulePage() вызван. $routeParams: ', $routePa
 			console.log ('$scope.createRecord() получила ответ: ', response.data);
 			if (response.data)
 			{
-				$scope.loadSchedule();
+				loadSchedule();
 			}
 			else $scope.getHomeNews(); //< расчитываем получить текст сообщения об ошибке.
 		},
@@ -92,16 +90,16 @@ console.log ('$scope.startSchedulePage() вызван. $routeParams: ', $routePa
 	}
 
 //Вызывается при старте и после добавления новой записи.
-	$scope.loadSchedule = function ()
+	loadSchedule = function ()
 	{
-//console.log ('$scope.loadSchedule() вызван для загрузки расписания из бэка.');
+//console.log ('loadSchedule() вызван для загрузки расписания из бэка.');
 		$http.get (contextSchedulePath + '/schedule')
 		.then (
 		function successCallback (response) {
-			$scope.schedule = response.data;
+			$scope.schedule = response.data; //< List<SchedRecordDto>
 		},
 		function failureCallback (response)	{
-			console.log ('ОШИБКА: в $scope.loadSchedule() бэк вернул: ', response.data);
+			console.log ('ОШИБКА: в loadSchedule() бэк вернул: ', response.data);
 		});
 	}
 
@@ -117,7 +115,6 @@ console.log ('$scope.startSchedulePage() вызван. $routeParams: ', $routePa
 		$scope.newRecord.dateTime	= new Date (record.dateTimeLong)/*new Date(record.dateTime)*/;
 		$scope.newRecord.dateTimeLong = record.dateTimeLong;
 		$scope.newRecord.available	= record.available;
-		$scope.newRecord.state		= record.state;
 //console.log ('$scope.scheduleRecordToNewRecord() создал $scope.newRecord: ', $scope.newRecord);
 	}
 
@@ -132,7 +129,7 @@ console.log ('$scope.startSchedulePage() вызван. $routeParams: ', $routePa
 //console.log ('$scope.deleteRecord() вызван. record = ', record);
 		scheduleRecordToNewRecord (record);
 
-		$http.post (contextSchedulePath + '/schedule_delete_record', $scope.newRecord)
+		$http.post (contextSchedulePath + '/delete_schedule_record', $scope.newRecord)
 		.then (
 		function successCallback (response) {
 //console.log ('$scope.deleteRecord() - бэк вернул: ', response.data);
@@ -142,7 +139,7 @@ console.log ('$scope.startSchedulePage() вызван. $routeParams: ', $routePa
 		из строки таблицы поместила в поле id ненулевое значение, то после удаления записи его нужно
 		потереть. Форму не очищаем, — пусть попавшие в неё данные дадут юзеру шанс восстановить
 		удалённую запись (id равный null поспособствует корректному созданию новой записи).	*/
-				$scope.loadSchedule();
+				loadSchedule();
 			}
 			else $scope.getHomeNews(); //< расчитываем получить текст сообщения об ошибке.
 

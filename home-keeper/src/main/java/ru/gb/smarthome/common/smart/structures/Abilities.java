@@ -116,7 +116,7 @@ public final class Abilities implements Serializable
 
     public boolean isSensorUuid (UUID sensorUuid) {   return sensorByUuid (sensorUuid) != null;   }
 
-    public Sensor sensorByUuid (UUID sensorUuid) //TODO:удалить?
+    public Sensor sensorByUuid (UUID sensorUuid)
     {
         if (sensorUuid != null && sensors != null)
             for (Sensor s : sensors)

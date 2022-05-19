@@ -48,8 +48,7 @@ public class Task implements Serializable
 @param isAutonomic операция может продолжаться даже при отключении УУ от УД.
 @param durationInSeconds продолжительность операции с секундах.
 */
-    public Task (String taskName, boolean isAutonomic, long durationInSeconds,
-                 boolean isInterruptible)
+    public Task (String taskName, boolean isAutonomic, boolean isInterruptible, long durationInSeconds)
     {
         if (durationInSeconds < 0)
             throw new IllegalArgumentException();
@@ -59,7 +58,7 @@ public class Task implements Serializable
         duration      = durationInSeconds;
         interruptible = isInterruptible;
         remained      = new AtomicLong (duration);
-        elapsed       = new AtomicLong (0);
+        elapsed       = new AtomicLong (0L);
         tstate        = new AtomicReference<> (DEF_TASK_STATE);
         message       = new AtomicReference<> (DEF_TASK_MESSAGE);
     }
@@ -72,10 +71,10 @@ public class Task implements Serializable
  @param timeUnits единицы времени для параметра duration.
  @param isInterruptible выполнение задачи можно прервать без ущерба для результата
 */
-    public Task (String taskName, boolean isAutonomic, long duration, @NotNull TimeUnit timeUnits,
-                 boolean isInterruptible)
+    public Task (String taskName, boolean isAutonomic, boolean isInterruptible,
+                 long duration, @NotNull TimeUnit timeUnits)
     {
-        this (taskName, isAutonomic, timeUnits.toSeconds(duration), isInterruptible);
+        this (taskName, isAutonomic, isInterruptible, timeUnits.toSeconds(duration));
     }
 
     private Task () {} //< требование сериализации.
@@ -83,23 +82,25 @@ public class Task implements Serializable
 /** Конструктор для «облегчённых» экземпляров Task, назначение которых — только информирование. */
     public Task (@NotNull String tname, TaskStates ts, String tmessage) {
         name     = tname;
-        tstate   = new AtomicReference<>(ts);
+        tstate   = new AtomicReference<>(ts != null ? ts : DEF_TASK_STATE);
         message  = new AtomicReference<>(tmessage != null ? tmessage : DEF_TASK_MESSAGE);
-        remained = new AtomicLong(0L);
-        elapsed  = new AtomicLong(0L);
-        tstate   = new AtomicReference<>(DEF_TASK_STATE);
+        //remained = new AtomicLong(0L);
+        //elapsed  = new AtomicLong(0L);
     }
 
 /** Делаем максимально полную копию экземпляра, чтобы владелец копии мог работать с ней, не боясь повредить
  данные в оригинале */
-    public Task safeCopy () {
-        Task t = new Task (name, autonomic, duration, interruptible);
-        long rem = remained.get(); //TODO: NullPointerException, если задачу прервать ошибкой, а птом «починить» командой /err.
-        t.remained = new AtomicLong (rem);
-        t.elapsed = new AtomicLong(duration - rem);
-        t.tstate = new AtomicReference<>(tstate.get());
-        t.message = new AtomicReference<>(message.get());
-        return t;
+    public static Task safeCopy (Task t)
+    {
+        if (t == null)
+            return null;
+        Task tnew = new Task (t.name, t.autonomic, t.interruptible, t.duration);
+        long rem = t.remained.get();
+        tnew.remained = new AtomicLong (rem);
+        tnew.elapsed  = new AtomicLong (tnew.duration - rem);
+        tnew.tstate   = new AtomicReference<> (t.tstate.get());
+        tnew.message  = new AtomicReference<> (t.message.get());
+        return tnew;
     }
 
     public Task setName (@NotNull String val) { name = val;   return this; }

@@ -23,13 +23,13 @@ public class PropertyManagerWasher extends PropertyManagerEmpty
 
     @PostConstruct
     @Override public void init() {
-        tasks.add (new Task ("Быстрая стирка",    AUTONOMIC, 20, TimeUnit.SECONDS, NON_INTERRUPTIBLE));
-        tasks.add (new Task ("Стирка джинсов",    AUTONOMIC, 25, TimeUnit.SECONDS, NON_INTERRUPTIBLE));
-        tasks.add (new Task ("Деликатная стирка", AUTONOMIC, 30, TimeUnit.SECONDS, NON_INTERRUPTIBLE));
-        tasks.add (new Task ("Ночная стирка",     AUTONOMIC, 45, TimeUnit.SECONDS, NON_INTERRUPTIBLE));
-        tasks.add (new Task ("Замачивание",       AUTONOMIC, 60, TimeUnit.SECONDS, NON_INTERRUPTIBLE));
-        tasks.add (new Task ("Отжим",             AUTONOMIC, 10, TimeUnit.SECONDS, NON_INTERRUPTIBLE));
-        tasks.add (new Task ("Полоскание",        AUTONOMIC, 15, TimeUnit.SECONDS, NON_INTERRUPTIBLE));
+        tasks.add (new Task ("Быстрая стирка",    AUTONOMIC, NON_INTERRUPTIBLE, 20, TimeUnit.SECONDS));
+        tasks.add (new Task ("Стирка джинсов",    AUTONOMIC, NON_INTERRUPTIBLE, 25, TimeUnit.SECONDS));
+        tasks.add (new Task ("Деликатная стирка", AUTONOMIC, NON_INTERRUPTIBLE, 30, TimeUnit.SECONDS));
+        tasks.add (new Task ("Ночная стирка",     AUTONOMIC, NON_INTERRUPTIBLE, 45, TimeUnit.SECONDS));
+        tasks.add (new Task ("Замачивание",       AUTONOMIC, NON_INTERRUPTIBLE, 60, TimeUnit.SECONDS));
+        tasks.add (new Task ("Отжим",             AUTONOMIC, NON_INTERRUPTIBLE, 10, TimeUnit.SECONDS));
+        tasks.add (new Task ("Полоскание",        AUTONOMIC, NON_INTERRUPTIBLE, 15, TimeUnit.SECONDS));
         sensors.add (new Sensor (SNT_LEAK, "Датчик протечки", SST_ON, BINDABLE, UUID.fromString("b29dbbae-dc6a-454e-9f5d-9aaeeec47801")));  //встроенный датчик протечки (пока некуда его прикрутить, но он есть)
     }
 

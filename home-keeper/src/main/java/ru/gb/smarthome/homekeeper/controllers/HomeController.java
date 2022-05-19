@@ -19,7 +19,7 @@ import static ru.gb.smarthome.common.FactoryCommon.*;
 public class HomeController
 {
     private final HomeService homeService;
-    static ObjectMapper mapper = new ObjectMapper(); //TODO: Убрать из релиза.
+    //static ObjectMapper mapper = new ObjectMapper();
 
 
     //Запрос всех данных об УД.
@@ -145,33 +145,17 @@ if (dto != null) lnprintf("<{%s}>", dto.getVideoImageSource());
         return homeService.isTaskName (uuidFromString (strUuid), taskName);
     }
 
-//Используется только в отладочных целях. Переводит объект в JSON-строку.
-    static String objectToJsonString (Object o) {
-        try {
-            return mapper.writeValueAsString(o);
-        }
-        catch (JsonProcessingException e) { e.printStackTrace(); }
-        return format("objectToJsonString() не справился с объектом %s", o.getClass().getSimpleName());
-    }
-
     @GetMapping ("/video_on/{uuid}")
     public boolean videoOn (@PathVariable(name="uuid") String strUuid)
     {
-lnprintf("videoOn() - параметр: %s.\n", strUuid);
+//lnprintf("videoOn() - параметр: %s.\n", strUuid);
         return homeService.videoOn (strUuid);
     }
-
-/*    @GetMapping ("/video_on/{uuid}")
-    public DeviceDto videoOn (@PathVariable(name="uuid") String strUuid)
-    {
-lnprintf("videoOn() - параметр: %s.\n", strUuid);
-        return homeService.videoOn_Dto (strUuid);
-    }*/
 
     @GetMapping ("/video_off/{uuid}")
     public boolean videoOff (@PathVariable(name="uuid") String strUuid)
     {
-lnprintf("videoOff() - параметр: %s.\n", strUuid);
+//lnprintf("videoOff() - параметр: %s.\n", strUuid);
         return homeService.videoOff (strUuid);
     }
 }
