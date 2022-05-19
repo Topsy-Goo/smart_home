@@ -397,10 +397,7 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
                 if (taskFuture != null && !taskFuture.isDone())
                     taskFuture.cancel(true);
             }
-            else {
-                statesManager.errorOff();
-                state.setErrCode(null);
-            }
+            else statesManager.errorOff();
             lnprintln (state.toString());
         }
     }
@@ -671,11 +668,13 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
 /** Восстанавливаем состояние УУ после состояния ошибки.<p>
  Извлекаем из стека самый ближний к вершине код, не превышающий CMD_ERROR. Если приоритет кода
  состояния УУ также не превышает CMD_ERROR, то меняем его на код, извлечённый из стека. */
-        void errorOff () {
+        void errorOff ()
+        {
             OperationCodes opCode = popOpCodeLike (CMD_ERROR);
             if (opCode != null && !state.getOpCode().greaterThan (CMD_ERROR))
             {
-                overideCurrentState(opCode);
+                overideCurrentState (opCode);
+                state.setErrCode (null);
             }
 //lnprintf("StatesManager.errorOff() сделала: стек = %s, state.opCode = %s.\n\n", statesStack.toString(), state.getOpCode());
         }
