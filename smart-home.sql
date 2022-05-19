@@ -42,7 +42,6 @@ CREATE TABLE `schedule_records` (
   `task_name` 	varchar(128) NOT NULL,
   `date_time` 	datetime 	 NOT NULL,
   `created_at` 	datetime 	 NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'TIMESTAMP has a range of 1970-01-01 00:00:01 UTC to 2038-01-19 03:14:07 UTC.\nDATETIME has a range of 1000-01-01 00:00:00 to 9999-12-31 23:59:59.',
-  `state` 		varchar(45)  NOT NULL,
   PRIMARY KEY (`id`),
   KEY `fk_friendly_names_idx` (`device_uuid`),
   CONSTRAINT `fk_friendly_names` FOREIGN KEY (`device_uuid`) REFERENCES `friendly_names` (`uuid`)
