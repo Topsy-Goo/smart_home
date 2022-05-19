@@ -3,19 +3,20 @@ package ru.gb.smarthome.sequrity.controller;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 import ru.gb.smarthome.common.smart.structures.Sensor;
-import ru.gb.smarthome.empty.complex.PropManagerComplex;
+import ru.gb.smarthome.empty.PropertyManagerEmpty;
 
 import javax.annotation.PostConstruct;
 import java.util.UUID;
 
 import static ru.gb.smarthome.common.FactoryCommon.BINDABLE;
-//import static ru.gb.smarthome.common.FactoryCommon.USE_DEF_SENSOR_NAME;
 import static ru.gb.smarthome.common.smart.enums.SensorStates.SST_OFF;
 import static ru.gb.smarthome.common.smart.enums.SensorTypes.*;
 
+//import static ru.gb.smarthome.common.FactoryCommon.USE_DEF_SENSOR_NAME;
+
 @Component ("seqctrl_propman")
 @Scope ("singleton")
-public class PropManagerSequrController extends PropManagerComplex
+public class PropManagerSequrController extends PropertyManagerEmpty
 {
     private final String name = "Спайдер-М4";
     private final UUID   uuid = UUID.fromString ("f02d7de3-b738-4f16-bbed-3e5fe073f533");

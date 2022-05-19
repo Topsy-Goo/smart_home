@@ -4,7 +4,7 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 import ru.gb.smarthome.common.smart.structures.Sensor;
 import ru.gb.smarthome.common.smart.structures.Task;
-import ru.gb.smarthome.empty.complex.PropManagerComplex;
+import ru.gb.smarthome.empty.PropertyManagerEmpty;
 
 import javax.annotation.PostConstruct;
 import java.util.UUID;
@@ -16,7 +16,7 @@ import static ru.gb.smarthome.common.smart.enums.SensorTypes.SNT_LEAK;
 
 @Component ("washer_propman")
 @Scope ("singleton")
-public class PropertyManagerWasher extends PropManagerComplex
+public class PropertyManagerWasher extends PropertyManagerEmpty
 {
     private final String name = "Indesit IWUB 4085 (CIS)";
     private final UUID   uuid = UUID.fromString("8d6ead41-d76e-4bcf-8769-0434ce6a0998");

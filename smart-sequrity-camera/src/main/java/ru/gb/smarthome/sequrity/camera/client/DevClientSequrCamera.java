@@ -7,8 +7,8 @@ import org.springframework.util.SocketUtils;
 import ru.gb.smarthome.common.smart.IConsolReader;
 import ru.gb.smarthome.common.smart.structures.Abilities;
 import ru.gb.smarthome.common.smart.structures.Task;
+import ru.gb.smarthome.empty.client.DeviceClientEmpty;
 import ru.gb.smarthome.empty.client.TaskExecutor;
-import ru.gb.smarthome.empty.complex.DevClientEmptyComplex;
 import ru.gb.smarthome.sequrity.camera.PropManagerSequrCamera;
 
 import javax.annotation.PostConstruct;
@@ -22,7 +22,7 @@ import static ru.gb.smarthome.sequrity.camera.SequrityCameraApp.DEBUG;
 
 @Component
 @Scope ("prototype")
-public class DevClientSequrCamera extends DevClientEmptyComplex
+public class DevClientSequrCamera extends DeviceClientEmpty
 {
     @Autowired
     public DevClientSequrCamera (PropManagerSequrCamera pmsc) {

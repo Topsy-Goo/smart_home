@@ -4,15 +4,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 import ru.gb.smarthome.common.smart.IConsolReader;
-import ru.gb.smarthome.common.smart.enums.SensorStates;
 import ru.gb.smarthome.common.smart.structures.Abilities;
-import ru.gb.smarthome.common.smart.structures.Sensor;
-import ru.gb.smarthome.empty.complex.DevClientEmptyComplex;
+import ru.gb.smarthome.empty.client.DeviceClientEmpty;
 
 import javax.annotation.PostConstruct;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.Executors;
 
 import static ru.gb.smarthome.common.FactoryCommon.CANNOT_SLEEP;
@@ -20,7 +15,7 @@ import static ru.gb.smarthome.common.smart.enums.DeviceTypes.SEQURITY_CONTROLLLE
 
 @Component
 @Scope ("prototype")
-public class DevClientSequrController extends DevClientEmptyComplex
+public class DevClientSequrController extends DeviceClientEmpty
 {
 
     @Autowired

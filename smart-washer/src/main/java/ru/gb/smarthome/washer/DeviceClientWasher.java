@@ -5,18 +5,17 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 import ru.gb.smarthome.common.smart.IConsolReader;
 import ru.gb.smarthome.common.smart.structures.Abilities;
-import ru.gb.smarthome.empty.complex.DevClientEmptyComplex;
+import ru.gb.smarthome.empty.client.DeviceClientEmpty;
 
 import javax.annotation.PostConstruct;
-import java.util.HashMap;
 import java.util.concurrent.Executors;
 
-import static ru.gb.smarthome.common.FactoryCommon.*;
+import static ru.gb.smarthome.common.FactoryCommon.CAN_SLEEP;
 import static ru.gb.smarthome.common.smart.enums.DeviceTypes.WASHER;
 
 @Component
 @Scope ("prototype")
-public class DeviceClientWasher extends DevClientEmptyComplex
+public class DeviceClientWasher extends DeviceClientEmpty
 {
     @Autowired
     public DeviceClientWasher (PropertyManagerWasher pmw) {
