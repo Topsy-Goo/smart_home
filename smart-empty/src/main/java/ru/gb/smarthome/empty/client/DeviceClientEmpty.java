@@ -392,10 +392,9 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
                 println("Невозможно выполнить команду сейчас."); //< объяснение предоставить print(state), вызванный ниже.
             else
             if (setError) {
-                statesManager.errorOn ();
-                state.setErrCode(errCode);
                 if (taskFuture != null && !taskFuture.isDone())
-                    taskFuture.cancel(true);
+                    taskFuture.cancel (true);
+                statesManager.errorOn (errCode);
             }
             else statesManager.errorOff();
             lnprintln (state.toString());
@@ -659,9 +658,11 @@ public class DeviceClientEmpty extends SmartDevice implements IConsolReader
         }
 
 /** Запоминаем состояние УУ, в котором сработал датчик, и устанавливаем состояние CMD_ERROR. */
-        void errorOn () {
+        void errorOn (String errCode)
+        {
             statesStack.addFirst (state.getOpCode());
             overideCurrentState (CMD_ERROR);
+            state.setErrCode (errCode);
 //lnprintf("StatesManager.errorOn() сделала: стек = %s, state.opCode = %s.\n", statesStack.toString(), state.getOpCode());
         }
 
