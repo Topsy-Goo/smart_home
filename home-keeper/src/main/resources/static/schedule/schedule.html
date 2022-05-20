@@ -3,9 +3,9 @@
 	<p>&nbsp;</p>
 <!--	<p>&nbsp;</p>-->
 
-	<form	class="align-middle col-12" ng-submit="createRecord ()"><!--  newRecord    -->
-		<fieldset>
-			<legend style="font-size: 20px;">Редактирование записи:</legend>
+		<legend class="smartLegend">Редактирование записи:</legend>
+		<form	class="align-middle col-12" ng-submit="createRecord ()"><!--  newRecord    -->
+		<!--<fieldset>-->
 			<div class="input-group input-group-sm">	<!-- style="margin-left: -15px;"  -->
 				Устройство:
 				<input	id="new_record_input_devicename"
@@ -44,17 +44,18 @@
 						ng-click="resetNewRecordForm()">
 						Сброс</button><!-- Сброс -->
 			</div>
-		</fieldset>
-	</form>
+		<!--</fieldset>-->
+		</form>
 	<br>
-	<p style="color: #074F86; margin-left: 10px;">
+	<p class="sensorsTable" style="color: #074F86;">
 		Пожалуйста имейте в виду, что только <b>активное</b> устройство может выполнять задачи. Если ко времени выполнения задачи
 		соответствующее ей устройство не будет активно, то задача не будет запущена.
 	</p>
 	<br>
-	<fieldset>
-		<legend style="font-size: 20px;">Список запланированных задач:</legend>
-		<table class="table table-sm">
+	<!--<fieldset>-->
+		<legend class="smartLegend">Список запланированных задач:</legend>
+		<div class="sensorsTable">
+		<table class="table table-sm ">
 		  <thead>
 			<tr>
 			  <!--<th>id</th>-->
@@ -78,10 +79,10 @@
 				<!--<td>{{rec.state}}</td>-->
 				<td class="col-1">
 					<button class="btn btn-sm btn-success"
-							style="font-family: Webdings;"
+
 							title="Редактировать запись"
 							ng-click="startEditRecord(rec)"
-							ng-show="{{rec.available}}">a</button>
+							ng-show="{{rec.available}}">Изменить</button><!-- a	style="font-family: Webdings;" -->
 					&nbsp;
 				</td>
 				<td class="col-1">
@@ -95,5 +96,6 @@
 			</tr>
 		  </tbody>
 		</table>
-	</fieldset>
+		</div>
+	<!--</fieldset>-->
 </div>

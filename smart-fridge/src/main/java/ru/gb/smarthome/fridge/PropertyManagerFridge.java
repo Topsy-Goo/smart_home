@@ -9,8 +9,7 @@ import javax.annotation.PostConstruct;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import static ru.gb.smarthome.common.FactoryCommon.AUTONOMIC;
-import static ru.gb.smarthome.common.FactoryCommon.NON_INTERRUPTIBLE;
+import static ru.gb.smarthome.common.FactoryCommon.*;
 
 @Component("fridge_propman")
 @Scope ("singleton")
@@ -21,7 +20,7 @@ public class PropertyManagerFridge extends PropertyManagerEmpty
 
     @PostConstruct
     @Override public void init() {
-        tasks.add (new Task ("Разморозка", AUTONOMIC, NON_INTERRUPTIBLE, 60, TimeUnit.SECONDS));
+        tasks.add (new Task (FRIDGE_TASKNAME_DEFROST, AUTONOMIC, NON_INTERRUPTIBLE, 60, TimeUnit.SECONDS));
     }
 
     @Override public UUID getUuid ()   { return uuid; }

@@ -63,7 +63,16 @@ final public class FactoryCommon
     public static final String FORMAT_CANNOT_LAUNCH_TASK_ = "Не удалось запустить задачу: «%s».";
     public static final String FORMAT_ACTIVATE_DEVICE_FIRST_ = "Устройство «%s» неактивно.\rАктивизируйте его и повторите попытку.";
     public static final String FORMAT_REQUEST_ERROR = "Устройство %s\rне смогло обработать запрос.";
-    //public static final String  = "";
+    public static final String SEQURCAMERA_TASKNAME_STREAMING = "Трансляция";
+    public static final String SEQURCAMERA_TASKNAME_VRECORDER = "Видеозапись";
+    public static final String FRIDGE_TASKNAME_DEFROST = "Разморозка";
+    public static final String WASHER_TASKNAME_QUICK = "Быстрая стирка";
+    public static final String WASHER_TASKNAME_DENIM = "Стирка джинсов";
+    public static final String WASHER_TASKNAME_LIGHT = "Деликатная стирка";
+    public static final String WASHER_TASKNAME_HIGHT = "Ночная стирка";
+    public static final String WASHER_TASKNAME_SOAK  = "Замачивание";
+    public static final String WASHER_TASKNAME_SPIN  = "Отжим";
+    public static final String WASHER_TASKNAME_RINSE = "Полоскание";
 
     public static final String
         promptActivationDuringErrorState = "Активация неисправного устройства невозможна.",

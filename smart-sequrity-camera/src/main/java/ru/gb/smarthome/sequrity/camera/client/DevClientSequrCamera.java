@@ -19,6 +19,7 @@ import static ru.gb.smarthome.common.FactoryCommon.CANNOT_SLEEP;
 import static ru.gb.smarthome.common.smart.enums.DeviceTypes.SEQURITY_CAMERA;
 import static ru.gb.smarthome.sequrity.camera.FactorySequrCamera.*;
 import static ru.gb.smarthome.sequrity.camera.SequrityCameraApp.DEBUG;
+import static ru.gb.smarthome.common.FactoryCommon.*;
 
 @Component
 @Scope ("prototype")
@@ -58,7 +59,7 @@ public class DevClientSequrCamera extends DeviceClientEmpty
 
     @Override protected TaskExecutor launchTask (Task t)
     {
-        if (t.getName().equals (TASKNAME_STREAMING))
+        if (t.getName().equals (SEQURCAMERA_TASKNAME_STREAMING))
         {
             int port = SocketUtils.findAvailableTcpPort();;
             CameraStreamExecutor cameraStreamExecutor =

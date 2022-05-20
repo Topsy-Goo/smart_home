@@ -26,6 +26,6 @@ public class HomeDto {
             for (TypeGroupDto group : groups)
                 deviceCount += group.getDevices().size();
         }
-        string = format ("Устройства сгруппированы по типу. Обнаружены %d устройств.", deviceCount);
+        string = format ("Обнаружены %d устройств.", deviceCount);
     }
 }

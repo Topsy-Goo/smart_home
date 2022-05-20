@@ -14,6 +14,7 @@ public class TaskDto
     private String  message = DEF_TASK_MESSAGE;
     private boolean autonomic;
     private boolean interruptible;
+    private boolean running;
     private long    duration;
     private long    remained;
     private long    elapsed;
@@ -30,6 +31,7 @@ public class TaskDto
             if ((s = t.getName()) != null)
                 dto.name = s;
             dto.tstate        = t.getTstate().tsName;
+            dto.running       = t.getTstate().runningState;
             dto.autonomic     = t.isAutonomic();
             dto.interruptible = t.isInterruptible();
             dto.duration      = t.getDuration();

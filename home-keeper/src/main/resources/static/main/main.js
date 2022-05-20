@@ -111,12 +111,15 @@ console.log ('******** главнвая-авторизован ********');
 			/*	если обновить целиком структуру StateDto, то в $scope.home_dto и в $scope.states ссылки на
 				state будут указывать на разные экземпляры, и ангуляр не сможет обновлять данные на странице.
 			*/
-				element.state.active 	  = response.data.active;
-				element.state.opCode 	  = response.data.opCode;
-				element.state.errCode     = response.data.errCode;
-				element.state.currentTask = response.data.currentTask;
-				element.state.sensors	  = response.data.sensors;
-				element.state.videoImageSource = response.data.videoImageSource;
+				element.state.active 	  		= response.data.active;
+				element.state.opCode 	  		= response.data.opCode;
+				element.state.errCode     		= response.data.errCode;
+				element.state.currentTask 		= response.data.currentTask;
+				element.state.videoImageSource	= response.data.videoImageSource;
+			/*	Состояния датчиков копируем не всюструктуру, а только те поля которые могут измениться.
+				Это связано с тем, что копирование всей структуры «дёргает» всю инфорацию о датчике на
+				странице, не давая его переименовывать.	*/
+				copySensorState (element.state.sensors, response.data.sensors);
 				$scope.getHomeNews();
 			},
 	/*	Эту часть, наверное, можно удалить, а то яндекс-браузер, чтоб его… перестали дебилы делать,
@@ -128,6 +131,19 @@ console.log ('******** главнвая-авторизован ********');
 				console.log ('ОШИБКА в updateStates(): Не удалось обновить статус устройства ', element.uuid);
 			});
 		}
+	}
+
+	function copySensorState (snTo, snFrom)
+	{
+		if (snTo != null && snFrom != null)
+		{
+			let i=0;
+			let len = snTo.length;
+			for (i; i<len; i++)
+			{
+				snTo[i].on = snFrom[i].on;
+				snTo[i].alarm = snFrom[i].alarm;
+		}	}
 	}
 
 //Сравниваем строковые массивы. Порядок элементов не важен, главное — чтобы их наборы были идентичны.
@@ -144,15 +160,17 @@ console.log ('******** главнвая-авторизован ********');
 		}
 		return false;
 	}
-//-------------------------------------------------------------------------------- смена имени
+
+
+//-------------------------------------------------------------------------------- переименование
 
 //Отправлвем на бэк сообщение, что о необходимости изменить поле deviceFriendlyName на указанное значение.
-	$scope.tryNewFriendlyName = function (device, newFriendlyName)
+	$scope.applyNewFriendlyName = function (device, newFriendlyName)
 	{
 		if (device != null && newFriendlyName != null) {
 			var uuid = device.abilities.uuid;
 
-			$http.get (contextMainPath + '/friendly_name/'+ uuid +'/'+ newFriendlyName.string)
+			$http.get (contextMainPath + '/device_friendly_name/'+ uuid +'/'+ newFriendlyName.string)
 			.then (
 			function successCallback (response) {
 				device.friendlyName = newFriendlyName.string;
@@ -163,6 +181,35 @@ console.log ('******** главнвая-авторизован ********');
 			});
 		}
 	}
+
+	$scope.applyNewSensorName = function (sn, newSensorName)
+	{
+		if (sn != null && newSensorName != null)
+		{
+			var uuid = sn.uuid;
+
+			$http.get (contextMainPath + '/sensor_friendly_name/'+ uuid +'/'+ newSensorName.string)
+			.then (
+			function successCallback (response) {
+				sn.name = newSensorName.string;
+			},
+			function failureCallback (response)	{
+				let text = "Не удалось изменить имя датчика:\r«"+ sn.name +'» ('+ sn.uuid +').';
+				alert (text);
+			});
+//			resumeStateTimer();
+		}
+	}
+
+/*	$scope.pauseStateTimer = function ()
+	{
+		clearInterval ($rootScope.stateTimer);
+	}
+
+	resumeStateTimer = function ()
+	{
+		$rootScope.stateTimer = setInterval (updateStates, $scope.pollInterval);
+	}*/
 //-------------------------------------------------------------------------------- активация УУ
 
 //Отправлвем на бэк сообщение, что о необходимости изменить флаг active для УУ с указаным UUID.
@@ -257,7 +304,7 @@ console.log ('******** главнвая-авторизован ********');
 			alert (text);
 		});
 	}
-//-------------------------------------------------------------------------------- запуск задачи
+//-------------------------------------------------------------------------------- задачи
 	$scope.launchTask = function (device, taskName)
 	{
 		$http.get (contextMainPath + '/launch_task/'+ device.abilities.uuid +'/'+ taskName)
@@ -271,6 +318,43 @@ console.log ('******** главнвая-авторизован ********');
 			alert ('ОШИБКА: не удалось обработать запрос:\r'+ response.data);
 		});
 	}
+
+	$scope.interruptCurrentTask = function (device)
+	{
+		$http.get (contextMainPath + '/interrupt_task/'+ device.abilities.uuid)
+		.then (
+		function successCallback (response) {
+//console.log ('$scope.interruptCurrentTask() получила в ответ:', response.data);
+		},
+		function failureCallback (response)	{
+			console.log ('ОШИБКА: в interruptCurrentTask() бэк вернул: ', response.data);
+		});
+	}
+//-------------------------------------------------------------------------------- видео
+/*	$scope.startVideoStreaming = function (device)
+	{
+		$http.get (contextMainPath + '/video_on/'+ device.abilities.uuid)
+		.then (
+		function successCallback (response) {
+//console.log ('$scope.startVideoStreaming() получила в ответ:', response.data);
+		},
+		function failureCallback (response)	{
+			console.log ('ОШИБКА: в startVideoStreaming() бэк вернул: ', response.data);
+		});
+	}*/
+
+/*	$scope.stopVideoStreaming = function (device)
+	{
+		$http.get (contextMainPath + '/video_off/'+ device.abilities.uuid)
+		.then (
+		function successCallback (response) {
+//console.log ('$scope.stopVideoStreaming() получила в ответ:', response.data);
+		},
+		function failureCallback (response)	{
+			console.log ('ОШИБКА: в stopVideoStreaming() бэк вернул: ', response.data);
+		});
+	}*/
+
 //-------------------------------------------------------------------------------- планирование
 	$scope.scheduleTask = function (device, taskName)
 	{
@@ -400,31 +484,15 @@ console.log ('******** главнвая-авторизован ********');
 			console.log ('ОШИБКА: в alarmSensor() бэк вернул: ', response.data);
 		});
 	}
-//-------------------------------------------------------------------------------- видео
-	$scope.startVideoStreaming = function (device)
-	{
-		$http.get (contextMainPath + '/video_on/'+ device.abilities.uuid)
-		.then (
-		function successCallback (response) {
-//console.log ('$scope.startVideoStreaming() получила в ответ:', response.data);
-		},
-		function failureCallback (response)	{
-			console.log ('ОШИБКА: в startVideoStreaming() бэк вернул: ', response.data);
-		});
-	}
 
-	$scope.stopVideoStreaming = function (device)
+	$scope.sensorLightStateImage = function (on, alarm)
 	{
-		$http.get (contextMainPath + '/video_off/'+ device.abilities.uuid)
-		.then (
-		function successCallback (response) {
-//console.log ('$scope.stopVideoStreaming() получила в ответ:', response.data);
-		},
-		function failureCallback (response)	{
-			console.log ('ОШИБКА: в stopVideoStreaming() бэк вернул: ', response.data);
-		});
+		if (!on)
+			return "./images/grey-light-ring.png";
+		if (on && !alarm)
+			return "./images/green-light-ring.png";
+		return "./images/red-light-ring.png";
 	}
-
 //-------------------------------------------------------------------------------- разрешения
 	$scope.showSlaveBindingForm = function (device) {
 		return device.abilities.master;
@@ -436,6 +504,26 @@ console.log ('******** главнвая-авторизован ********');
 
 	isUserLoggedIn = function () {
 		if ($localStorage.smartHomeUser) { return true; } else { return false; }
+	}
+
+	$scope.showInterruptTaskButton = function (currentTask)
+	{
+		if (currentTask) {
+			return currentTask.interruptible && currentTask.running;
+		}
+		return false;
+	}
+
+	$scope.panelHeaderColor1 = function (isActive) {
+		return isActive ? '#dffffa' : '#fefefe';
+	}
+
+	$scope.panelHeaderColor2 = function (isActive) {
+		return isActive ? '#e8fffa' : '#f8f8f8';	//dbfee9
+	}
+
+	$scope.panelBodyColor = function (isActive) {
+		return isActive ? '#f8fff0' : '#f8f8f8';	//dbfee9
 	}
 //-------------------------------------------------------------------------------- очистка
 	cleanUpMainPage = function () {

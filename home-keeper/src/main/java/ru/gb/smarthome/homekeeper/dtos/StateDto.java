@@ -13,6 +13,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
 
 import static java.lang.String.format;
 import static ru.gb.smarthome.common.FactoryCommon.DEF_STATE_DTO_ERRCODE;
@@ -30,7 +31,7 @@ public class StateDto
 
     public StateDto() {}
 
-    public static @NotNull StateDto deviceStateToDto (DeviceInfo info)
+    public static @NotNull StateDto deviceStateToDto (DeviceInfo info, Function<String, String> getFriendlyName)
     {
         Task t;
         DeviceState ds;
@@ -64,6 +65,7 @@ public class StateDto
                     sstate = sensorsMap.get (sen.getUuid());
                     sensordto.on    = sstate.on;
                     sensordto.alarm = sstate.alarm;
+                    sensordto.name  = getFriendlyName.apply (sensordto.getUuid());
             }   }
             dto.videoImageSource = ds.getVideoImageSource();
         }

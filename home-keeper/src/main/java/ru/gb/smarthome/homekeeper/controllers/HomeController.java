@@ -1,14 +1,11 @@
 package ru.gb.smarthome.homekeeper.controllers;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import ru.gb.smarthome.homekeeper.dtos.*;
 import ru.gb.smarthome.homekeeper.services.HomeService;
 
 import java.util.List;
-import java.util.UUID;
 
 import static java.lang.String.format;
 import static ru.gb.smarthome.common.FactoryCommon.*;
@@ -35,9 +32,9 @@ public class HomeController
     @GetMapping ("/state/{uuid}")
     public StateDto getState (@PathVariable(name="uuid") String strUuid)
     {
-        StateDto dto = homeService.getStateDto(strUuid);
+        StateDto dto = homeService.getStateDto (strUuid);
 //print("<{s}>");
-if (dto != null) lnprintf("<{%s}>", dto.getVideoImageSource());
+//if (dto != null) lnprintf("<{%s}>", dto.getVideoImageSource());
         return dto;
     }
 
@@ -50,11 +47,21 @@ if (dto != null) lnprintf("<{%s}>", dto.getVideoImageSource());
     }
 
     //Изменение пользовательского имени УУ, имеющего указаный UUID.
-    //http://localhost:15550/home/v1/main/friendly_name?uuid=…&newFriendlyName=…
-    @GetMapping ("/friendly_name/{uuid}/{newFriendlyName}")
-    public boolean changeFriendlyName (@PathVariable(name="uuid") String strUuid, @PathVariable String newFriendlyName)
+    //http://localhost:15550/home/v1/main/device_friendly_name?uuid=…&newFriendlyName=…
+    @GetMapping ("/device_friendly_name/{uuid}/{newFriendlyName}")
+    public boolean changeDeviceFriendlyName (@PathVariable(name="uuid") String strUuid,
+                                             @PathVariable String newFriendlyName)
     {
-        return homeService.changeFriendlyName (strUuid, newFriendlyName);
+        return homeService.changeDeviceFriendlyName (strUuid, newFriendlyName);
+    }
+
+    //Изменение пользовательского имени датчика, имеющего указаный UUID.
+    //http://localhost:15550/home/v1/main/sensor_friendly_name?uuid=…&newSensorName=…
+    @GetMapping ("/sensor_friendly_name/{uuid}/{newSensorName}")
+    public boolean changeSensorFriendlyName (@PathVariable(name="uuid") String strUuid,
+                                             @PathVariable String newSensorName)
+    {
+        return homeService.changeSensorFriendlyName (strUuid, newSensorName);
     }
 
     //Запрос UUID-ов всех обнаруженный УУ. С пом.такого запроса фронт определяет, не изменился ли набор обнаруженных УУ.
@@ -70,7 +77,15 @@ if (dto != null) lnprintf("<{%s}>", dto.getVideoImageSource());
     @GetMapping ("/launch_task/{uuid}/{taskname}")
     public boolean launchTask (@PathVariable(name="uuid") String strUuid, @PathVariable String taskname)
     {
-        return /*new StringDto*/ (homeService.launchTask (strUuid, taskname));
+        return (homeService.launchTask (strUuid, taskname));
+    }
+
+    //Запрос на остановку указанной задачи указанного устройства.
+    //http://localhost:15550/home/v1/main/interrupt_task/{uuid}
+    @GetMapping ("/interrupt_task/{uuid}")
+    public boolean interruptTask (@PathVariable(name="uuid") String strUuid/*, @PathVariable String taskname*/)
+    {
+        return (homeService.interruptTask (strUuid/*, taskname*/));
     }
 
     //http://localhost:15550/home/v1/main/slave-list/{uuid}
@@ -145,17 +160,17 @@ if (dto != null) lnprintf("<{%s}>", dto.getVideoImageSource());
         return homeService.isTaskName (uuidFromString (strUuid), taskName);
     }
 
-    @GetMapping ("/video_on/{uuid}")
+/*    @GetMapping ("/video_on/{uuid}")
     public boolean videoOn (@PathVariable(name="uuid") String strUuid)
     {
 //lnprintf("videoOn() - параметр: %s.\n", strUuid);
         return homeService.videoOn (strUuid);
-    }
+    }*/
 
-    @GetMapping ("/video_off/{uuid}")
+/*    @GetMapping ("/video_off/{uuid}")
     public boolean videoOff (@PathVariable(name="uuid") String strUuid)
     {
 //lnprintf("videoOff() - параметр: %s.\n", strUuid);
         return homeService.videoOff (strUuid);
-    }
+    }*/
 }

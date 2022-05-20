@@ -93,6 +93,7 @@
 //----------------------------------------------------------------------- выход
 	$scope.logout = function ()
 	{
+console.log ('$scope.logout(): вызван.');
 		removeUserFromLocalStorage();
 		$localStorage.openedPanels = [];
 //console.log ('logout(): $localStorage.openedPanels: ',$localStorage.openedPanels)

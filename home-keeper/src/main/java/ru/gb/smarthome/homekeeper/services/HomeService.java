@@ -7,7 +7,10 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.gb.smarthome.common.smart.ISmartHandler;
 import ru.gb.smarthome.common.smart.enums.DeviceTypes;
 import ru.gb.smarthome.common.smart.enums.SensorStates;
-import ru.gb.smarthome.common.smart.structures.*;
+import ru.gb.smarthome.common.smart.structures.DeviceInfo;
+import ru.gb.smarthome.common.smart.structures.Message;
+import ru.gb.smarthome.common.smart.structures.Sensor;
+import ru.gb.smarthome.common.smart.structures.Signal;
 import ru.gb.smarthome.homekeeper.PropertyManagerHome;
 import ru.gb.smarthome.homekeeper.dtos.*;
 import ru.gb.smarthome.homekeeper.entities.Contract;
@@ -19,7 +22,6 @@ import ru.gb.smarthome.homekeeper.repos.IFriendlyNamesRepo;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static java.lang.String.format;
@@ -51,12 +53,12 @@ public class HomeService {
         }
     }
 
-    public boolean videoOn (String uuidStr)
+/*    public boolean videoOn (String uuidStr)
     {
-        return launchTask (uuidStr, "режим просмотра");
-    }
+        return launchTask (uuidStr, SEQURCAMERA_TASKNAME_STREAMING);
+    }*/
 
-    public boolean videoOff (/**/String uuidStr)
+/*    public boolean videoOff (String uuidStr)
     {
         ISmartHandler device = deviceByUuidString (uuidStr);
         if (device != null) {
@@ -64,7 +66,7 @@ public class HomeService {
             return device.offerRequest (new Message().setOpCode (CMD_INTERRUPT));
         }
         return false;
-    }
+    }*/
 
 /** Добавление УУ в список обнаруженых устройств. */
     @Transactional
@@ -92,8 +94,7 @@ public class HomeService {
             String name = readFriendlyNameOrDefault (info.uuidstr, info.vendorString);
             device.setDeviceFriendlyName (name);
 
-        //Помещаем сенсоры во friendlyNamesRepo (переименования сесорос у нас пока нет, но держать их имена
-        // в базе всё равно удобно):
+        //Помещаем сенсоры во friendlyNamesRepo:
             List<Sensor> sensors = info.abilities.getSensors();
             if (sensors != null)
                 for (Sensor s : sensors)
@@ -110,6 +111,21 @@ public class HomeService {
                                     .getName();
         return name;
     }
+
+    private String friendlyNameByUuid (String key)
+    {
+        FriendlyName fName = findFriendlyNameByUuid(key);
+        return fName != null ? fName.getName() : null;
+    }
+
+    public FriendlyName findFriendlyNameByUuid (String key) {
+        return friendlyNamesRepo.findById (key).orElse(null);
+    }
+
+/*    private String friendlyNameByUuid (UUID uuid) {
+        FriendlyName fName = findFriendlyNameByUuid (uuid.toString());
+        return fName != null ? fName.getName() : null;
+    }*/
 
 /** Удаление УУ из списка обнаруженых устройств. */
     //@SuppressWarnings("all")
@@ -191,7 +207,7 @@ public class HomeService {
     }
 
     private DeviceDto fromSmartHandler (ISmartHandler device) {
-        return DeviceDto.smartDeviceToDto (handlerToInfo.get(device), this::getContractsDto);
+        return DeviceDto.smartDeviceToDto (handlerToInfo.get(device), this::getContractsDto, this::friendlyNameByUuid);
     }
 
 /** Собираем в один список dto-шки мастер-контрактов устройства. */
@@ -228,13 +244,14 @@ public class HomeService {
 
 /** По строковому представлению UUID отдаём StateDto устройства, которому этот UUID принадлежит.
  @param uuidStr — строковое представление UUID устрйоства, состояние которого нужно отдать.  */
+    @Transactional
     public StateDto getStateDto (String uuidStr)
     {
         StateDto stateDto = null;
         ISmartHandler device = deviceByUuidString (uuidStr);
 
         if (device != null)
-            stateDto = StateDto.deviceStateToDto (handlerToInfo.get(device));
+            stateDto = StateDto.deviceStateToDto (handlerToInfo.get(device), this::friendlyNameByUuid);
         return stateDto;
     }
 
@@ -278,24 +295,50 @@ public class HomeService {
         return ok;
     }
 
-
+/** Обрабатываем запрос на остановку текущей задачи устройства, чей UUID указан в паарметре.
+ Вся обработка заключается на размещение запроса в очереди запросов хэндлера. */
+    public boolean interruptTask (String uuidStr)
+    {
+        ISmartHandler device = deviceByUuidString (uuidStr);
+        if (device != null)
+            return device.offerRequest (new Message().setOpCode (CMD_INTERRUPT));
+        return false;
+    }
 
 /** Меняем значение ISmartHandler.deviceFriendlyName на значение, присланое юзером с фронта.
 @param uuidStr строковое представление UUID устрйоства.
 @param newFriendlyName новое значение для ISmartHandler.deviceFriendlyName.
 @return обновлённое значение ISmartHandler.deviceFriendlyName, или NULL в случае неудачи. */
     @Transactional
-    public boolean changeFriendlyName (String uuidStr, String newFriendlyName)
+    public boolean changeDeviceFriendlyName (String uuidStr, String newFriendlyName)
     {
-        if (isStringsValid (uuidStr, newFriendlyName)) {
-            friendlyNamesRepo.save (new FriendlyName (uuidStr, newFriendlyName));
+        if (changeFriendlyName (uuidStr, newFriendlyName)) {
+            //friendlyNamesRepo.save (new FriendlyName (uuidStr, newFriendlyName));
 
-            ISmartHandler device = uuidToHandler.get(UUID.fromString(uuidStr));
+            ISmartHandler device = uuidToHandler.get (uuidFromString (uuidStr));
             if (device != null)
                 device.setDeviceFriendlyName (newFriendlyName);
             return true;
         }
         return false;
+    }
+
+    private boolean changeFriendlyName (String uuidStr, String newName)
+    {
+        try {
+            if (isStringsValid (uuidStr, newName))
+                friendlyNamesRepo.save (new FriendlyName (uuidStr, newName));
+            return true;
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    @Transactional
+    public boolean changeSensorFriendlyName (String uuidStr, String newName) {
+        return changeFriendlyName (uuidStr, newName);
     }
 
 /** Составляем список строковых представлений UUID-ов всех обнаруженных УУ и отдаём его на фронт.
@@ -402,22 +445,6 @@ public class HomeService {
         catch (Exception e) { e.printStackTrace(); }
         return false;
     }
-
-    public FriendlyName findFriendlyNameByUuid (String key)
-    {
-        return friendlyNamesRepo.findById (key).orElse(null);
-    }
-
-    private String friendlyNameByUuid (String key)
-    {
-        FriendlyName fName = findFriendlyNameByUuid(key);
-        return fName != null ? fName.getName() : null;
-    }
-
-/*    private String friendlyNameByUuid (UUID uuid) {
-        FriendlyName fName = findFriendlyNameByUuid (uuid.toString());
-        return fName != null ? fName.getName() : null;
-    }*/
 
     @Transactional
     public boolean isTaskName (UUID uuid, String taskName)

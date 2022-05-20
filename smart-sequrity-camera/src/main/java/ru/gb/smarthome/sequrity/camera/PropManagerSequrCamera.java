@@ -9,11 +9,9 @@ import javax.annotation.PostConstruct;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import static ru.gb.smarthome.common.FactoryCommon.AUTONOMIC;
-import static ru.gb.smarthome.common.FactoryCommon.INTERRUPTIBLE;
+import static ru.gb.smarthome.common.FactoryCommon.*;
 import static ru.gb.smarthome.common.smart.enums.DeviceTypes.SEQURITY_CONTROLLLER;
 import static ru.gb.smarthome.common.smart.enums.DeviceTypes.WASHER;
-import static ru.gb.smarthome.sequrity.camera.FactorySequrCamera.TASKNAME_STREAMING;
 
 @Component ("seqcam_propman")
 @Scope ("singleton")
@@ -24,8 +22,8 @@ public class PropManagerSequrCamera extends PropertyManagerEmpty
 
     @PostConstruct
     @Override public void init() {
-        tasks.add (new Task (TASKNAME_STREAMING, AUTONOMIC, INTERRUPTIBLE, 1L, TimeUnit.HOURS).setMessage("Начать трансляцию."));
-//      tasks.add (new Task (TASKNAME_VRECORDER, AUTONOMIC, INTERRUPTIBLE, 5L, TimeUnit.MINUTES).setMessage("Начать запись."));
+        tasks.add (new Task (SEQURCAMERA_TASKNAME_STREAMING, AUTONOMIC, INTERRUPTIBLE, 1L, TimeUnit.HOURS).setMessage(SEQURCAMERA_TASKNAME_STREAMING));
+//      tasks.add (new Task (TASKNAME_VRECORDER, AUTONOMIC, INTERRUPTIBLE, 5L, TimeUnit.MINUTES).setMessage(TASKNAME_VRECORDER));
         slaveTypes.add (SEQURITY_CONTROLLLER);
         slaveTypes.add (WASHER);
     }
