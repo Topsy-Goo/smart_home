@@ -144,9 +144,18 @@
 									class="btn btn-sm btn-outline-warning"
 									style="margin-left: 10px;"
 									type="button"
+									ng-show="taskToLaunch"
 									ng-click="launchTask (device,taskToLaunch)">
 									Запустить
 							</button><!-- Запустить -->
+							<button id="taskSubmitDisabled"
+									class="btn btn-sm btn-outline-warning"
+									style="margin-left: 10px;"
+									type="button"
+									ng-show="!taskToLaunch"
+									disabled>
+									Запустить
+							</button><!-- Запустить (запрещена) -->
 							<button id="taskInterrupt"
 									class="btn btn-sm btn-outline-secondary"
 									style="margin-left: 10px;"
@@ -167,16 +176,16 @@
 									class="btn btn-sm btn-outline-success"
 									style="margin-left: 50px;"
 									type="button"
-									ng-click="scheduleTask (device, taskToLaunch)"
-									ng-show="taskToLaunch"><!--  -->
+									ng-show="taskToLaunch"
+									ng-click="scheduleTask (device, taskToLaunch)"><!--  -->
 									Запланировать
 							</button><!-- Запланировать -->
 							<button id="taskScheduleDisabled"
 									class="btn btn-sm btn-outline-success"
 									style="margin-left: 50px;"
 									type="button"
-									disabled
-									ng-show="!taskToLaunch"><!--  -->
+									ng-show="!taskToLaunch"
+									disabled><!--  -->
 									Запланировать
 							</button><!-- Запланировать (запрещена) -->
 						</div>
