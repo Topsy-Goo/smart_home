@@ -21,6 +21,9 @@ public abstract class SmartDevice implements ISmartDevice
     protected       DeviceState state;
     protected final AtomicLong  rwCounter = new AtomicLong(0); //счётчик количества чтений из ObjectInputStream и записей в ObjectOutputStream.
 
+/** Аргументы командной строки. */
+    protected       String[] args;
+
 //----------------------------------------------------------------------
 
 /** Считываем Message из подключенного устройства. Блокирующая операция.
@@ -68,5 +71,7 @@ oos — это экземпляр ObjectOutputStream, предоставленн
                                    .findFirst().orElse (null);
     }
 
+/** Сохраняем аргументы командной строки. */
+    public void mainArgs (String[] args) { this.args = args; }
 //----------------------------------------------------------------------
 }

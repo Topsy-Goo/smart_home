@@ -11,14 +11,16 @@ import ru.gb.smarthome.sequrity.camera.client.DevClientSequrCamera;
 @ComponentScan (basePackages = "ru.gb.smarthome.sequrity.camera")
 public class SequrityCameraApp {
 
-    public static final boolean            DEBUG = true;
+    public static final boolean DEBUG = true;
     @SuppressWarnings("all")
     private static      ApplicationContext context;
 
-	public static void main(String[] args) {
+	public static void main(String[] args)
+	{
         if (init ()) {
             context = new AnnotationConfigApplicationContext (SequrityCameraApp.class);
             ISmartDevice device = context.getBean (DevClientSequrCamera.class);
+            device.mainArgs (args);
             new Thread (device).start();
         }
 	}

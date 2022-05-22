@@ -6,6 +6,7 @@ import com.github.sarxos.webcam.WebcamStreamer;
 import java.awt.*;
 
 import static ru.gb.smarthome.common.FactoryCommon.*;
+import static ru.gb.smarthome.sequrity.camera.FactorySequrCamera.WEBCAM_DETECTION_TIMEOUT;
 import static ru.gb.smarthome.sequrity.camera.SequrityCameraApp.DEBUG;
 
 public class SmartCamera
@@ -25,17 +26,20 @@ public class SmartCamera
     private Webcam findWebcamOrDefault (String webcamNamePrefix)
     {
         Webcam webCam = null;
-        if (isStringsValid(webcamNamePrefix))
+        if (isStringsValid(webcamNamePrefix)) {
             for (Webcam w : Webcam.getWebcams())
+            {
                 if (w.getName().startsWith (webcamNamePrefix)) {
                     webCam = w;
                     break;
-                }
+        }   }   }
+        //else webCam = Webcam.getDefault();
+
         try {
             if (webCam == null)
-                webCam = Webcam.getDefault (5000);
+                webCam = Webcam.getDefault (WEBCAM_DETECTION_TIMEOUT);
 
-            webCam.setViewSize (new Dimension(320, 240));
+            webCam.setViewSize (new Dimension (320, 240));
             Dimension dimension = webCam.getViewSize();
 
             lnprintf ("Найдена камера «%s»: установлено разрешение: %d x %d.",

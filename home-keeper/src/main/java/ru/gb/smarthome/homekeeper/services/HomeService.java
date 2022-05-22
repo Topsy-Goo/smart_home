@@ -155,21 +155,26 @@ public class HomeService {
         }
     }
 
-    public boolean sensorTurn (SensorDto senDto) {
+/** Если УУ-владелец датчика активно, то помещаем в его очередь запрос на смену состояния датчика. */
+    public boolean sensorTurn (SensorDto senDto)
+    {
         return sensorSetState (senDto, senDto.isOn() ? SST_OFF : SST_ON);
     }
 
-    public boolean sensorAlarmTest (SensorDto senDto) {
+/** Если УУ-владелец датчика активно, то помещаем в его очередь запрос на смену состояния датчика. */
+    public boolean sensorAlarmTest (SensorDto senDto)
+    {
         return sensorSetState (senDto, SST_ALARM);
     }
 
     private boolean sensorSetState (SensorDto senDto, SensorStates state)
     {
-        UUID deviceUuid = UUID.fromString (senDto.getDeviceUuid());
-        ISmartHandler device = uuidToHandler.get(deviceUuid);
-        if (device != null)
+        if (senDto == null || state == null)
+            return false;
+        ISmartHandler device = deviceByUuidString (senDto.getDeviceUuid());
+        if (device != null && device.isActive())
         {
-            Sensor sensor = new Sensor(senDto).setSstate(state);
+            Sensor sensor = new Sensor(senDto).setSstate (state);
             Message message = new Message().setOpCode(CMD_SENSOR)
                                            .setData (sensor);
             return device.offerRequest (message);  //(о результате запроса узнаем позже)

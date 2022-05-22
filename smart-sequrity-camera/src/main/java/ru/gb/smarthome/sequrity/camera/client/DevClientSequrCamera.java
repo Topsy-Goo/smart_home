@@ -12,6 +12,7 @@ import ru.gb.smarthome.empty.client.TaskExecutor;
 import ru.gb.smarthome.sequrity.camera.PropManagerSequrCamera;
 
 import javax.annotation.PostConstruct;
+import java.util.Arrays;
 import java.util.concurrent.Executors;
 
 import static java.lang.String.format;
@@ -63,7 +64,7 @@ public class DevClientSequrCamera extends DeviceClientEmpty
         {
             int port = SocketUtils.findAvailableTcpPort();;
             CameraStreamExecutor cameraStreamExecutor =
-                    new CameraStreamExecutor (t, new SmartCamera (cameraNamePrefix_, port));
+                    new CameraStreamExecutor (t, new SmartCamera (cameraNamePrefix(), port));
 
             state.setVideoImageSource (format (VIDEO_IMAGE_SRC_FORMAT, port));
             return cameraStreamExecutor;
@@ -76,5 +77,13 @@ public class DevClientSequrCamera extends DeviceClientEmpty
     {
         super.onTaskEndOrInterrupted();
         state.setVideoImageSource (VIDEO_IMAGE_BANNER_SRC);
+    }
+
+    private String cameraNamePrefix ()
+    {
+        String namePrefix = null;
+        if (args != null && args.length > 0 && isStringsValid (namePrefix = args[0]))
+            return namePrefix;
+        return null;
     }
 }

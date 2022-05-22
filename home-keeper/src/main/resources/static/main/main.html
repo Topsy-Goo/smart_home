@@ -34,8 +34,8 @@
 							{{device.state.opCode}} <span ng-show="device.state.errCode">(код: {{device.state.errCode}})</span>
 						</td>
 						<td class="col-5"><!--  -->
-							<div>
-								{{getActiveString(device.state.active)}}<br>
+							{{getActiveString(device.state.active)}}
+							<div ng-if="device.abilities.tasks">
 								{{device.state.currentTask.name}} ({{device.state.currentTask.tstate}}) :
 															{{device.state.currentTask.elapsed}} / {{device.state.currentTask.duration}}
 								<progress	id="task_progress" style="width: 80%;"
