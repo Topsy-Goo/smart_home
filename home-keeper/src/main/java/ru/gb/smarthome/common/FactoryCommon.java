@@ -152,14 +152,14 @@ final public class FactoryCommon
         map.get(k).add(v);
     }*/
 
-/* * Убеждаемся, что объект является UUID.
+/** Убеждаемся, что объект является UUID.
  @param o исследуемый объект.
- @return Объект o, преобразованный к типу UUID, или NULL, если о не является объектом UUID.
+ @return Объект o, преобразованный к типу UUID, или NULL, если о не является объектом UUID. */
     public static UUID uuidFromObject (Object o) {
         if (o instanceof UUID)
             return (UUID) o;
         return null;
-    } */
+    }
 
 /** Убеждаемся, что объект является Signal.
  @param o исследуемый объект.

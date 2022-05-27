@@ -53,21 +53,6 @@ public class HomeService {
         }
     }
 
-/*    public boolean videoOn (String uuidStr)
-    {
-        return launchTask (uuidStr, SEQURCAMERA_TASKNAME_STREAMING);
-    }*/
-
-/*    public boolean videoOff (String uuidStr)
-    {
-        ISmartHandler device = deviceByUuidString (uuidStr);
-        if (device != null) {
-            //;
-            return device.offerRequest (new Message().setOpCode (CMD_INTERRUPT));
-        }
-        return false;
-    }*/
-
 /** Добавление УУ в список обнаруженых устройств. */
     @Transactional
     public void smartDeviceDetected (ISmartHandler device)
@@ -121,11 +106,6 @@ public class HomeService {
     public FriendlyName findFriendlyNameByUuid (String key) {
         return friendlyNamesRepo.findById (key).orElse(null);
     }
-
-/*    private String friendlyNameByUuid (UUID uuid) {
-        FriendlyName fName = findFriendlyNameByUuid (uuid.toString());
-        return fName != null ? fName.getName() : null;
-    }*/
 
 /** Удаление УУ из списка обнаруженых устройств. */
     //@SuppressWarnings("all")

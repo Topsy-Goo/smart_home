@@ -28,6 +28,6 @@ public class PropManagerSequrCamera extends PropertyManagerEmpty
         slaveTypes.add (WASHER);
     }
 
-    @Override public UUID getUuid ()                { return uuid; }
-    @Override public String getName ()              { return name; }
+    @Override public UUID getUuid ()   { return uuid; }
+    @Override public String getName () { return name; }
 }
